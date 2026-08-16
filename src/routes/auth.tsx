@@ -46,14 +46,20 @@ function AuthPage() {
             password,
             options: { emailRedirectTo: `${window.location.origin}/` },
           });
-    const { error } = await fn;
+    const { data: result, error } = await fn;
     setBusy(false);
     if (error) {
       toast.error(error.message);
       return;
     }
+    if (!result.session) {
+      toast.success("Check your email to confirm the account, then sign in.");
+      setMode("signin");
+      return;
+    }
     navigate({ to: "/" });
   };
+
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
