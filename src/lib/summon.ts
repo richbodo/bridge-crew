@@ -23,6 +23,20 @@ function toAgent(word: string): AgentKind | null {
 }
 
 /**
+ * Finds @mentions of crew members in ordinary speech, in the order they appear,
+ * de-duplicated. Pure — no IO. "@advocate and @skeptic, come back with…" re-engages both.
+ */
+export function parseMentions(input: string): AgentKind[] {
+  const found: AgentKind[] = [];
+  for (const match of input.matchAll(/@([a-z]+)/gi)) {
+    const agent = toAgent(match[1] ?? "");
+    if (agent && !found.includes(agent)) found.push(agent);
+  }
+  return found;
+}
+
+
+/**
  * Parses a typed line into a summon. Pure — no IO, no side effects.
  * Grammar:
  *   /research <topic>      -> summon scout

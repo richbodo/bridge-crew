@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseSummon } from "../summon";
+import { parseMentions, parseSummon } from "../summon";
 
 describe("parseSummon", () => {
   it("ignores plain speech", () => {
@@ -43,5 +43,18 @@ describe("parseSummon", () => {
     expect(parseSummon("/research")).toEqual({ type: "none" });
     expect(parseSummon("/cook dinner")).toEqual({ type: "none" });
     expect(parseSummon("/redirect scout")).toEqual({ type: "none" });
+  });
+});
+
+describe("parseMentions", () => {
+  it("finds named crew in plain speech, in order, de-duplicated", () => {
+    expect(parseMentions("@advocate and @skeptic, come back with @advocate examples")).toEqual([
+      "advocate",
+      "skeptic",
+    ]);
+  });
+
+  it("ignores unknown handles and unmentioned lines", () => {
+    expect(parseMentions("hey @rich2 what do you think?")).toEqual([]);
   });
 });

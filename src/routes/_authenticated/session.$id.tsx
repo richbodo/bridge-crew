@@ -144,8 +144,12 @@ function RoomPage() {
             <span key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="inline-block size-2 rounded-full" style={{ backgroundColor: p.color }} />
               {p.display_name}
+              {p.user_id === room.me.user_id ? (
+                <span className="text-[10px] uppercase tracking-[0.15em] text-foreground">(you)</span>
+              ) : null}
             </span>
           ))}
+
           <InvitePanel sessionId={id} code={room.session.code} />
           <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
             Leave
@@ -164,7 +168,7 @@ function RoomPage() {
             <Textarea
               value={draft}
               rows={2}
-              placeholder="Say something, or summon the crew: /research …  /analyze …  /debate …"
+              placeholder="Say something, call the crew by name (@scout, @advocate…), or use /research … /analyze … /debate …"
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -195,6 +199,7 @@ function RoomPage() {
           <h2 className="pt-2 text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Stations</h2>
           {CREW_ORDER.map((agent) => {
             const state = room.agents.find((a) => a.agent === agent);
+            const active = ["working", "hand_raised", "speaking"].includes(statusOf(agent));
             return (
               <AgentCard
                 key={agent}
@@ -202,11 +207,17 @@ function RoomPage() {
                 status={statusOf(agent)}
                 task={state?.current_task ?? null}
                 progress={state?.progress ?? null}
+                busy={sendMutation.isPending}
                 onStop={() => standDown({ data: { sessionId: id, agent } })}
-                onRedirect={() => setDraft(`/redirect ${CREW[agent].kind} `)}
+                onEngage={(brief) =>
+                  sendMutation.mutate(
+                    active ? `/redirect ${CREW[agent].kind} ${brief}` : `/${CREW[agent].kind} ${brief}`,
+                  )
+                }
               />
             );
           })}
+
         </section>
 
         <aside className="min-h-0 overflow-y-auto p-4">
