@@ -114,3 +114,17 @@ export async function writePlanDoc(context: string, current: string): Promise<st
     },
   ]);
 }
+
+export type NameLookup = (agent: AgentKind) => string;
+
+export function makeNameLookup(
+  rows: Array<{ agent: string; display_name?: string | null }> | null | undefined,
+  fallback: Record<AgentKind, { name: string }>,
+): NameLookup {
+  const map = new Map<string, string>();
+  for (const row of rows ?? []) {
+    const name = row.display_name?.trim();
+    if (name) map.set(row.agent, name);
+  }
+  return (agent) => map.get(agent) ?? fallback[agent].name;
+}

@@ -67,7 +67,7 @@ export const postLine = createServerFn({ method: "POST" })
     };
 
     if (summon.type === "summon") {
-      await start(summon.agent, summon.brief, `${CREW[summon.agent].name} is on it: ${summon.brief}`);
+      await start(summon.agent, summon.brief, `${nameOf(summon.agent)} is on it: ${summon.brief}`);
     } else if (summon.type === "debate") {
       await start(
         "advocate",
@@ -79,7 +79,7 @@ export const postLine = createServerFn({ method: "POST" })
       await start(
         summon.agent,
         summon.brief,
-        `${CREW[summon.agent].name} redirected: ${summon.brief}`,
+        `${nameOf(summon.agent)} redirected: ${summon.brief}`,
       );
     } else if (summon.type === "stop") {
       await supabase
@@ -97,12 +97,12 @@ export const postLine = createServerFn({ method: "POST" })
         session_id: data.sessionId,
         author_name: "Bridge",
         kind: "system" as const,
-        body: `${CREW[summon.agent].name} stood down.`,
+        body: `${nameOf(summon.agent)} stood down.`,
       });
     } else {
       // Plain speech that names crew members re-engages them with the line as the brief.
       for (const agent of parseMentions(body)) {
-        await start(agent, body, `${CREW[agent].name} was called on: ${body}`);
+        await start(agent, body, `${nameOf(agent)} was called on: ${body}`);
       }
     }
 
@@ -155,7 +155,7 @@ export const runAgent = createServerFn({ method: "POST" })
         session_id: data.sessionId,
         author_name: "Bridge",
         kind: "system" as const,
-        body: `${CREW[data.agent].name} could not finish: ${(error as Error).message}`,
+        body: `${nameOf(data.agent)} could not finish: ${(error as Error).message}`,
       });
       return { ok: false, reason: "error" as const };
     }
@@ -240,7 +240,7 @@ export const resolveHail = createServerFn({ method: "POST" })
       });
       await supabase.from("transcript").insert({
         session_id: data.sessionId,
-        author_name: CREW[agent].name,
+        author_name: nameOf(agent),
         kind: "agent" as const,
         agent,
         body: contribution?.spoken ?? hail.summary,
@@ -288,7 +288,7 @@ export const stopAgent = createServerFn({ method: "POST" })
       session_id: data.sessionId,
       author_name: "Bridge",
       kind: "system" as const,
-      body: `${CREW[data.agent].name} stood down.`,
+      body: `${nameOf(data.agent)} stood down.`,
     });
     return { ok: true };
   });
