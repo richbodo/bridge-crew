@@ -1,57 +1,65 @@
-# Phase 0 — Text Party Line
+# Inviting the second human
 
-Goal from the plan doc: the full interaction grammar with zero audio/video. Two humans type in a shared session room, summon agents by command, agents work in the background, raise a hand, get granted a turn, speak a short summary with an expandable brief, and a Scribe keeps a living plan document. Exit gate: 30 minutes of typing with a friend on a real problem, and it's already a little bit fun.
+Right now a room only exists for whoever created it: the join code lives on the session screen, and a second person has no path in except being told the code out of band. This adds a real invite flow, with email as the primary channel.
 
-## Stack note (one deviation from the plan doc)
+## The flow
 
-The plan doc assumes Supabase Edge Functions for the orchestrator, agent-worker, tts, and scribe. This project is on TanStack Start, where server-side logic runs as server functions and API routes in the same repo instead. Everything else — Postgres, Realtime, Storage, auth, RLS — is the same backend, enabled through Lovable Cloud. Agent LLM calls go through the built-in AI gateway (Gemini/GPT models, no API key setup) rather than a direct Anthropic call; the agent brief/response shape stays model-agnostic so swapping providers later is a config change.
+1. In a room, the host opens an **Invite** panel (top of the room, next to the join code).
+2. Three ways to invite, all in one panel:
+   - **Copy invite link** — `/join/<CODE>` , works instantly, no email needed.
+   - **Email an invite** — type an address, optional short note, press send.
+   - **Show the code** — big, readable, copyable, for reading aloud.
+3. The recipient clicks the link. If signed out, they land on sign-in/sign-up with the code preserved, and are dropped straight into the join step after auth — pick a display name and colour, then into the room.
+4. The room shows pending invites and who has joined, so the host knows whether to nudge.
 
 ## What gets built
 
-**1. Backend foundation**
-- Enable Lovable Cloud (Postgres + Realtime + Storage + auth).
-- Migration for the Phase 0 slice of the §5 data model: `sessions`, `participants`, `transcript`, `agents_state`, `hand_raises`, `summons`, `contributions`, `stage_docs`, `floor_events`. Later-phase tables (`session_tags`, glossary/consent columns) are created now as columns/tables where free, so Phase 4 doesn't need a rewrite.
-- RLS: a session is readable/writable by its participants; join by session code.
-- Anonymous-friendly auth so a friend joins with a link and a display name.
+**1. Invite records**
+- New `invites` table: session, code, invited email, inviter, status (pending / accepted / revoked), timestamps.
+- RLS: only participants of that session can create or read its invites; accepting is done by code.
+- Grants alongside the table as usual.
 
-**2. The room UI (`/session/$id`)**
-- Left: typed chat pane — human turns and orchestrator system lines, live via Realtime.
-- Center-right: agent cards (Scribe always present; Scout / Advocate / Skeptic / Analyst when summoned) showing status (idle, working, hand raised, speaking), current task, partial progress, with Stop and Redirect buttons.
-- Hand-raise queue with a one-line "what I've got" summary and Grant / Dismiss for either human.
-- Contributions render as a short spoken-register summary (1–10 sentences, no lists) with an expandable full brief.
-- Right rail: the living `plan.md` pane, updating as the Scribe writes.
-- Lobby at `/` : create a session, or join by code, pick a display name and color.
+**2. Join-by-link route**
+- `/join/$code` — resolves the session, shows the title and who's already in the room, then a "Join as…" form (name + colour).
+- Signed out: stash the code, send to sign-in, return to the same join screen afterwards.
+- Invalid or revoked code gets a clear message and a link back to the lobby, not a crash.
 
-**3. Orchestrator (server functions)**
-- Summon parser for typed commands: `/research <topic>`, `/debate <question>`, `/analyze <thing>`, `/stop <agent>`, `/redirect <agent> <new brief>`. Pure function, unit tested.
-- Floor / hand-raise state machine: agents only ever move idle → working → hand_raised → speaking → idle, grants are exclusive, humans always preempt. Pure module, unit tested (this is the piece Phase 2 hardens with real audio, so it gets built properly now).
-- Agent runner: takes a brief, streams an LLM call, writes progress to the agent card, raises a hand on completion with a summary line, and writes the full brief to `contributions`.
-- Scout gets a real research run (web search tool + session corpus text); Advocate/Skeptic get opposing briefs; Analyst does a single deep written-first call.
-- Scribe runs on a debounced transcript window and merges into `plan.md` / `decisions.md` / `open-questions.md` in Storage.
-- Speech-cap enforcement: spoken layer is truncated to the cap and the remainder goes to the written brief — enforced now in text so Phase 2 inherits it.
+**3. Invite panel in the room**
+- Link copy, code display, email form, and a small list of sent invites with status.
+- Resend and revoke on each pending invite.
 
-**4. Demo mode**
-- A fixture session with two scripted humans and canned agent runs, so the room can be shown and Playwright-tested without live LLM calls or a second person.
+**4. The invite email**
+- Branded email matching the crew-station look: session title, who invited you, the join code shown large, a single "Come aboard" button pointing at the invite link, and the optional personal note.
+- Sent server-side when the host submits the form; one recipient per send, rate-limited so the form can't be used to spam.
+- If the address has previously bounced or unsubscribed, the host sees "that address can't receive mail" instead of a silent failure.
 
-**5. Tests**
-- Unit: summon parsing, floor/hand-raise state machine, speech-cap enforcement.
-- Playwright: two browser contexts complete a scripted session — summon → work → hand-raise → grant → contribution → plan doc updated.
+**5. Lobby polish**
+- The join-by-code box on the lobby also accepts a pasted full invite link, not just a bare code.
 
-## Design direction
+## Email sending prerequisite
 
-Crew-station feel, original naming: dark instrument-panel surface, one accent per agent, cards that read like stations rather than chat bubbles. Hand-raises are "hails"; expanding a brief is "on screen". No franchise references.
+App email needs a verified sender domain — `bridge.globaldonut.com`. The DNS steps below are yours to do; once that domain verifies, invite emails start flowing. Until then the invite link and code paths work fine, and the email form will tell the host email isn't live yet.
 
-## Build order
+## DNS setup in Cloudflare (for bridge.globaldonut.com)
 
-1. Cloud + migration + RLS
-2. Lobby, session create/join, presence, typed chat over Realtime
-3. Agent cards + floor/hand-raise state machine (with fake agents)
-4. Real agent runs (Scout, Advocate/Skeptic, Analyst) + summon parser
-5. Scribe + living plan pane
-6. Demo mode, unit tests, Playwright scripted session
+Sending works by delegating the `bridge` subdomain to Lovable, which then manages SPF, DKIM and MX inside that zone for you. You add **NS records only** — nothing else.
 
-Steps 1–3 are the frame; the exit gate can't be run until 4–5 land.
+1. Start email setup from the button at the end of this plan and enter `bridge.globaldonut.com`. Lovable then shows you the exact nameserver hostnames assigned to your domain — they're per-domain, so use the ones on that screen rather than any you've seen elsewhere.
+2. In Cloudflare, open the `globaldonut.com` zone → **DNS** → **Records**.
+3. For each nameserver shown, click **Add record**:
+   - Type: `NS`
+   - Name: `bridge`
+   - Nameserver: the hostname from the setup screen
+   - TTL: Auto
+   Add one NS record per hostname listed (usually two).
+4. Important Cloudflare specifics:
+   - NS records cannot be proxied — there's no orange cloud on this record type, which is correct.
+   - Do **not** add A/CNAME/MX/TXT records for `bridge` yourself; anything left there fights the delegation. If `bridge` already has records, remove them first.
+   - If you also plan to host a site at `bridge.globaldonut.com`, use a different subdomain for email (e.g. `mail.bridge...` or `notify.globaldonut.com`) — a delegated zone can't also serve your web records from Cloudflare.
+5. Verification usually lands within minutes, but allow up to a few hours. Progress is visible in Cloud → Emails.
 
-## Out of scope for Phase 0
+Note that a custom **web** domain (pointing the app itself at a domain) is a separate setup in Project Settings → Domains; the DNS above is only for email.
 
-LiveKit video, STT, TTS, barge-in/ducking, glossary, consent step, tagging view, export bundle. Those are Phases 1–4.
+## Out of scope
+
+Bulk/multi-address invites, invite-only rooms with access control beyond the code, and reminder/nudge emails.
