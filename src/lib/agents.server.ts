@@ -65,13 +65,27 @@ export interface AgentResult {
   brief: string;
 }
 
+export interface AgentProfile {
+  name?: string | null;
+  duty?: string | null;
+}
+
 export async function runAgentBrief(
   agent: AgentKind,
   brief: string,
   context: string,
+  profile?: AgentProfile,
 ): Promise<AgentResult> {
+  const name = profile?.name?.trim();
+  const duty = profile?.duty?.trim();
+  const role = duty
+    ? `You are ${name || agent}. ${duty}`
+    : name
+      ? `${ROLE_PROMPT[agent]}\nIn this session you go by the name ${name}.`
+      : ROLE_PROMPT[agent];
+
   const raw = await callModel([
-    { role: "system", content: `${ROLE_PROMPT[agent]}\n\n${HOUSE_STYLE}` },
+    { role: "system", content: `${role}\n\n${HOUSE_STYLE}` },
     {
       role: "user",
       content: `Recent session transcript:\n${context || "(nothing yet)"}\n\nYour task: ${brief}`,
@@ -79,6 +93,7 @@ export async function runAgentBrief(
   ]);
   return parseAgentOutput(raw);
 }
+
 
 export function parseAgentOutput(raw: string): AgentResult {
   const match = raw.match(/SPOKEN:\s*([\s\S]*?)\n\s*BRIEF:\s*([\s\S]*)$/i);
