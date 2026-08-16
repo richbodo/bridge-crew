@@ -11,9 +11,10 @@ interface Props {
   hails: Hail[];
   onResolve: (hailId: string, grant: boolean) => void;
   busy: boolean;
+  nameFor?: (agent: AgentKind) => string;
 }
 
-export function HailQueue({ hails, onResolve, busy }: Props) {
+export function HailQueue({ hails, onResolve, busy, nameFor }: Props) {
   if (hails.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
@@ -31,7 +32,7 @@ export function HailQueue({ hails, onResolve, busy }: Props) {
           style={{ borderLeft: `3px solid ${CREW[hail.agent].accent}` }}
         >
           <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: CREW[hail.agent].accent }}>
-            {CREW[hail.agent].name} is hailing
+            {nameFor?.(hail.agent) ?? CREW[hail.agent].name} is hailing
           </p>
           <p className="mt-1 text-sm leading-snug text-card-foreground">{hail.summary}</p>
           <div className="mt-2 flex gap-2">

@@ -22,9 +22,10 @@ interface Props {
   lines: TranscriptLine[];
   contributions: ContributionRow[];
   colorFor: (authorId: string | null) => string;
+  nameFor?: (agent: AgentKind) => string;
 }
 
-export function ChatPane({ lines, contributions, colorFor }: Props) {
+export function ChatPane({ lines, contributions, colorFor, nameFor }: Props) {
   const endRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
@@ -53,7 +54,7 @@ export function ChatPane({ lines, contributions, colorFor }: Props) {
               style={{ borderLeft: `3px solid ${member.accent}` }}
             >
               <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: member.accent }}>
-                {member.name} has the floor
+                {nameFor?.(line.agent) ?? member.name} has the floor
               </p>
               <p className="mt-1 text-sm leading-relaxed text-card-foreground">{line.body}</p>
               {brief ? (

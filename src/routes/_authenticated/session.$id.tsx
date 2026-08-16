@@ -12,7 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { CREW, CREW_ORDER, type AgentKind, type AgentStatus } from "@/lib/crew";
-import { postLine, resolveHail, runAgent, runScribe, stopAgent } from "@/lib/room.functions";
+import {
+  postLine,
+  resolveHail,
+  runAgent,
+  runScribe,
+  stopAgent,
+  updateAgentProfile,
+} from "@/lib/room.functions";
 import { getRoom } from "@/lib/session.functions";
 
 export const Route = createFileRoute("/_authenticated/session/$id")({
@@ -48,6 +55,7 @@ function RoomPage() {
   const resolve = useServerFn(resolveHail);
   const standDown = useServerFn(stopAgent);
   const scribe = useServerFn(runScribe);
+  const saveProfile = useServerFn(updateAgentProfile);
 
   const [draft, setDraft] = useState("");
   const humanLines = useRef(0);
@@ -99,6 +107,15 @@ function RoomPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const profileMutation = useMutation({
+    mutationFn: async (input: { agent: AgentKind; name: string; duty: string }) => {
+      await saveProfile({ data: { sessionId: id, ...input } });
+      await queryClient.invalidateQueries({ queryKey: ["room", id] });
+    },
+    onSuccess: () => toast.success("Station updated."),
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const room = roomQuery.data;
 
   if (roomQuery.isLoading) {
@@ -119,6 +136,9 @@ function RoomPage() {
 
   const colorFor = (authorId: string | null) =>
     room.participants.find((p) => p.user_id === authorId)?.color ?? "var(--muted-foreground)";
+
+  const nameFor = (agent: AgentKind) =>
+    room.agents.find((a) => a.agent === agent)?.display_name?.trim() || CREW[agent].name;
 
   const statusOf = (agent: AgentKind): AgentStatus =>
     (room.agents.find((a) => a.agent === agent)?.status as AgentStatus | undefined) ?? "idle";
@@ -163,6 +183,7 @@ function RoomPage() {
             lines={room.transcript as unknown as TranscriptLine[]}
             contributions={room.contributions as unknown as ContributionRow[]}
             colorFor={colorFor}
+            nameFor={nameFor}
           />
           <div className="border-t border-border p-3">
             <Textarea
@@ -194,6 +215,7 @@ function RoomPage() {
           <HailQueue
             hails={room.hails as unknown as { id: string; agent: AgentKind; summary: string }[]}
             busy={hailMutation.isPending}
+            nameFor={nameFor}
             onResolve={(hailId, grant) => hailMutation.mutate({ hailId, grant })}
           />
           <h2 className="pt-2 text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Stations</h2>
@@ -207,12 +229,17 @@ function RoomPage() {
                 status={statusOf(agent)}
                 task={state?.current_task ?? null}
                 progress={state?.progress ?? null}
+                name={state?.display_name ?? null}
+                duty={state?.duty ?? null}
                 busy={sendMutation.isPending}
                 onStop={() => standDown({ data: { sessionId: id, agent } })}
                 onEngage={(brief) =>
                   sendMutation.mutate(
                     active ? `/redirect ${CREW[agent].kind} ${brief}` : `/${CREW[agent].kind} ${brief}`,
                   )
+                }
+                onSaveProfile={({ name, duty }) =>
+                  profileMutation.mutate({ agent, name, duty })
                 }
               />
             );

@@ -18,8 +18,16 @@ export const postLine = createServerFn({ method: "POST" })
   .inputValidator((data: { sessionId: string; body: string }) => data)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { makeNameLookup } = await import("./agents.server");
     const body = data.body.trim();
     if (!body) return { runs: [] as AgentRun[] };
+
+    const { data: profiles } = await supabase
+      .from("agents_state")
+      .select("agent, display_name")
+      .eq("session_id", data.sessionId);
+    const nameOf = makeNameLookup(profiles, CREW);
+
 
     const { data: me } = await supabase
       .from("participants")
@@ -67,7 +75,7 @@ export const postLine = createServerFn({ method: "POST" })
     };
 
     if (summon.type === "summon") {
-      await start(summon.agent, summon.brief, `${CREW[summon.agent].name} is on it: ${summon.brief}`);
+      await start(summon.agent, summon.brief, `${nameOf(summon.agent)} is on it: ${summon.brief}`);
     } else if (summon.type === "debate") {
       await start(
         "advocate",
@@ -79,7 +87,7 @@ export const postLine = createServerFn({ method: "POST" })
       await start(
         summon.agent,
         summon.brief,
-        `${CREW[summon.agent].name} redirected: ${summon.brief}`,
+        `${nameOf(summon.agent)} redirected: ${summon.brief}`,
       );
     } else if (summon.type === "stop") {
       await supabase
@@ -97,14 +105,22 @@ export const postLine = createServerFn({ method: "POST" })
         session_id: data.sessionId,
         author_name: "Bridge",
         kind: "system" as const,
-        body: `${CREW[summon.agent].name} stood down.`,
+        body: `${nameOf(summon.agent)} stood down.`,
       });
     } else {
-      // Plain speech that names crew members re-engages them with the line as the brief.
-      for (const agent of parseMentions(body)) {
-        await start(agent, body, `${CREW[agent].name} was called on: ${body}`);
+      // Plain speech that names crew members (default or custom) re-engages them.
+      const called = new Set<AgentKind>(parseMentions(body));
+      for (const row of profiles ?? []) {
+        const custom = row.display_name?.trim();
+        if (!custom) continue;
+        const pattern = new RegExp(`@?\\b${custom.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+        if (pattern.test(body)) called.add(row.agent as AgentKind);
+      }
+      for (const agent of called) {
+        await start(agent, body, `${nameOf(agent)} was called on: ${body}`);
       }
     }
+
 
     return { runs };
 
@@ -115,15 +131,22 @@ export const runAgent = createServerFn({ method: "POST" })
   .inputValidator((data: { sessionId: string; agent: AgentKind; brief: string; summonId: string | null }) => data)
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const { runAgentBrief } = await import("./agents.server");
+    const { runAgentBrief, makeNameLookup } = await import("./agents.server");
+
+    const { data: profiles } = await supabase
+      .from("agents_state")
+      .select("agent, display_name")
+      .eq("session_id", data.sessionId);
+    const nameOf = makeNameLookup(profiles, CREW);
 
     const { data: state } = await supabase
       .from("agents_state")
-      .select("status")
+      .select("status, display_name, duty")
       .eq("session_id", data.sessionId)
       .eq("agent", data.agent)
       .maybeSingle();
     if (state?.status === "stopped") return { ok: false, reason: "stopped" as const };
+
 
     const { data: recent } = await supabase
       .from("transcript")
@@ -144,7 +167,10 @@ export const runAgent = createServerFn({ method: "POST" })
 
     let result;
     try {
-      result = await runAgentBrief(data.agent, data.brief, contextText);
+      result = await runAgentBrief(data.agent, data.brief, contextText, {
+        name: state?.display_name ?? null,
+        duty: state?.duty ?? null,
+      });
     } catch (error) {
       await supabase
         .from("agents_state")
@@ -155,7 +181,7 @@ export const runAgent = createServerFn({ method: "POST" })
         session_id: data.sessionId,
         author_name: "Bridge",
         kind: "system" as const,
-        body: `${CREW[data.agent].name} could not finish: ${(error as Error).message}`,
+        body: `${nameOf(data.agent)} could not finish: ${(error as Error).message}`,
       });
       return { ok: false, reason: "error" as const };
     }
@@ -199,6 +225,12 @@ export const resolveHail = createServerFn({ method: "POST" })
   .inputValidator((data: { sessionId: string; hailId: string; grant: boolean }) => data)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { makeNameLookup } = await import("./agents.server");
+    const { data: profiles } = await supabase
+      .from("agents_state")
+      .select("agent, display_name")
+      .eq("session_id", data.sessionId);
+    const nameOf = makeNameLookup(profiles, CREW);
     const { data: hail } = await supabase
       .from("hand_raises")
       .select("*")
@@ -240,7 +272,7 @@ export const resolveHail = createServerFn({ method: "POST" })
       });
       await supabase.from("transcript").insert({
         session_id: data.sessionId,
-        author_name: CREW[agent].name,
+        author_name: nameOf(agent),
         kind: "agent" as const,
         agent,
         body: contribution?.spoken ?? hail.summary,
@@ -279,6 +311,12 @@ export const stopAgent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { sessionId: string; agent: AgentKind }) => data)
   .handler(async ({ data, context }) => {
+    const { makeNameLookup } = await import("./agents.server");
+    const { data: profiles } = await context.supabase
+      .from("agents_state")
+      .select("agent, display_name")
+      .eq("session_id", data.sessionId);
+    const nameOf = makeNameLookup(profiles, CREW);
     await context.supabase
       .from("agents_state")
       .update({ status: "stopped" as const, current_task: null, progress: null })
@@ -288,7 +326,7 @@ export const stopAgent = createServerFn({ method: "POST" })
       session_id: data.sessionId,
       author_name: "Bridge",
       kind: "system" as const,
-      body: `${CREW[data.agent].name} stood down.`,
+      body: `${nameOf(data.agent)} stood down.`,
     });
     return { ok: true };
   });
@@ -394,5 +432,29 @@ export const seedDemo = createServerFn({ method: "POST" })
       },
       { onConflict: "session_id,slug" },
     );
+    return { ok: true };
+  });
+
+export const updateAgentProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: { sessionId: string; agent: AgentKind; name: string; duty: string }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const name = data.name.trim();
+    const duty = data.duty.trim();
+    const { error } = await context.supabase
+      .from("agents_state")
+      .update({ display_name: name || null, duty: duty || null })
+      .eq("session_id", data.sessionId)
+      .eq("agent", data.agent);
+    if (error) throw new Error(error.message);
+
+    await context.supabase.from("transcript").insert({
+      session_id: data.sessionId,
+      author_name: "Bridge",
+      kind: "system" as const,
+      body: `${CREW[data.agent].name} station reassigned to ${name || CREW[data.agent].name}.`,
+    });
     return { ok: true };
   });

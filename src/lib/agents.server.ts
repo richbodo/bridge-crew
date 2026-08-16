@@ -65,13 +65,27 @@ export interface AgentResult {
   brief: string;
 }
 
+export interface AgentProfile {
+  name?: string | null;
+  duty?: string | null;
+}
+
 export async function runAgentBrief(
   agent: AgentKind,
   brief: string,
   context: string,
+  profile?: AgentProfile,
 ): Promise<AgentResult> {
+  const name = profile?.name?.trim();
+  const duty = profile?.duty?.trim();
+  const role = duty
+    ? `You are ${name || agent}. ${duty}`
+    : name
+      ? `${ROLE_PROMPT[agent]}\nIn this session you go by the name ${name}.`
+      : ROLE_PROMPT[agent];
+
   const raw = await callModel([
-    { role: "system", content: `${ROLE_PROMPT[agent]}\n\n${HOUSE_STYLE}` },
+    { role: "system", content: `${role}\n\n${HOUSE_STYLE}` },
     {
       role: "user",
       content: `Recent session transcript:\n${context || "(nothing yet)"}\n\nYour task: ${brief}`,
@@ -79,6 +93,7 @@ export async function runAgentBrief(
   ]);
   return parseAgentOutput(raw);
 }
+
 
 export function parseAgentOutput(raw: string): AgentResult {
   const match = raw.match(/SPOKEN:\s*([\s\S]*?)\n\s*BRIEF:\s*([\s\S]*)$/i);
@@ -98,4 +113,18 @@ export async function writePlanDoc(context: string, current: string): Promise<st
       content: `Current plan.md:\n${current || "(empty)"}\n\nNew session material:\n${context}\n\nReturn the updated plan.md.`,
     },
   ]);
+}
+
+export type NameLookup = (agent: AgentKind) => string;
+
+export function makeNameLookup(
+  rows: Array<{ agent: string; display_name?: string | null }> | null | undefined,
+  fallback: Record<AgentKind, { name: string }>,
+): NameLookup {
+  const map = new Map<string, string>();
+  for (const row of rows ?? []) {
+    const name = row.display_name?.trim();
+    if (name) map.set(row.agent, name);
+  }
+  return (agent) => map.get(agent) ?? fallback[agent].name;
 }
