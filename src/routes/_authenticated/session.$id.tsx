@@ -195,6 +195,7 @@ function RoomPage() {
           <h2 className="pt-2 text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Stations</h2>
           {CREW_ORDER.map((agent) => {
             const state = room.agents.find((a) => a.agent === agent);
+            const active = ["working", "hand_raised", "speaking"].includes(statusOf(agent));
             return (
               <AgentCard
                 key={agent}
@@ -202,11 +203,17 @@ function RoomPage() {
                 status={statusOf(agent)}
                 task={state?.current_task ?? null}
                 progress={state?.progress ?? null}
+                busy={sendMutation.isPending}
                 onStop={() => standDown({ data: { sessionId: id, agent } })}
-                onRedirect={() => setDraft(`/redirect ${CREW[agent].kind} `)}
+                onEngage={(brief) =>
+                  sendMutation.mutate(
+                    active ? `/redirect ${CREW[agent].kind} ${brief}` : `/${CREW[agent].kind} ${brief}`,
+                  )
+                }
               />
             );
           })}
+
         </section>
 
         <aside className="min-h-0 overflow-y-auto p-4">
