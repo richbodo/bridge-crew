@@ -18,8 +18,16 @@ export const postLine = createServerFn({ method: "POST" })
   .inputValidator((data: { sessionId: string; body: string }) => data)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { makeNameLookup } = await import("./agents.server");
     const body = data.body.trim();
     if (!body) return { runs: [] as AgentRun[] };
+
+    const { data: profiles } = await supabase
+      .from("agents_state")
+      .select("agent, display_name")
+      .eq("session_id", data.sessionId);
+    const nameOf = makeNameLookup(profiles, CREW);
+
 
     const { data: me } = await supabase
       .from("participants")
