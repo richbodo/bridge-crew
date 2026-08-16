@@ -178,7 +178,11 @@ function Lobby() {
                   id="code"
                   value={code}
                   placeholder="ABC123"
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
+                  onChange={(e) => {
+                    const raw = e.target.value.trim();
+                    const fromLink = raw.match(/\/join\/([A-Za-z0-9]+)/);
+                    setCode((fromLink?.[1] ?? raw).toUpperCase());
+                  }}
                 />
                 <Button
                   variant="secondary"

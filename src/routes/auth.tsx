@@ -9,6 +9,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>): { next?: string } => {
+    const next = typeof search["next"] === "string" ? (search["next"] as string) : undefined;
+    return next && next.startsWith("/") && !next.startsWith("//") ? { next } : {};
+  },
   head: () => ({
     meta: [
       { title: "Sign in — Bridge Crew" },
