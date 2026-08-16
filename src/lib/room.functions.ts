@@ -159,7 +159,10 @@ export const runAgent = createServerFn({ method: "POST" })
 
     let result;
     try {
-      result = await runAgentBrief(data.agent, data.brief, contextText);
+      result = await runAgentBrief(data.agent, data.brief, contextText, {
+        name: state?.display_name ?? null,
+        duty: state?.duty ?? null,
+      });
     } catch (error) {
       await supabase
         .from("agents_state")
@@ -214,6 +217,12 @@ export const resolveHail = createServerFn({ method: "POST" })
   .inputValidator((data: { sessionId: string; hailId: string; grant: boolean }) => data)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
+    const { makeNameLookup } = await import("./agents.server");
+    const { data: profiles } = await supabase
+      .from("agents_state")
+      .select("agent, display_name")
+      .eq("session_id", data.sessionId);
+    const nameOf = makeNameLookup(profiles, CREW);
     const { data: hail } = await supabase
       .from("hand_raises")
       .select("*")
@@ -294,6 +303,12 @@ export const stopAgent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { sessionId: string; agent: AgentKind }) => data)
   .handler(async ({ data, context }) => {
+    const { makeNameLookup } = await import("./agents.server");
+    const { data: profiles } = await context.supabase
+      .from("agents_state")
+      .select("agent, display_name")
+      .eq("session_id", data.sessionId);
+    const nameOf = makeNameLookup(profiles, CREW);
     await context.supabase
       .from("agents_state")
       .update({ status: "stopped" as const, current_task: null, progress: null })
@@ -409,5 +424,29 @@ export const seedDemo = createServerFn({ method: "POST" })
       },
       { onConflict: "session_id,slug" },
     );
+    return { ok: true };
+  });
+
+export const updateAgentProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: { sessionId: string; agent: AgentKind; name: string; duty: string }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const name = data.name.trim();
+    const duty = data.duty.trim();
+    const { error } = await context.supabase
+      .from("agents_state")
+      .update({ display_name: name || null, duty: duty || null })
+      .eq("session_id", data.sessionId)
+      .eq("agent", data.agent);
+    if (error) throw new Error(error.message);
+
+    await context.supabase.from("transcript").insert({
+      session_id: data.sessionId,
+      author_name: "Bridge",
+      kind: "system" as const,
+      body: `${CREW[data.agent].name} station reassigned to ${name || CREW[data.agent].name}.`,
+    });
     return { ok: true };
   });
