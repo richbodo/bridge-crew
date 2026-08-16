@@ -144,8 +144,12 @@ function RoomPage() {
             <span key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="inline-block size-2 rounded-full" style={{ backgroundColor: p.color }} />
               {p.display_name}
+              {p.user_id === room.me.user_id ? (
+                <span className="text-[10px] uppercase tracking-[0.15em] text-foreground">(you)</span>
+              ) : null}
             </span>
           ))}
+
           <InvitePanel sessionId={id} code={room.session.code} />
           <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
             Leave
