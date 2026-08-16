@@ -108,11 +108,19 @@ export const postLine = createServerFn({ method: "POST" })
         body: `${nameOf(summon.agent)} stood down.`,
       });
     } else {
-      // Plain speech that names crew members re-engages them with the line as the brief.
-      for (const agent of parseMentions(body)) {
+      // Plain speech that names crew members (default or custom) re-engages them.
+      const called = new Set<AgentKind>(parseMentions(body));
+      for (const row of profiles ?? []) {
+        const custom = row.display_name?.trim();
+        if (!custom) continue;
+        const pattern = new RegExp(`@?\\b${custom.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+        if (pattern.test(body)) called.add(row.agent as AgentKind);
+      }
+      for (const agent of called) {
         await start(agent, body, `${nameOf(agent)} was called on: ${body}`);
       }
     }
+
 
     return { runs };
 
