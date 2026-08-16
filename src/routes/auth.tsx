@@ -63,7 +63,7 @@ function AuthPage() {
       setMode("signin");
       return;
     }
-    navigate({ to: "/" });
+    navigate({ to: destination });
   };
 
 
