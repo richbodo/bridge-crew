@@ -9,6 +9,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>): { next?: string } => {
+    const next = typeof search["next"] === "string" ? (search["next"] as string) : undefined;
+    return next && next.startsWith("/") && !next.startsWith("//") ? { next } : {};
+  },
   head: () => ({
     meta: [
       { title: "Sign in — Bridge Crew" },
@@ -25,15 +29,17 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const { session, loading } = useAuth();
+  const destination = next ?? "/";
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && session) navigate({ to: "/" });
-  }, [loading, session, navigate]);
+    if (!loading && session) navigate({ to: destination });
+  }, [loading, session, navigate, destination]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -44,7 +50,7 @@ function AuthPage() {
         : supabase.auth.signUp({
             email,
             password,
-            options: { emailRedirectTo: `${window.location.origin}/` },
+            options: { emailRedirectTo: `${window.location.origin}${destination}` },
           });
     const { data: result, error } = await fn;
     setBusy(false);
@@ -57,7 +63,7 @@ function AuthPage() {
       setMode("signin");
       return;
     }
-    navigate({ to: "/" });
+    navigate({ to: destination });
   };
 
 

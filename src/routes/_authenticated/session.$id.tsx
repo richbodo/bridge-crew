@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { AgentCard } from "@/components/room/AgentCard";
 import { ChatPane, type ContributionRow, type TranscriptLine } from "@/components/room/ChatPane";
 import { HailQueue } from "@/components/room/HailQueue";
+import { InvitePanel } from "@/components/room/InvitePanel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
@@ -145,6 +146,7 @@ function RoomPage() {
               {p.display_name}
             </span>
           ))}
+          <InvitePanel sessionId={id} code={room.session.code} />
           <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
             Leave
           </Link>
