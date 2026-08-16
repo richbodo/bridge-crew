@@ -19,6 +19,8 @@ export type Database = {
           agent: Database["public"]["Enums"]["agent_kind"]
           created_at: string
           current_task: string | null
+          display_name: string | null
+          duty: string | null
           id: string
           progress: string | null
           session_id: string
@@ -29,6 +31,8 @@ export type Database = {
           agent: Database["public"]["Enums"]["agent_kind"]
           created_at?: string
           current_task?: string | null
+          display_name?: string | null
+          duty?: string | null
           id?: string
           progress?: string | null
           session_id: string
@@ -39,6 +43,8 @@ export type Database = {
           agent?: Database["public"]["Enums"]["agent_kind"]
           created_at?: string
           current_task?: string | null
+          display_name?: string | null
+          duty?: string | null
           id?: string
           progress?: string | null
           session_id?: string
