@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { CREW, STATUS_LABEL, type AgentKind, type AgentStatus } from "@/lib/crew";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
@@ -9,16 +10,36 @@ interface Props {
   status: AgentStatus;
   task: string | null;
   progress: string | null;
+  name?: string | null;
+  duty?: string | null;
   busy?: boolean;
   onStop: () => void;
   onEngage: (brief: string) => void;
+  onSaveProfile: (profile: { name: string; duty: string }) => void;
 }
 
-export function AgentCard({ agent, status, task, progress, busy, onStop, onEngage }: Props) {
+export function AgentCard({
+  agent,
+  status,
+  task,
+  progress,
+  name,
+  duty,
+  busy,
+  onStop,
+  onEngage,
+  onSaveProfile,
+}: Props) {
   const member = CREW[agent];
   const active = status === "working" || status === "hand_raised" || status === "speaking";
   const [open, setOpen] = useState(false);
   const [brief, setBrief] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [nameDraft, setNameDraft] = useState(name ?? member.name);
+  const [dutyDraft, setDutyDraft] = useState(duty ?? member.blurb);
+
+  const label = name?.trim() || member.name;
+  const dutyText = duty?.trim() || member.blurb;
 
   const submit = () => {
     const text = brief.trim();
@@ -28,6 +49,18 @@ export function AgentCard({ agent, status, task, progress, busy, onStop, onEngag
     onEngage(text);
   };
 
+  const startEdit = () => {
+    setNameDraft(name ?? member.name);
+    setDutyDraft(duty ?? member.blurb);
+    setOpen(false);
+    setEditing(true);
+  };
+
+  const saveEdit = () => {
+    onSaveProfile({ name: nameDraft.trim(), duty: dutyDraft.trim() });
+    setEditing(false);
+  };
+
   return (
     <article
       className="relative overflow-hidden rounded-lg border border-border bg-card p-4"
@@ -35,9 +68,10 @@ export function AgentCard({ agent, status, task, progress, busy, onStop, onEngag
     >
       <header className="flex items-baseline justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold tracking-wide text-card-foreground">{member.name}</h3>
+          <h3 className="text-sm font-semibold tracking-wide text-card-foreground">{label}</h3>
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
             {member.station}
+            {label !== member.name ? ` · was ${member.name}` : ""}
           </p>
         </div>
         <span
@@ -53,7 +87,7 @@ export function AgentCard({ agent, status, task, progress, busy, onStop, onEngag
       </header>
 
       <p className="mt-3 min-h-8 text-xs leading-relaxed text-muted-foreground">
-        {task ? <span className="text-card-foreground">{task}</span> : member.blurb}
+        {task ? <span className="text-card-foreground">{task}</span> : dutyText}
       </p>
       {progress ? <p className="mt-2 text-xs italic text-muted-foreground">{progress}</p> : null}
 
@@ -62,7 +96,10 @@ export function AgentCard({ agent, status, task, progress, busy, onStop, onEngag
           size="sm"
           variant={active ? "ghost" : "secondary"}
           className="h-7 px-2 text-xs"
-          onClick={() => setOpen((prev) => !prev)}
+          onClick={() => {
+            setEditing(false);
+            setOpen((prev) => !prev);
+          }}
         >
           {open ? "Cancel" : active ? "Redirect" : "Engage"}
         </Button>
@@ -71,7 +108,59 @@ export function AgentCard({ agent, status, task, progress, busy, onStop, onEngag
             Stand down
           </Button>
         ) : null}
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 px-2 text-xs"
+          onClick={() => (editing ? setEditing(false) : startEdit())}
+        >
+          {editing ? "Cancel" : "Reassign"}
+        </Button>
       </div>
+
+      {editing ? (
+        <div className="mt-2 space-y-2 rounded-md border border-dashed border-border p-2">
+          <div>
+            <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+              Station name
+            </label>
+            <Input
+              autoFocus
+              value={nameDraft}
+              placeholder={member.name}
+              onChange={(e) => setNameDraft(e.target.value)}
+              className="mt-1 h-7 bg-background text-xs"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+              Duty prompt
+            </label>
+            <Textarea
+              rows={4}
+              value={dutyDraft}
+              placeholder={member.blurb}
+              onChange={(e) => setDutyDraft(e.target.value)}
+              className="mt-1 resize-none bg-background text-xs"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setNameDraft(member.name);
+                setDutyDraft(member.blurb);
+              }}
+            >
+              Reset to default
+            </button>
+            <Button size="sm" className="h-7 px-3 text-xs" disabled={busy} onClick={saveEdit}>
+              Save station
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {open ? (
         <div className="mt-2">
@@ -79,7 +168,7 @@ export function AgentCard({ agent, status, task, progress, busy, onStop, onEngag
             autoFocus
             rows={2}
             value={brief}
-            placeholder={active ? `New brief for ${member.name}…` : `What should ${member.name} take on?`}
+            placeholder={active ? `New brief for ${label}…` : `What should ${label} take on?`}
             onChange={(e) => setBrief(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
