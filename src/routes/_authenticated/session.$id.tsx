@@ -168,7 +168,7 @@ function RoomPage() {
             <Textarea
               value={draft}
               rows={2}
-              placeholder="Say something, or summon the crew: /research …  /analyze …  /debate …"
+              placeholder="Say something, call the crew by name (@scout, @advocate…), or use /research … /analyze … /debate …"
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
