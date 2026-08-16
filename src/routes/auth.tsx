@@ -38,8 +38,8 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && session) navigate({ to: "/" });
-  }, [loading, session, navigate]);
+    if (!loading && session) navigate({ to: destination });
+  }, [loading, session, navigate, destination]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
