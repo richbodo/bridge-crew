@@ -5,7 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { CREW, type AgentKind } from "./crew";
 import { canTransition } from "./floor";
 import { enforceSpeechCap } from "./speech";
-import { parseSummon } from "./summon";
+import { parseMentions, parseSummon } from "./summon";
 
 export interface AgentRun {
   agent: AgentKind;
