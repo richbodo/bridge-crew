@@ -99,9 +99,15 @@ export const postLine = createServerFn({ method: "POST" })
         kind: "system" as const,
         body: `${CREW[summon.agent].name} stood down.`,
       });
+    } else {
+      // Plain speech that names crew members re-engages them with the line as the brief.
+      for (const agent of parseMentions(body)) {
+        await start(agent, body, `${CREW[agent].name} was called on: ${body}`);
+      }
     }
 
     return { runs };
+
   });
 
 export const runAgent = createServerFn({ method: "POST" })
