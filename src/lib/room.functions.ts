@@ -123,15 +123,22 @@ export const runAgent = createServerFn({ method: "POST" })
   .inputValidator((data: { sessionId: string; agent: AgentKind; brief: string; summonId: string | null }) => data)
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    const { runAgentBrief } = await import("./agents.server");
+    const { runAgentBrief, makeNameLookup } = await import("./agents.server");
+
+    const { data: profiles } = await supabase
+      .from("agents_state")
+      .select("agent, display_name")
+      .eq("session_id", data.sessionId);
+    const nameOf = makeNameLookup(profiles, CREW);
 
     const { data: state } = await supabase
       .from("agents_state")
-      .select("status")
+      .select("status, display_name, duty")
       .eq("session_id", data.sessionId)
       .eq("agent", data.agent)
       .maybeSingle();
     if (state?.status === "stopped") return { ok: false, reason: "stopped" as const };
+
 
     const { data: recent } = await supabase
       .from("transcript")
