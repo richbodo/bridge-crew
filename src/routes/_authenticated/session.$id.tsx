@@ -58,6 +58,7 @@ function RoomPage() {
   const standDown = useServerFn(stopAgent);
   const scribe = useServerFn(runScribe);
   const saveProfile = useServerFn(updateAgentProfile);
+  const packList = useServerFn(listContextPacks);
 
   const [draft, setDraft] = useState("");
   const humanLines = useRef(0);
@@ -66,6 +67,12 @@ function RoomPage() {
     queryKey: ["room", id],
     queryFn: () => fetchRoom({ data: { sessionId: id } }),
   });
+
+  const packsQuery = useQuery({
+    queryKey: ["context-packs", id],
+    queryFn: () => packList({ data: { sessionId: id } }),
+  });
+
 
   useEffect(() => {
     const channel = supabase.channel(`room:${id}`);
