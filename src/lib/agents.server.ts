@@ -91,7 +91,7 @@ export async function runAgentBrief(
     { role: "system", content: `${role}\n\n${HOUSE_STYLE}` },
     {
       role: "user",
-      content: `Recent session transcript:\n${context || "(nothing yet)"}\n\nYour task: ${brief}`,
+      content: `${context || "## Session transcript\n\n(nothing yet)"}\n\n## Your task\n\n${brief}`,
     },
   ]);
   return parseAgentOutput(raw);
