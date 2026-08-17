@@ -166,6 +166,38 @@ export function AgentCard({
               className="mt-1 resize-none bg-background text-xs"
             />
           </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+              Context packs — required reading
+            </label>
+            <div className="mt-1 flex flex-wrap gap-1">
+              {availablePacks.length ? (
+                availablePacks.map((pack) => {
+                  const on = packDraft.includes(pack.name);
+                  return (
+                    <button
+                      key={pack.name}
+                      type="button"
+                      onClick={() => togglePack(pack.name)}
+                      className={`rounded-sm border px-1.5 py-0.5 font-mono text-[10px] transition-colors ${
+                        on
+                          ? "border-transparent bg-secondary text-secondary-foreground"
+                          : "border-border text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {pack.name}
+                      <span className="ml-1 opacity-60">{pack.docCount}</span>
+                    </button>
+                  );
+                })
+              ) : (
+                <span className="text-[10px] text-muted-foreground">
+                  No packs yet — add one in the Context panel.
+                </span>
+              )}
+            </div>
+          </div>
+
           <div className="flex items-center justify-between">
             <button
               type="button"
