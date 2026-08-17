@@ -141,23 +141,35 @@ export const runAgent = createServerFn({ method: "POST" })
 
     const { data: state } = await supabase
       .from("agents_state")
-      .select("status, display_name, duty")
+      .select("status, display_name, duty, context_packs")
       .eq("session_id", data.sessionId)
       .eq("agent", data.agent)
       .maybeSingle();
     if (state?.status === "stopped") return { ok: false, reason: "stopped" as const };
 
+    const { assembleContext } = await import("./context");
+    const { loadPackDocs } = await import("./context.server");
 
-    const { data: recent } = await supabase
-      .from("transcript")
-      .select("author_name, body")
-      .eq("session_id", data.sessionId)
-      .order("created_at", { ascending: false })
-      .limit(30);
-    const contextText = (recent ?? [])
-      .reverse()
-      .map((line) => `${line.author_name}: ${line.body}`)
-      .join("\n");
+    const [{ data: recent }, { data: planDoc }, packDocs] = await Promise.all([
+      supabase
+        .from("transcript")
+        .select("author_name, body")
+        .eq("session_id", data.sessionId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("stage_docs")
+        .select("body")
+        .eq("session_id", data.sessionId)
+        .eq("slug", "plan")
+        .maybeSingle(),
+      loadPackDocs(supabase, data.sessionId, (state?.context_packs as string[] | null) ?? []),
+    ]);
+
+    const assembled = assembleContext({
+      docs: packDocs,
+      plan: planDoc?.body ?? "",
+      transcript: (recent ?? []).map((line) => `${line.author_name}: ${line.body}`),
+    });
 
     await supabase
       .from("agents_state")
@@ -167,7 +179,7 @@ export const runAgent = createServerFn({ method: "POST" })
 
     let result;
     try {
-      result = await runAgentBrief(data.agent, data.brief, contextText, {
+      result = await runAgentBrief(data.agent, data.brief, assembled.text, {
         name: state?.display_name ?? null,
         duty: state?.duty ?? null,
       });
@@ -195,7 +207,9 @@ export const runAgent = createServerFn({ method: "POST" })
     if (after?.status === "stopped") return { ok: false, reason: "stopped" as const };
 
     const { spoken, overflow } = enforceSpeechCap(result.spokenRaw);
-    const brief = overflow ? `${result.brief}\n\n---\n\n${overflow}` : result.brief;
+    const provenance = assembled.read ? `_Read: ${assembled.read}_\n\n` : "";
+    const brief =
+      provenance + (overflow ? `${result.brief}\n\n---\n\n${overflow}` : result.brief);
 
     await supabase.from("contributions").insert({
       session_id: data.sessionId,
