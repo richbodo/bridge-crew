@@ -21,7 +21,7 @@ interface SessionFile {
 }
 
 function fromFile(): { storageKey: string; sessionJson: string; cookies: Record<string, unknown>[] } | null {
-  const path = process.env["E2E_SESSION_FILE"] ?? join(homedir(), ".cache/lovable-auth/session.json");
+  const path: string = process.env["E2E_SESSION_FILE"] ?? join(homedir(), ".cache/lovable-auth/session.json");
   try {
     const raw = JSON.parse(readFileSync(path, "utf8")) as SessionFile;
     if (!raw.storage_key || !raw.session) return null;
@@ -30,7 +30,8 @@ function fromFile(): { storageKey: string; sessionJson: string; cookies: Record<
       sessionJson: JSON.stringify(raw.session),
       cookies: raw.cookies ?? [],
     };
-  } catch {
+  } catch (e) {
+    console.log("session file unreadable", path, String(e));
     return null;
   }
 }
