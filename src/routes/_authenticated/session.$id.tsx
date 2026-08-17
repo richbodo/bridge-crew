@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { listContextPacks } from "@/lib/context.functions";
 import { CREW, CREW_ORDER, type AgentKind, type AgentStatus } from "@/lib/crew";
+import { USERS_GUIDE_URL } from "@/lib/links";
 import {
   postLine,
   resolveHail,
