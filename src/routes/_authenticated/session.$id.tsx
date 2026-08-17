@@ -246,6 +246,8 @@ function RoomPage() {
                 progress={state?.progress ?? null}
                 name={state?.display_name ?? null}
                 duty={state?.duty ?? null}
+                packs={(state?.context_packs as string[] | null) ?? []}
+                availablePacks={packsQuery.data ?? []}
                 busy={sendMutation.isPending}
                 onStop={() => standDown({ data: { sessionId: id, agent } })}
                 onEngage={(brief) =>
@@ -253,8 +255,8 @@ function RoomPage() {
                     active ? `/redirect ${CREW[agent].kind} ${brief}` : `/${CREW[agent].kind} ${brief}`,
                   )
                 }
-                onSaveProfile={({ name, duty }) =>
-                  profileMutation.mutate({ agent, name, duty })
+                onSaveProfile={({ name, duty, contextPacks }) =>
+                  profileMutation.mutate({ agent, name, duty, contextPacks })
                 }
               />
             );
