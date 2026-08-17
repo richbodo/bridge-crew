@@ -98,6 +98,6 @@ test.describe("summoning and the floor", () => {
     await expect(page.getByText("Scout has the floor")).toBeVisible({ timeout: 60_000 });
 
     await page.getByRole("button", { name: "On screen" }).first().click();
-    await expect(page.getByText(/Marama Whitiora/i)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Marama Whitiora/i).first()).toBeVisible({ timeout: 30_000 });
   });
 });

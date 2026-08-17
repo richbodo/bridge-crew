@@ -8,8 +8,9 @@ test.describe("inviting the second human", () => {
     const { code } = await openRoom(page, { title: `E2E invite ${Date.now()}` });
     await page.getByRole("button", { name: "Invite" }).click();
 
-    await expect(page.getByText("Join code")).toBeVisible();
-    await expect(page.getByText(new RegExp(`/join/${code}`))).toBeVisible();
+    const panel = page.locator("div.absolute").filter({ hasText: "Copy invite link" }).first();
+    await expect(panel.getByText("Join code", { exact: true })).toBeVisible();
+    await expect(panel.getByText(new RegExp(`/join/${code}`))).toBeVisible();
 
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await page.getByRole("button", { name: "Copy invite link" }).click();
@@ -27,9 +28,13 @@ test.describe("inviting the second human", () => {
     await page.getByPlaceholder("Optional note").fill("Come aboard");
     await page.getByRole("button", { name: "Send invite" }).click();
 
-    await expect(page.getByText(address)).toBeVisible();
-    await page.getByRole("button", { name: "revoke" }).first().click();
-    await expect(page.getByText(address)).toHaveCount(0);
+    const row = page.locator("li").filter({ hasText: address }).first();
+    await expect(row).toBeVisible();
+    await expect(row.getByText("pending")).toBeVisible();
+
+    await row.getByRole("button", { name: "revoke" }).click();
+    await expect(row.getByText("revoked")).toBeVisible();
+    await expect(row.getByRole("button", { name: "revoke" })).toHaveCount(0);
   });
 
   test("the /join/<code> page names the room being joined", async ({ page }) => {
