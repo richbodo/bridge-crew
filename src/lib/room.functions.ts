@@ -363,8 +363,7 @@ export const runScribe = createServerFn({ method: "POST" })
         .from("transcript")
         .select("author_name, body")
         .eq("session_id", data.sessionId)
-        .order("created_at", { ascending: false })
-        .limit(40),
+        .order("created_at", { ascending: true }),
       supabase
         .from("stage_docs")
         .select("body")
@@ -374,7 +373,6 @@ export const runScribe = createServerFn({ method: "POST" })
     ]);
 
     const contextText = (lines ?? [])
-      .reverse()
       .map((line) => `${line.author_name}: ${line.body}`)
       .join("\n");
 
