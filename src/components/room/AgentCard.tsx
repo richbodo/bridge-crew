@@ -12,10 +12,12 @@ interface Props {
   progress: string | null;
   name?: string | null;
   duty?: string | null;
+  packs?: string[];
+  availablePacks?: { name: string; docCount: number }[];
   busy?: boolean;
   onStop: () => void;
   onEngage: (brief: string) => void;
-  onSaveProfile: (profile: { name: string; duty: string }) => void;
+  onSaveProfile: (profile: { name: string; duty: string; contextPacks: string[] }) => void;
 }
 
 export function AgentCard({
@@ -25,6 +27,8 @@ export function AgentCard({
   progress,
   name,
   duty,
+  packs = [],
+  availablePacks = [],
   busy,
   onStop,
   onEngage,
@@ -37,6 +41,7 @@ export function AgentCard({
   const [editing, setEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState(name ?? member.name);
   const [dutyDraft, setDutyDraft] = useState(duty ?? member.blurb);
+  const [packDraft, setPackDraft] = useState<string[]>(packs);
 
   const label = name?.trim() || member.name;
   const dutyText = duty?.trim() || member.blurb;
