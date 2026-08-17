@@ -205,6 +205,7 @@ export function AgentCard({
               onClick={() => {
                 setNameDraft(member.name);
                 setDutyDraft(member.blurb);
+                setPackDraft([]);
               }}
             >
               Reset to default
