@@ -8,7 +8,7 @@ test.describe("the room", () => {
     const { code } = await openRoom(page, { title: `E2E room ${Date.now()}` });
 
     expect(code).toMatch(/^[A-Z0-9]{4,8}$/);
-    await expect(page.getByText("Hails")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Hails" })).toBeVisible();
     await expect(page.getByText("No hails. The floor is yours.")).toBeVisible();
     await expect(page.getByText("plan.md")).toBeVisible();
     for (const station of STATIONS) {
