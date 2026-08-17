@@ -80,7 +80,47 @@ the prompt states plainly what was dropped. Packs are never silently trimmed wit
 - `docs/context/README.md` documents the folder convention; seed one example pack.
 - Tests for pack merging, ordering, and budget-trimming behaviour.
 
+## Fixture packs shipped with the repo
+
+`docs/context/` is the parent directory. Four fixture packs ship so the crew has something
+real to work with, and so it is obvious from an answer whether the pack was actually read.
+
+Each pack carries **canary facts**: specific, checkable, unguessable details (named figures,
+dates, coined terms, exact numbers). If a station's answer never touches them, it did not read
+the pack.
+
+1. **`nz-politics`** — New Zealand political current events past any model's training cutoff:
+   coalition arithmetic, portfolio holders, live bills, recent by-election numbers, and the
+   local-vs-national tension in a couple of regional fights. Canaries: exact seat counts,
+   bill clause numbers, dated committee milestones.
+2. **`social-epidemiology`** — the fundamental-cause / social-gradient literature at a depth
+   models blur: specific cohort names, effect sizes with confidence intervals, and the
+   methodological disputes between named research groups. Canaries: study names + numbers.
+3. **`kereru-ferry-coop`** — a wholly fictional organisation: a small passenger-ferry
+   cooperative with a board, a fleet, three years of route-level ridership and fuel costs,
+   a maintenance backlog, and an unresolved decision about electrifying one route. Fictional
+   by construction, so it cannot be in any training set — the strongest read-test we have,
+   and a natural debate subject for Advocate vs Skeptic.
+4. **`bridge-crew-protocol`** — this repo's own research brief, tagging vocabulary (P1–P7,
+   `context_injection`, `option_reopen`, …), export-bundle format, and floor-control rules,
+   condensed for the crew. Makes the crew competent about the instrument it runs inside.
+
+Each pack folder gets an `index.md` stating what the pack is, its provenance, and a
+`## Canaries` section listing the facts a reader should be able to cite — the tester's
+answer key. `docs/context/README.md` documents the convention and how to add a pack.
+
+## Terminology (README addition)
+
+Add a short glossary to `README.md`, since the words are getting used loosely:
+
+- **Bridge Crew** — the name of the application.
+- **The Bridge Crew** — every party to a conversation, humans and AIs together.
+- **the agents** — the AI members of The Bridge Crew.
+- **the humans** — the human members of The Bridge Crew.
+- **station** — an agent's configured seat: name, duty prompt, and context packs.
+
 ## Out of scope for this pass
 
 Embeddings/retrieval, file uploads (PDF/docx), and per-pack access control. All three stay
 possible on top of this shape.
+
