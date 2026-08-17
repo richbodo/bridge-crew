@@ -9,7 +9,10 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "e2e:agents": "playwright test e2e/agents.e2e.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
