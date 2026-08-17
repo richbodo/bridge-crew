@@ -452,23 +452,31 @@ export const seedDemo = createServerFn({ method: "POST" })
 export const updateAgentProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (data: { sessionId: string; agent: AgentKind; name: string; duty: string }) => data,
+    (data: {
+      sessionId: string;
+      agent: AgentKind;
+      name: string;
+      duty: string;
+      contextPacks?: string[];
+    }) => data,
   )
   .handler(async ({ data, context }) => {
     const name = data.name.trim();
     const duty = data.duty.trim();
+    const packs = (data.contextPacks ?? []).map((p) => p.trim()).filter(Boolean);
     const { error } = await context.supabase
       .from("agents_state")
-      .update({ display_name: name || null, duty: duty || null })
+      .update({ display_name: name || null, duty: duty || null, context_packs: packs })
       .eq("session_id", data.sessionId)
       .eq("agent", data.agent);
     if (error) throw new Error(error.message);
 
+    const packNote = packs.length ? ` Required reading: ${packs.join(", ")}.` : "";
     await context.supabase.from("transcript").insert({
       session_id: data.sessionId,
       author_name: "Bridge",
       kind: "system" as const,
-      body: `${CREW[data.agent].name} station reassigned to ${name || CREW[data.agent].name}.`,
+      body: `${CREW[data.agent].name} station reassigned to ${name || CREW[data.agent].name}.${packNote}`,
     });
     return { ok: true };
   });
