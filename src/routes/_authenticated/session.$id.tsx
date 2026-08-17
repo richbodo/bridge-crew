@@ -117,7 +117,12 @@ function RoomPage() {
   });
 
   const profileMutation = useMutation({
-    mutationFn: async (input: { agent: AgentKind; name: string; duty: string }) => {
+    mutationFn: async (input: {
+      agent: AgentKind;
+      name: string;
+      duty: string;
+      contextPacks: string[];
+    }) => {
       await saveProfile({ data: { sessionId: id, ...input } });
       await queryClient.invalidateQueries({ queryKey: ["room", id] });
     },
@@ -179,6 +184,7 @@ function RoomPage() {
             </span>
           ))}
 
+          <ContextPanel sessionId={id} />
           <InvitePanel sessionId={id} code={room.session.code} />
           <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
             Leave
