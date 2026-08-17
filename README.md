@@ -18,7 +18,9 @@ Bridge Crew is an open-source, browser-based collaboration room where two humans
 
 ## Documents
 
+- [Users guide](docs/users_guide.md) — step-by-step instructions for running a session (also in-app at `/guide`)
 - [The Bridge Crew Plan](docs/plans/BRIDGE_CREW_PLAN.md) — architecture, crew roster, build phases, and exit gates
+
 - [The Research Brief](docs/research/BRIDGE_CREW_RESEARCH_BRIEF.md) — the field-scan protocol and falsifiable predictions this tool exists to test
 - [Context packs](docs/context/README.md) — the fixture reference material stations can be required to read
 - [Floor state control](docs/floor_state_control.md) — the floor state machine and its UX
