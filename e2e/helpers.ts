@@ -15,7 +15,8 @@ export async function openRoom(
   await page.waitForURL(/\/session\/[0-9a-f-]+/);
   await expect(page.getByRole("heading", { name: title })).toBeVisible();
 
-  const code = (await page.getByText(/join code/i).innerText()).replace(/join code/i, "").trim();
+  const header = page.locator("header").first();
+  const code = (await header.getByText(/^join code /i).innerText()).replace(/join code/i, "").trim();
   const id = page.url().split("/session/")[1]!;
   return { id, code };
 }
