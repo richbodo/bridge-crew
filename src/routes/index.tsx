@@ -79,9 +79,14 @@ function Lobby() {
           <h1 className="text-lg font-semibold text-foreground">The room where the crew waits to be called</h1>
         </div>
         <div className="flex items-center gap-4">
-          <Link to="/guide" target="_blank" className="text-xs text-muted-foreground hover:text-foreground">
+          <a
+            href={USERS_GUIDE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
             Users guide
-          </Link>
+          </a>
           {loading ? null : user ? (
             <button
               className="text-xs text-muted-foreground hover:text-foreground"
