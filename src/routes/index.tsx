@@ -78,20 +78,26 @@ function Lobby() {
           <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">Bridge Crew</p>
           <h1 className="text-lg font-semibold text-foreground">The room where the crew waits to be called</h1>
         </div>
-        {loading ? null : user ? (
-          <button
-            className="text-xs text-muted-foreground hover:text-foreground"
-            onClick={async () => {
-              await supabase.auth.signOut();
-            }}
-          >
-            Sign out
-          </button>
-        ) : (
-          <Link to="/auth" className="text-xs text-muted-foreground hover:text-foreground">
-            Sign in
+        <div className="flex items-center gap-4">
+          <Link to="/guide" target="_blank" className="text-xs text-muted-foreground hover:text-foreground">
+            Users guide
           </Link>
-        )}
+          {loading ? null : user ? (
+            <button
+              className="text-xs text-muted-foreground hover:text-foreground"
+              onClick={async () => {
+                await supabase.auth.signOut();
+              }}
+            >
+              Sign out
+            </button>
+          ) : (
+            <Link to="/auth" className="text-xs text-muted-foreground hover:text-foreground">
+              Sign in
+            </Link>
+          )}
+        </div>
+
       </header>
 
       <div className="mx-auto grid max-w-5xl gap-8 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_320px]">
