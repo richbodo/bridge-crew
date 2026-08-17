@@ -21,7 +21,7 @@ interface SessionFile {
 }
 
 function fromFile(): { storageKey: string; sessionJson: string; cookies: Record<string, unknown>[] } | null {
-  const path: string = process.env["E2E_SESSION_FILE"] ?? join(homedir(), ".cache/lovable-auth/session.json");
+  const path: string = process.env["E2E_SESSION_FILE"] || join(homedir(), ".cache/lovable-auth/session.json");
   try {
     const raw = JSON.parse(readFileSync(path, "utf8")) as SessionFile;
     if (!raw.storage_key || !raw.session) return null;
@@ -30,16 +30,15 @@ function fromFile(): { storageKey: string; sessionJson: string; cookies: Record<
       sessionJson: JSON.stringify(raw.session),
       cookies: raw.cookies ?? [],
     };
-  } catch (e) {
-    console.log("session file unreadable", path, String(e));
+  } catch {
     return null;
   }
 }
 
 setup("sign in", async ({ page, context }) => {
   const fileSession = fromFile();
-  const storageKey = process.env["LOVABLE_BROWSER_SUPABASE_STORAGE_KEY"] ?? fileSession?.storageKey;
-  const sessionJson = process.env["LOVABLE_BROWSER_SUPABASE_SESSION_JSON"] ?? fileSession?.sessionJson;
+  const storageKey = process.env["LOVABLE_BROWSER_SUPABASE_STORAGE_KEY"] || fileSession?.storageKey;
+  const sessionJson = process.env["LOVABLE_BROWSER_SUPABASE_SESSION_JSON"] || fileSession?.sessionJson;
   const cookiesJson = process.env["LOVABLE_BROWSER_SUPABASE_COOKIES_JSON"];
   const cookies = cookiesJson
     ? (JSON.parse(cookiesJson) as Record<string, unknown>[])
@@ -53,7 +52,7 @@ setup("sign in", async ({ page, context }) => {
     );
   }
 
-  const origin = process.env["E2E_BASE_URL"] ?? "http://localhost:8080";
+  const origin = process.env["E2E_BASE_URL"] || "http://localhost:8080";
   if (cookies.length) {
     await context.addCookies(cookies.map((c) => ({ ...c, url: origin }) as never));
   }
