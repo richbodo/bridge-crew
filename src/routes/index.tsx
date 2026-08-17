@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { CREW, CREW_ORDER } from "@/lib/crew";
+import { USERS_GUIDE_URL } from "@/lib/links";
 import { seedDemo } from "@/lib/room.functions";
 import { createSession, joinSession, myParticipations } from "@/lib/session.functions";
 
