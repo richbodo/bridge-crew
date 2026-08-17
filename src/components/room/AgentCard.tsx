@@ -99,6 +99,19 @@ export function AgentCard({
         {task ? <span className="text-card-foreground">{task}</span> : dutyText}
       </p>
       {progress ? <p className="mt-2 text-xs italic text-muted-foreground">{progress}</p> : null}
+      {packs.length ? (
+        <p className="mt-2 flex flex-wrap gap-1">
+          {packs.map((pack) => (
+            <span
+              key={pack}
+              className="rounded-sm border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground"
+              title="Required reading before every run"
+            >
+              {pack}
+            </span>
+          ))}
+        </p>
+      ) : null}
 
       <div className="mt-3 flex flex-wrap gap-2">
         <Button
