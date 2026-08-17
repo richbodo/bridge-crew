@@ -57,12 +57,16 @@ export function AgentCard({
   const startEdit = () => {
     setNameDraft(name ?? member.name);
     setDutyDraft(duty ?? member.blurb);
+    setPackDraft(packs);
     setOpen(false);
     setEditing(true);
   };
 
+  const togglePack = (pack: string) =>
+    setPackDraft((prev) => (prev.includes(pack) ? prev.filter((p) => p !== pack) : [...prev, pack]));
+
   const saveEdit = () => {
-    onSaveProfile({ name: nameDraft.trim(), duty: dutyDraft.trim() });
+    onSaveProfile({ name: nameDraft.trim(), duty: dutyDraft.trim(), contextPacks: packDraft });
     setEditing(false);
   };
 
