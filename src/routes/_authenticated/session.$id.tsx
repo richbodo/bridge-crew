@@ -186,9 +186,14 @@ function RoomPage() {
 
           <ContextPanel sessionId={id} />
           <InvitePanel sessionId={id} code={room.session.code} />
-          <Link to="/guide" target="_blank" className="text-xs text-muted-foreground hover:text-foreground">
+          <a
+            href={USERS_GUIDE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
             Guide
-          </Link>
+          </a>
           <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
             Leave
           </Link>
