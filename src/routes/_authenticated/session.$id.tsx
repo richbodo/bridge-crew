@@ -6,11 +6,13 @@ import { toast } from "sonner";
 
 import { AgentCard } from "@/components/room/AgentCard";
 import { ChatPane, type ContributionRow, type TranscriptLine } from "@/components/room/ChatPane";
+import { ContextPanel } from "@/components/room/ContextPanel";
 import { HailQueue } from "@/components/room/HailQueue";
 import { InvitePanel } from "@/components/room/InvitePanel";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { listContextPacks } from "@/lib/context.functions";
 import { CREW, CREW_ORDER, type AgentKind, type AgentStatus } from "@/lib/crew";
 import {
   postLine,
@@ -56,6 +58,7 @@ function RoomPage() {
   const standDown = useServerFn(stopAgent);
   const scribe = useServerFn(runScribe);
   const saveProfile = useServerFn(updateAgentProfile);
+  const packList = useServerFn(listContextPacks);
 
   const [draft, setDraft] = useState("");
   const humanLines = useRef(0);
@@ -64,6 +67,12 @@ function RoomPage() {
     queryKey: ["room", id],
     queryFn: () => fetchRoom({ data: { sessionId: id } }),
   });
+
+  const packsQuery = useQuery({
+    queryKey: ["context-packs", id],
+    queryFn: () => packList({ data: { sessionId: id } }),
+  });
+
 
   useEffect(() => {
     const channel = supabase.channel(`room:${id}`);
@@ -108,7 +117,12 @@ function RoomPage() {
   });
 
   const profileMutation = useMutation({
-    mutationFn: async (input: { agent: AgentKind; name: string; duty: string }) => {
+    mutationFn: async (input: {
+      agent: AgentKind;
+      name: string;
+      duty: string;
+      contextPacks: string[];
+    }) => {
       await saveProfile({ data: { sessionId: id, ...input } });
       await queryClient.invalidateQueries({ queryKey: ["room", id] });
     },
@@ -170,6 +184,7 @@ function RoomPage() {
             </span>
           ))}
 
+          <ContextPanel sessionId={id} />
           <InvitePanel sessionId={id} code={room.session.code} />
           <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
             Leave
@@ -231,6 +246,8 @@ function RoomPage() {
                 progress={state?.progress ?? null}
                 name={state?.display_name ?? null}
                 duty={state?.duty ?? null}
+                packs={(state?.context_packs as string[] | null) ?? []}
+                availablePacks={packsQuery.data ?? []}
                 busy={sendMutation.isPending}
                 onStop={() => standDown({ data: { sessionId: id, agent } })}
                 onEngage={(brief) =>
@@ -238,8 +255,8 @@ function RoomPage() {
                     active ? `/redirect ${CREW[agent].kind} ${brief}` : `/${CREW[agent].kind} ${brief}`,
                   )
                 }
-                onSaveProfile={({ name, duty }) =>
-                  profileMutation.mutate({ agent, name, duty })
+                onSaveProfile={({ name, duty, contextPacks }) =>
+                  profileMutation.mutate({ agent, name, duty, contextPacks })
                 }
               />
             );

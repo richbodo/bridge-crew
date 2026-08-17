@@ -6,10 +6,22 @@ Bridge Crew is an open-source, browser-based collaboration room where two humans
 
 **Status:** pre-development. The plan and research brief are written; the build starts on [Lovable](https://lovable.dev) (fast public iteration, shareable test sessions), with a self-hostable local version (Ubuntu Linux / Digital Ocean droplet) as a follow-on target.
 
+## Terminology
+
+- **Bridge Crew** — the name of the application.
+- **The Bridge Crew** — every party to a conversation, humans and AIs together.
+- **the agents** — the AI members of The Bridge Crew.
+- **the humans** — the human members of The Bridge Crew.
+- **station** — an agent's configured seat: display name, duty prompt, and context packs.
+- **context pack** — a named folder of documents a station must read in full before it
+  answers. See [`docs/context/README.md`](docs/context/README.md).
+
 ## Documents
 
 - [The Bridge Crew Plan](docs/plans/BRIDGE_CREW_PLAN.md) — architecture, crew roster, build phases, and exit gates
 - [The Research Brief](docs/research/BRIDGE_CREW_RESEARCH_BRIEF.md) — the field-scan protocol and falsifiable predictions this tool exists to test
+- [Context packs](docs/context/README.md) — the fixture reference material stations can be required to read
+- [Floor state control](docs/floor_state_control.md) — the floor state machine and its UX
 - [Research synthesis](https://claude.ai/public/artifacts/1159dda9-7cd9-422d-bbc3-c1a3d1f655f4) — the literature review behind the design
 
 ## For researchers

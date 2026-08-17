@@ -141,23 +141,35 @@ export const runAgent = createServerFn({ method: "POST" })
 
     const { data: state } = await supabase
       .from("agents_state")
-      .select("status, display_name, duty")
+      .select("status, display_name, duty, context_packs")
       .eq("session_id", data.sessionId)
       .eq("agent", data.agent)
       .maybeSingle();
     if (state?.status === "stopped") return { ok: false, reason: "stopped" as const };
 
+    const { assembleContext } = await import("./context");
+    const { loadPackDocs } = await import("./context.server");
 
-    const { data: recent } = await supabase
-      .from("transcript")
-      .select("author_name, body")
-      .eq("session_id", data.sessionId)
-      .order("created_at", { ascending: false })
-      .limit(30);
-    const contextText = (recent ?? [])
-      .reverse()
-      .map((line) => `${line.author_name}: ${line.body}`)
-      .join("\n");
+    const [{ data: recent }, { data: planDoc }, packDocs] = await Promise.all([
+      supabase
+        .from("transcript")
+        .select("author_name, body")
+        .eq("session_id", data.sessionId)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("stage_docs")
+        .select("body")
+        .eq("session_id", data.sessionId)
+        .eq("slug", "plan")
+        .maybeSingle(),
+      loadPackDocs(supabase, data.sessionId, (state?.context_packs as string[] | null) ?? []),
+    ]);
+
+    const assembled = assembleContext({
+      docs: packDocs,
+      plan: planDoc?.body ?? "",
+      transcript: (recent ?? []).map((line) => `${line.author_name}: ${line.body}`),
+    });
 
     await supabase
       .from("agents_state")
@@ -167,7 +179,7 @@ export const runAgent = createServerFn({ method: "POST" })
 
     let result;
     try {
-      result = await runAgentBrief(data.agent, data.brief, contextText, {
+      result = await runAgentBrief(data.agent, data.brief, assembled.text, {
         name: state?.display_name ?? null,
         duty: state?.duty ?? null,
       });
@@ -195,7 +207,9 @@ export const runAgent = createServerFn({ method: "POST" })
     if (after?.status === "stopped") return { ok: false, reason: "stopped" as const };
 
     const { spoken, overflow } = enforceSpeechCap(result.spokenRaw);
-    const brief = overflow ? `${result.brief}\n\n---\n\n${overflow}` : result.brief;
+    const provenance = assembled.read ? `_Read: ${assembled.read}_\n\n` : "";
+    const brief =
+      provenance + (overflow ? `${result.brief}\n\n---\n\n${overflow}` : result.brief);
 
     await supabase.from("contributions").insert({
       session_id: data.sessionId,
@@ -349,8 +363,7 @@ export const runScribe = createServerFn({ method: "POST" })
         .from("transcript")
         .select("author_name, body")
         .eq("session_id", data.sessionId)
-        .order("created_at", { ascending: false })
-        .limit(40),
+        .order("created_at", { ascending: true }),
       supabase
         .from("stage_docs")
         .select("body")
@@ -360,7 +373,6 @@ export const runScribe = createServerFn({ method: "POST" })
     ]);
 
     const contextText = (lines ?? [])
-      .reverse()
       .map((line) => `${line.author_name}: ${line.body}`)
       .join("\n");
 
@@ -438,23 +450,31 @@ export const seedDemo = createServerFn({ method: "POST" })
 export const updateAgentProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (data: { sessionId: string; agent: AgentKind; name: string; duty: string }) => data,
+    (data: {
+      sessionId: string;
+      agent: AgentKind;
+      name: string;
+      duty: string;
+      contextPacks?: string[];
+    }) => data,
   )
   .handler(async ({ data, context }) => {
     const name = data.name.trim();
     const duty = data.duty.trim();
+    const packs = (data.contextPacks ?? []).map((p) => p.trim()).filter(Boolean);
     const { error } = await context.supabase
       .from("agents_state")
-      .update({ display_name: name || null, duty: duty || null })
+      .update({ display_name: name || null, duty: duty || null, context_packs: packs })
       .eq("session_id", data.sessionId)
       .eq("agent", data.agent);
     if (error) throw new Error(error.message);
 
+    const packNote = packs.length ? ` Required reading: ${packs.join(", ")}.` : "";
     await context.supabase.from("transcript").insert({
       session_id: data.sessionId,
       author_name: "Bridge",
       kind: "system" as const,
-      body: `${CREW[data.agent].name} station reassigned to ${name || CREW[data.agent].name}.`,
+      body: `${CREW[data.agent].name} station reassigned to ${name || CREW[data.agent].name}.${packNote}`,
     });
     return { ok: true };
   });
