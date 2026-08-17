@@ -17,6 +17,7 @@ export type Database = {
       agents_state: {
         Row: {
           agent: Database["public"]["Enums"]["agent_kind"]
+          context_packs: string[]
           created_at: string
           current_task: string | null
           display_name: string | null
@@ -29,6 +30,7 @@ export type Database = {
         }
         Insert: {
           agent: Database["public"]["Enums"]["agent_kind"]
+          context_packs?: string[]
           created_at?: string
           current_task?: string | null
           display_name?: string | null
@@ -41,6 +43,7 @@ export type Database = {
         }
         Update: {
           agent?: Database["public"]["Enums"]["agent_kind"]
+          context_packs?: string[]
           created_at?: string
           current_task?: string | null
           display_name?: string | null
@@ -54,6 +57,76 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "agents_state_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      context_docs: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          pack_id: string
+          path: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          pack_id: string
+          path: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          pack_id?: string
+          path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_docs_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "context_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      context_packs: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          name: string
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "context_packs_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "sessions"
