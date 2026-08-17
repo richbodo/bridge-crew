@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { listContextPacks } from "@/lib/context.functions";
 import { CREW, CREW_ORDER, type AgentKind, type AgentStatus } from "@/lib/crew";
+import { USERS_GUIDE_URL } from "@/lib/links";
 import {
   postLine,
   resolveHail,
@@ -186,9 +187,14 @@ function RoomPage() {
 
           <ContextPanel sessionId={id} />
           <InvitePanel sessionId={id} code={room.session.code} />
-          <Link to="/guide" target="_blank" className="text-xs text-muted-foreground hover:text-foreground">
+          <a
+            href={USERS_GUIDE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
             Guide
-          </Link>
+          </a>
           <Link to="/" className="text-xs text-muted-foreground hover:text-foreground">
             Leave
           </Link>
