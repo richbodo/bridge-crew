@@ -2,9 +2,8 @@ import { expect, type Page } from "@playwright/test";
 
 export const STATIONS = ["Scribe", "Scout", "Advocate", "Skeptic", "Analyst"] as const;
 
-/** Local-stack runs answer with canned crew replies unless E2E_LIVE_MODEL=1 (see playwright.config.ts). */
-export const FIXTURE_MODEL =
-  Boolean(process.env["E2E_SUPABASE_URL"]) && process.env["E2E_LIVE_MODEL"] !== "1";
+/** Local runs answer with canned crew replies unless E2E_LIVE_MODEL=1 (see playwright.config.ts). */
+export const FIXTURE_MODEL = !process.env["E2E_BASE_URL"] && process.env["E2E_LIVE_MODEL"] !== "1";
 
 /** Opens a fresh room from the lobby and returns its id and join code. */
 export async function openRoom(

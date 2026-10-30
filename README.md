@@ -4,7 +4,7 @@
 
 Bridge Crew is an open-source, browser-based collaboration room where two humans meet on a video call and work through hard, ill-structured problems — plans, strategies, contested questions — with a crew of named AI agents under absolute human floor control. Humans talk; agents listen, work in the background, and raise a hand when they have something worth saying. The session produces an artifact: a living plan document, a decision log, and an open-questions list.
 
-**Status:** pre-development. The plan and research brief are written; the build starts on [Lovable](https://lovable.dev) (fast public iteration, shareable test sessions), with a self-hostable local version (Ubuntu Linux / Digital Ocean droplet) as a follow-on target.
+**Status:** early build. The typed version of the room works — rooms, the five-station crew, summoning, hand-raises and floor grants, context packs, and invites (plan Phase 0, in progress). It runs entirely on your own machine (local Supabase, Claude via the Anthropic API); a self-hosted deployment on an Ubuntu / DigitalOcean droplet is the next target.
 
 ## Terminology
 
@@ -56,23 +56,19 @@ The format is versioned and pinned in the plan (§5), with the tagging vocabular
 
 **I'm looking for collaborators to run the powered version of this study — I built this to hopefully contribute to tooling that could fill a hole in the literature.** The field scan is deliberately modest (n≈10, behavioral proxies, one facilitator); its job is to produce the instrument, the field-fit map, and directional evidence that make a real comparative study (2+crew vs. 1+crew vs. crew-alone, with baselines) designable. If you work on human-AI collaboration, CSCW, group deliberation, or adjacent fields and want to use, extend, or formally study this instrument, get in touch: **richbodo@gmail.com**
 
+## Development
+
+Everything runs locally: Supabase via the Supabase CLI (on Colima/Docker), the TanStack Start
+dev server, and Claude through the Anthropic API.
+
+```
+mac% ./scripts/test-infra.sh   # local Supabase, test users, .env
+mac% bun run dev               # http://localhost:8080
+mac% bun run e2e               # Playwright end-to-end tests, canned crew replies
+```
+
+Setup, model options, and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md).
+
 ## License
 
 GPL-3.0
-
-## Build with Lovable
-
-This repo is synced with a [Lovable](https://lovable.dev) project — continue developing it in the [Lovable editor](https://lovable.dev/projects/0aa8f579-4251-4415-b94e-7027c716942c). Changes made in Lovable commit straight to this repository, and pushes to `main` sync back into Lovable.
-
-## Run it locally
-
-The same code runs without Lovable: local Supabase (via the Supabase CLI and Colima), the
-TanStack Start dev server, and Claude through the Anthropic API.
-
-```
-mac% ./scripts/test-infra.sh   # local Supabase, test users, .env.localdev
-mac% bun run dev:local         # http://localhost:8080 against the local stack
-mac% bun run e2e               # Playwright against the local stack, canned crew replies
-```
-
-Full setup, model options, and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md).

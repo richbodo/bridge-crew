@@ -1,13 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 /**
- * Where the crew's model calls go. One codebase serves every target:
- *   - local stack:     ANTHROPIC_API_KEY → the Anthropic Messages API directly
- *   - Lovable-hosted:  LOVABLE_API_KEY   → Lovable's AI gateway
- *   - tests / offline: BRIDGE_CREW_MODEL_PROVIDER=fixture → canned replies, no keys, no network
- * BRIDGE_CREW_MODEL_PROVIDER forces a choice; otherwise the first key found wins.
+ * Where the crew's model calls go:
+ *   - ANTHROPIC_API_KEY set → the Anthropic Messages API
+ *   - BRIDGE_CREW_MODEL_PROVIDER=fixture → canned replies, no key, no network (tests, offline demos)
+ * BRIDGE_CREW_MODEL_PROVIDER=anthropic|fixture forces a choice.
  */
-export type ModelProvider = "anthropic" | "lovable" | "fixture";
+export type ModelProvider = "anthropic" | "fixture";
 
 /** Crew members do the real thinking; Scribe is the cheap, frequent call (plan §4). */
 export type ModelRole = "crew" | "scribe";
@@ -17,7 +16,7 @@ export interface ChatMessage {
   content: string;
 }
 
-const PROVIDERS: readonly ModelProvider[] = ["anthropic", "lovable", "fixture"];
+const PROVIDERS: readonly ModelProvider[] = ["anthropic", "fixture"];
 
 export function pickProvider(env: Record<string, string | undefined> = process.env): ModelProvider {
   const forced = env["BRIDGE_CREW_MODEL_PROVIDER"]?.trim();
@@ -26,7 +25,6 @@ export function pickProvider(env: Record<string, string | undefined> = process.e
     throw new Error(`Unknown BRIDGE_CREW_MODEL_PROVIDER "${forced}".`);
   }
   if (env["ANTHROPIC_API_KEY"]) return "anthropic";
-  if (env["LOVABLE_API_KEY"]) return "lovable";
   throw new Error("No model is configured for the crew.");
 }
 
@@ -36,7 +34,6 @@ export async function callModel(
 ): Promise<string> {
   const provider = pickProvider();
   if (provider === "fixture") return fixtureReply(messages, role);
-  if (provider === "lovable") return callLovableGateway(messages);
   return callAnthropic(messages, role);
 }
 
@@ -107,37 +104,6 @@ async function callAnthropic(messages: ChatMessage[], role: ModelRole): Promise<
     }
     throw error;
   }
-}
-
-// ---------- Lovable AI gateway (Lovable-hosted deployments) ----------
-
-const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const GATEWAY_MODEL = "google/gemini-2.5-flash";
-
-async function callLovableGateway(messages: ChatMessage[]): Promise<string> {
-  const apiKey = process.env["LOVABLE_API_KEY"];
-  if (!apiKey) throw new Error("AI gateway is not configured");
-
-  const response = await fetch(GATEWAY, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ model: GATEWAY_MODEL, messages }),
-  });
-
-  if (response.status === 429) throw new Error("The crew is rate limited, try again in a moment.");
-  if (response.status === 402) throw new Error("AI credits are exhausted for this workspace.");
-  if (!response.ok) {
-    console.error("ai gateway error", response.status, await response.text());
-    throw new Error("The crew could not reach the model.");
-  }
-
-  const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  return payload.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
 // ---------- Fixture (deterministic, for tests and offline demos) ----------

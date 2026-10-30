@@ -204,3 +204,4 @@ Three targets, one codebase, and the development loop proven on FundFlow: build 
 ---
 *Plan drafted 2026-08-15 with Claude (Fable 5), from the [research synthesis](https://claude.ai/public/artifacts/1159dda9-7cd9-422d-bbc3-c1a3d1f655f4) and the [FundFlow](https://github.com/richbodo/launchpad-funding) reference architecture. Companion: `BRIDGE_CREW_RESEARCH_BRIEF.md`.*
 *Revised 2026-08-16: pinned the export-bundle format (§5), added deployment targets and the development loop (§7), and the repo-goes-public publication note (Phase 5).*
+*Revised 2026-10-30: moved off Lovable for good. Target 1 (Lovable-hosted) is retired; the local stack (Target 2) is now primary and the self-hosted droplet (Target 3) is the deployment path. As built, the orchestrator is TanStack Start server functions rather than Supabase Edge Functions, and crew model calls go straight to the Anthropic API. Setup: `docs/dev_setup.md`.*

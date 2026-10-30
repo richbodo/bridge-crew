@@ -10,12 +10,8 @@ describe("pickProvider", () => {
     );
   });
 
-  it("uses Anthropic when its key is present, even alongside the Lovable gateway key", () => {
-    expect(pickProvider({ ANTHROPIC_API_KEY: "k", LOVABLE_API_KEY: "l" })).toBe("anthropic");
-  });
-
-  it("falls back to the Lovable gateway on Lovable-hosted deployments", () => {
-    expect(pickProvider({ LOVABLE_API_KEY: "l" })).toBe("lovable");
+  it("uses Anthropic when its key is present", () => {
+    expect(pickProvider({ ANTHROPIC_API_KEY: "k" })).toBe("anthropic");
   });
 
   it("refuses to guess when nothing is configured", () => {
@@ -23,7 +19,7 @@ describe("pickProvider", () => {
   });
 
   it("rejects an unknown provider name instead of silently ignoring it", () => {
-    expect(() => pickProvider({ BRIDGE_CREW_MODEL_PROVIDER: "gpt" })).toThrow(/Unknown/);
+    expect(() => pickProvider({ BRIDGE_CREW_MODEL_PROVIDER: "lovable" })).toThrow(/Unknown/);
   });
 });
 
