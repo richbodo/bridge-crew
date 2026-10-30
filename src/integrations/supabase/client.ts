@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { DEMO_MODE, perTabAuthStorage } from '@/lib/demo';
 import type { Database } from './types';
 
 function isNewSupabaseApiKey(value: string): boolean {
@@ -49,6 +50,7 @@ function createSupabaseClient() {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
+      ...(DEMO_MODE && typeof window !== 'undefined' ? perTabAuthStorage() : {}),
     }
   });
 }

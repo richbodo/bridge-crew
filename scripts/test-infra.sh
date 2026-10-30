@@ -1,18 +1,27 @@
 #!/usr/bin/env bash
 #
 # Prepares the local Bridge Crew stack: local Supabase (via Colima/Docker),
-# seeded test users, and .env pointing the app at it.
-# Idempotent — skips anything already running.
+# seeded test and demo users, and .env pointing the app at it.
+# Idempotent — skips anything already running. `just infra` runs this.
 #
 # Usage:
 #   mac% ./scripts/test-infra.sh          # start everything
 #   mac% ./scripts/test-infra.sh --reset  # also wipe the local DB, reapply migrations, reseed
+#   mac% ./scripts/test-infra.sh --quiet  # skip the closing how-to (for just recipes)
 #
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-RESET_FLAG="${1:-}"
+RESET=0
+QUIET=0
+for arg in "$@"; do
+  case "$arg" in
+    --reset) RESET=1 ;;
+    --quiet) QUIET=1 ;;
+    *) echo "ERROR: unknown option $arg (expected --reset, --quiet)" >&2; exit 1 ;;
+  esac
+done
 
 # Ports come from supabase/config.toml (553xx, so other local Supabase projects can keep 543xx).
 SUPABASE_URL="http://127.0.0.1:55321"
@@ -20,9 +29,12 @@ DB_URL="postgresql://postgres:postgres@127.0.0.1:55322/postgres"
 # Services the app doesn't use — skipped to keep the stack light.
 SUPABASE_EXCLUDE="edge-runtime,imgproxy,vector,logflare,supavisor"
 
-# Local-only test accounts (email auth auto-confirms on the local stack).
+# Local-only accounts (email auth auto-confirms on the local stack). Playwright signs in
+# as the crew-* users; demo mode's one-click buttons use the demo-* users and this
+# password, so keep them in step with src/lib/demo.ts.
 TEST_PASSWORD="bridge-crew-local"
 TEST_USERS=("crew-a@example.com" "crew-b@example.com")
+DEMO_USERS=("demo-1@example.com" "demo-2@example.com")
 
 # ---------- helpers ----------
 info() { echo "==> $*"; }
@@ -51,7 +63,7 @@ else
   supabase start -x "$SUPABASE_EXCLUDE"
 fi
 
-if [ "$RESET_FLAG" = "--reset" ]; then
+if [ "$RESET" = 1 ]; then
   info "Resetting database (drops all data, reapplies supabase/migrations)..."
   supabase db reset
 fi
@@ -65,9 +77,9 @@ SECRET_KEY="$(status_value SECRET_KEY)"
 [ -n "$PUB_KEY" ] && [ -n "$SECRET_KEY" ] || die "Could not read keys from 'supabase status -o env'."
 
 # ---------- 2. Test users ----------
-info "Seeding test users..."
+info "Seeding test and demo users..."
 SEED_OUT="$(mktemp)"
-for email in "${TEST_USERS[@]}"; do
+for email in "${TEST_USERS[@]}" "${DEMO_USERS[@]}"; do
   code=$(curl -s -o "$SEED_OUT" -w '%{http_code}' "$SUPABASE_URL/auth/v1/admin/users" \
     -X POST \
     -H "apikey: $SECRET_KEY" \
@@ -104,13 +116,13 @@ EOF
 
 # ---------- 4. Model key check ----------
 if [ -n "${ANTHROPIC_API_KEY:-}" ] || grep -qs '^ANTHROPIC_API_KEY=.\+' "$PROJECT_DIR/.env.local"; then
-  info "Anthropic API key found — the crew will call Claude."
+  info "Anthropic API key found in your shell or .env.local."
 else
   echo ""
   echo "NOTE: no ANTHROPIC_API_KEY in your shell or .env.local."
   echo "      The crew can't call a model until you add one:"
   echo "        mac% echo 'ANTHROPIC_API_KEY=sk-ant-...' >> .env.local"
-  echo "      Or run with canned replies: bun run dev:fixture"
+  echo "      Or run with canned replies: just run-fixture"
 fi
 
 # ---------- 5. Dependencies ----------
@@ -122,21 +134,24 @@ fi
 # ---------- Done ----------
 echo ""
 info "Local stack ready."
+[ "$QUIET" = 1 ] && exit 0
 echo ""
 echo "    Supabase API:     $SUPABASE_URL"
 echo "    Supabase Studio:  http://127.0.0.1:55323"
 echo "    Mail (Mailpit):   http://127.0.0.1:55324"
 echo "    Database:         $DB_URL"
 echo "    Test logins:      ${TEST_USERS[0]} / ${TEST_USERS[1]}  (password: $TEST_PASSWORD)"
+echo "    Demo logins:      ${DEMO_USERS[0]} / ${DEMO_USERS[1]}  (one click in just demo)"
 echo ""
 echo "Run the app:"
-echo "    mac% bun run dev             # http://localhost:8080, crew calls Claude"
-echo "    mac% bun run dev:fixture     # same, with canned crew replies (no key needed)"
+echo "    mac% just run                # http://localhost:8080, crew calls Claude"
+echo "    mac% just demo               # same, plus one-click demo logins, one per tab"
+echo "    mac% just run-fixture        # canned crew replies (no key needed)"
 echo ""
 echo "Run tests:"
-echo "    mac% bun run test            # unit tests"
-echo "    mac% bun run e2e             # Playwright, canned crew replies"
-echo "    mac% bun run e2e:live        # Playwright, real Claude calls (costs credits)"
+echo "    mac% just test               # unit tests"
+echo "    mac% just e2e                # Playwright, canned crew replies"
+echo "    mac% just e2e-live           # Playwright, real Claude calls (costs credits)"
 echo ""
 echo "Shut down when done:"
-echo "    mac% ./scripts/test-infra-stop.sh"
+echo "    mac% just infra-stop"

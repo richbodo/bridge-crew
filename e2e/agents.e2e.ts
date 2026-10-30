@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { FIXTURE_MODEL, openRoom, say, stationCard } from "./helpers";
 
 /**
- * Users guide §5, §6, §9 — summoning, floor control, demo mode.
+ * Users guide §5, §6, §9 — summoning, floor control, the demo room.
  * These specs call the live model, so they are slow and cost credits.
  * Run them with: bunx playwright test e2e/agents.e2e.ts
  */

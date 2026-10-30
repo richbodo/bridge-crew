@@ -1,15 +1,17 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { DemoSignIn } from "@/components/DemoSignIn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { CREW, CREW_ORDER } from "@/lib/crew";
+import { demoUserFor } from "@/lib/demo";
 import { USERS_GUIDE_URL } from "@/lib/links";
 import { seedDemo } from "@/lib/room.functions";
 import { createSession, joinSession, myParticipations } from "@/lib/session.functions";
@@ -47,6 +49,13 @@ function Lobby() {
   const [displayName, setDisplayName] = useState("");
   const [color, setColor] = useState(COLORS[0]!);
   const [code, setCode] = useState("");
+
+  const demoUser = demoUserFor(user?.email);
+  useEffect(() => {
+    if (!demoUser) return;
+    setDisplayName(demoUser.name);
+    setColor(demoUser.color);
+  }, [demoUser]);
 
   const recent = useQuery({
     queryKey: ["my-sessions", user?.id],
@@ -88,6 +97,9 @@ function Lobby() {
           >
             Users guide
           </a>
+          {demoUser ? (
+            <span className="text-xs text-foreground">Demo user {demoUser.slot}</span>
+          ) : null}
           {loading ? null : user ? (
             <button
               className="text-xs text-muted-foreground hover:text-foreground"
@@ -143,6 +155,7 @@ function Lobby() {
               <Link to="/auth">
                 <Button className="mt-3 w-full">Come aboard</Button>
               </Link>
+              <DemoSignIn className="mt-4" />
             </div>
           ) : (
             <>
