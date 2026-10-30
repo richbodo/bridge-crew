@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { openRoom, say, stationCard } from "./helpers";
+import { FIXTURE_MODEL, openRoom, say, stationCard } from "./helpers";
 
 /**
  * Users guide §5, §6, §9 — summoning, floor control, demo mode.
@@ -84,6 +84,7 @@ test.describe("summoning and the floor", () => {
   });
 
   test("an attached context pack is actually read — the canary fact comes back", async ({ page }) => {
+    test.skip(FIXTURE_MODEL, "needs a live model to read the pack — run with bun run e2e:live");
     await openRoom(page, { title: `E2E canary ${Date.now()}` });
 
     const card = stationCard(page, "Scout");

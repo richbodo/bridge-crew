@@ -36,10 +36,13 @@ function fromFile(): { storageKey: string; sessionJson: string; cookies: Record<
 }
 
 setup("sign in", async ({ page, context }) => {
-  const fileSession = fromFile();
-  const storageKey = process.env["LOVABLE_BROWSER_SUPABASE_STORAGE_KEY"] || fileSession?.storageKey;
-  const sessionJson = process.env["LOVABLE_BROWSER_SUPABASE_SESSION_JSON"] || fileSession?.sessionJson;
-  const cookiesJson = process.env["LOVABLE_BROWSER_SUPABASE_COOKIES_JSON"];
+  // Local stack (scripts/test-infra.sh): sign in with the seeded test user, never a Lovable session.
+  const localSupabase = process.env["E2E_SUPABASE_URL"];
+  const fileSession = localSupabase ? null : fromFile();
+  const lovable = (key: string) => (localSupabase ? undefined : process.env[key]);
+  const storageKey = lovable("LOVABLE_BROWSER_SUPABASE_STORAGE_KEY") || fileSession?.storageKey;
+  const sessionJson = lovable("LOVABLE_BROWSER_SUPABASE_SESSION_JSON") || fileSession?.sessionJson;
+  const cookiesJson = lovable("LOVABLE_BROWSER_SUPABASE_COOKIES_JSON");
   const cookies = cookiesJson
     ? (JSON.parse(cookiesJson) as Record<string, unknown>[])
     : (fileSession?.cookies ?? []);
@@ -67,9 +70,22 @@ setup("sign in", async ({ page, context }) => {
     await page.goto("/");
   } else {
     await page.getByRole("link", { name: /sign in|come aboard/i }).first().click();
+    // Filling before hydration finishes gets wiped when React takes over the inputs.
+    await page.waitForURL(/\/auth/);
+    await page.waitForLoadState("networkidle");
     await page.getByLabel(/email/i).fill(email!);
     await page.getByLabel(/password/i).fill(password!);
+    const tokenRequest = page.waitForRequest(/\/auth\/v1\/token/);
     await page.getByRole("button", { name: /sign in|come aboard/i }).first().click();
+
+    // Never let a local run write test rooms into the Lovable Cloud database.
+    const talkingTo = new URL((await tokenRequest).url()).origin;
+    if (localSupabase && talkingTo !== new URL(localSupabase).origin) {
+      throw new Error(
+        `The app under test signs in against ${talkingTo}, not the local Supabase at ${localSupabase}. ` +
+          "It was started without --mode localdev; stop it and let Playwright start its own server.",
+      );
+    }
   }
 
   // Signed in when the lobby offers the room form.

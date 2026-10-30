@@ -1,1 +1,23 @@
 project_id = "hspozywxyuscbfoqddeh"
+
+# Local-only port settings (ignored by Lovable Cloud). Bridge Crew's local stack
+# uses the 553xx range so it can run alongside other local Supabase projects on
+# the default 543xx ports. See docs/dev_setup.md.
+[api]
+port = 55321
+
+[db]
+port = 55322
+shadow_port = 55320
+
+[db.pooler]
+port = 55329
+
+[studio]
+port = 55323
+
+[inbucket]
+port = 55324
+
+[analytics]
+port = 55327

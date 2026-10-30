@@ -25,6 +25,7 @@ Bridge Crew is an open-source, browser-based collaboration room where two humans
 - [The Research Brief](docs/research/BRIDGE_CREW_RESEARCH_BRIEF.md) — the field-scan protocol and falsifiable predictions this tool exists to test
 - [Context packs](docs/context/README.md) — the fixture reference material stations can be required to read
 - [Floor state control](docs/floor_state_control.md) — the floor state machine and its UX
+- [Developer setup — local stack](docs/dev_setup.md) — run the whole app on your machine (local Supabase, Claude via the Anthropic API) and run the tests
 - [Research synthesis](https://claude.ai/public/artifacts/1159dda9-7cd9-422d-bbc3-c1a3d1f655f4) — the literature review behind the design
 
 ## For researchers
@@ -62,3 +63,16 @@ GPL-3.0
 ## Build with Lovable
 
 This repo is synced with a [Lovable](https://lovable.dev) project — continue developing it in the [Lovable editor](https://lovable.dev/projects/0aa8f579-4251-4415-b94e-7027c716942c). Changes made in Lovable commit straight to this repository, and pushes to `main` sync back into Lovable.
+
+## Run it locally
+
+The same code runs without Lovable: local Supabase (via the Supabase CLI and Colima), the
+TanStack Start dev server, and Claude through the Anthropic API.
+
+```
+mac% ./scripts/test-infra.sh   # local Supabase, test users, .env.localdev
+mac% bun run dev:local         # http://localhost:8080 against the local stack
+mac% bun run e2e               # Playwright against the local stack, canned crew replies
+```
+
+Full setup, model options, and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md).
