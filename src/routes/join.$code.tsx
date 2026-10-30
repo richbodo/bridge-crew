@@ -4,10 +4,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { DemoSignIn } from "@/components/DemoSignIn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
+import { demoUserFor } from "@/lib/demo";
 import { acceptInvites, peekSession } from "@/lib/invite.functions";
 import { joinSession } from "@/lib/session.functions";
 
@@ -41,6 +43,13 @@ function JoinPage() {
 
   const [displayName, setDisplayName] = useState("");
   const [color, setColor] = useState(COLORS[0]!);
+
+  const demoUser = demoUserFor(user?.email);
+  useEffect(() => {
+    if (!demoUser) return;
+    setDisplayName(demoUser.name);
+    setColor(demoUser.color);
+  }, [demoUser]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -90,6 +99,7 @@ function JoinPage() {
         <Link to="/auth" search={{ next: `/join/${code}` }}>
           <Button className="mt-4 w-full">Sign in to join</Button>
         </Link>
+        <DemoSignIn className="mt-4" />
       </>,
     );
   }

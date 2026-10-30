@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { DemoSignIn } from "@/components/DemoSignIn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,6 +75,8 @@ function AuthPage() {
         <h1 className="mt-2 text-2xl font-semibold text-foreground">
           {mode === "signin" ? "Come aboard" : "Create a crew account"}
         </h1>
+
+        <DemoSignIn className="mt-6" />
 
         <form onSubmit={submit} className="mt-6 space-y-3">
           <div className="space-y-1">

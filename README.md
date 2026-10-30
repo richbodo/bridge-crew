@@ -59,15 +59,33 @@ The format is versioned and pinned in the plan (§5), with the tagging vocabular
 ## Development
 
 Everything runs locally: Supabase via the Supabase CLI (on Colima/Docker), the TanStack Start
-dev server, and Claude through the Anthropic API.
+dev server, and Claude through the Anthropic API. [`just`](https://github.com/casey/just) runs
+it all (`brew install just`); `just` with no arguments lists every recipe.
 
 ```
-mac% ./scripts/test-infra.sh   # local Supabase, test users, .env
-mac% bun run dev               # http://localhost:8080
-mac% bun run e2e               # Playwright end-to-end tests, canned crew replies
+mac% just setup     # first time: dependencies and Playwright's browser
+mac% just demo      # then open two tabs at http://localhost:8080, one demo user each
 ```
 
-Setup, model options, and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md).
+| Recipe | Does |
+| --- | --- |
+| `just setup` | First-time install: dependencies and Playwright's Chromium |
+| `just doctor` | Checks tools, Docker, the local stack, the model key and port 8080 |
+| `just demo` / `just demo-fixture` | Demo mode: one-click **Log me on as demo user 1 / 2**, one sign-in per tab. Crew calls Claude / answers with canned replies |
+| `just run` / `just run-fixture` | The app with ordinary sign-in, at http://localhost:8080. Claude / canned replies |
+| `just open` | Opens the app in a new browser tab |
+| `just stop` | Stops whatever is serving port 8080 |
+| `just infra` | Starts the local stack (Colima, Supabase), seeds users, writes `.env`. The run, demo and e2e recipes do this first |
+| `just infra-reset` | Wipes local data, reapplies migrations, reseeds users |
+| `just infra-stop` / `just infra-clean` | Stops local Supabase, keeping / wiping its data |
+| `just studio` / `just mail` / `just psql` | Supabase Studio, Mailpit, a database shell |
+| `just db-types` | Regenerates the database types after a migration |
+| `just test` / `just check` | Unit tests / typecheck + unit tests |
+| `just e2e` / `just e2e-live` | Playwright end-to-end tests, canned replies / real Claude calls (costs credits) |
+| `just lint` | ESLint + Prettier (older code still has a formatting backlog) |
+| `just build` / `just start` | Production build / serve it on http://localhost:3000 |
+
+Setup, demo mode, model options, and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md).
 
 ## License
 

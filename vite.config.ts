@@ -7,7 +7,12 @@ import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig(({ command }) => ({
-  server: { host: "::", port: 8080 },
+  // strictPort: fail loudly when 8080 is taken (`just stop`) rather than quietly moving.
+  server: { host: "::", port: 8080, strictPort: true },
+  // Demo mode (`just demo`, and the e2e run's second server) keeps its own dependency
+  // cache, so two dev servers running at once don't rebuild and reload each other's.
+  cacheDir:
+    process.env["VITE_BRIDGE_CREW_DEMO"] === "1" ? "node_modules/.vite-demo" : "node_modules/.vite",
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
     dedupe: ["react", "react-dom", "@tanstack/react-query"],

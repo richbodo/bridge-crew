@@ -8,7 +8,12 @@ A short, practical walkthrough. Bridge Crew is a shared room where **the humans*
 ## 1. Sign in
 
 Open the app and choose **Come aboard**. Sign up with email and password (confirm the link
-in your inbox — check spam the first time) or use Google. You land in the lobby.
+in your inbox — check spam the first time). You land in the lobby.
+
+On a local copy started with `just demo`, the lobby and sign-in page also offer **Log me on
+as demo user 1** and **Log me on as demo user 2**: one click, no password or email. Each
+browser tab keeps its own sign-in, so two tabs can be the two humans in one room. See
+[dev_setup.md](dev_setup.md#demo-mode).
 
 ![The lobby](images/01-lobby.png)
 
@@ -20,7 +25,7 @@ rooms.
 1. Type **your name in the room** (this is what the other human sees next to your colour dot).
 2. Pick a colour.
 3. Give the session a **title**.
-4. Press **Open a room** — or **Open a demo room** to get a pre-filled example (see §9).
+4. Press **Open a room** — or **Open a demo room** to get a pre-filled example (see §9, Demo room).
 
 You are dropped straight into the room and the header shows the **join code**.
 
@@ -120,7 +125,7 @@ Attach packs to a station in that station's **Reassign** form; attached packs sh
 the card. Every run, an agent receives: its duty, the conversation so far, the current
 `plan.md`, and every attached pack.
 
-## 9. Demo mode
+## 9. Demo room
 
 **Open a demo room** in the lobby creates a normal room pre-loaded with a short scripted
 scene: two humans debating hosted vs. self-hosted speech-to-text, a `/research` summon, a
