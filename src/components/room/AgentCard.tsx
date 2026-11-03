@@ -1,12 +1,13 @@
 import { useState } from "react";
 
-import { CREW, STATUS_LABEL, type AgentKind, type AgentStatus } from "@/lib/crew";
+import { STATUS_LABEL, type AgentStatus } from "@/lib/crew";
+import type { Job } from "@/lib/templates";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
-  agent: AgentKind;
+  job: Job;
   status: AgentStatus;
   task: string | null;
   progress: string | null;
@@ -21,7 +22,7 @@ interface Props {
 }
 
 export function AgentCard({
-  agent,
+  job: member,
   status,
   task,
   progress,
@@ -34,7 +35,6 @@ export function AgentCard({
   onEngage,
   onSaveProfile,
 }: Props) {
-  const member = CREW[agent];
   const active = status === "working" || status === "hand_raised" || status === "speaking";
   const [open, setOpen] = useState(false);
   const [brief, setBrief] = useState("");
@@ -235,7 +235,7 @@ export function AgentCard({
           />
           <div className="mt-2 flex items-center justify-between">
             <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-              or type @{member.kind} in the room
+              or type @{member.key} in the room
             </p>
             <Button size="sm" className="h-7 px-3 text-xs" disabled={busy} onClick={submit}>
               {active ? "Redirect" : "Engage"}

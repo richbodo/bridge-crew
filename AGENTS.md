@@ -49,6 +49,9 @@ Setup, demo mode and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md).
   `localStorage` directly. The demo accounts are seeded by `scripts/test-infra.sh`.
 - Generated files: `src/routeTree.gen.ts` (router plugin), `src/integrations/supabase/types.ts`
   (`bun run db:types`).
+- Room templates (`src/lib/templates/`) set a room's roster, shared document, seats and rules.
+  Job keys are text; look jobs up with `jobOf(template, key)`, never a fixed crew list. The
+  Game Studio's rules for young people live in its `setting`; keep them there.
 - `docs/users_guide.md` is the single source of truth for the users guide; the app links to it
   on GitHub. Keep it current when user-facing behavior changes.
 - Two humans are first-class, and floor control is the novel part — see

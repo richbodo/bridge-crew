@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-import { CREW, type AgentKind } from "./crew";
 import type { Mode } from "./machines";
 
 /**
@@ -13,7 +12,10 @@ import type { Mode } from "./machines";
 
 export const postPrompt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string; body: string; mode?: Mode }) => data)
+  .inputValidator(
+    (data: { sessionId: string; body: string; mode?: Mode; speaker?: "teacher" | "student" }) =>
+      data,
+  )
   .handler(async ({ data, context }) => {
     const { handlePrompt } = await import("./room.server");
     return handlePrompt(context.supabase, context.userId, data);
@@ -82,7 +84,7 @@ export const updateAgentProfile = createServerFn({ method: "POST" })
   .inputValidator(
     (data: {
       sessionId: string;
-      agent: AgentKind;
+      agent: string;
       name: string;
       duty: string;
       contextPacks?: string[];
@@ -99,12 +101,19 @@ export const updateAgentProfile = createServerFn({ method: "POST" })
       .eq("agent", data.agent);
     if (error) throw new Error(error.message);
 
+    const { data: room } = await context.supabase
+      .from("sessions")
+      .select("template")
+      .eq("id", data.sessionId)
+      .maybeSingle();
+    const { jobOf, templateOf } = await import("./templates");
+    const job = jobOf(templateOf(room?.template), data.agent).name;
     const packNote = packs.length ? ` Required reading: ${packs.join(", ")}.` : "";
     await context.supabase.from("transcript").insert({
       session_id: data.sessionId,
       author_name: "Bridge",
       kind: "system" as const,
-      body: `${CREW[data.agent].name} station reassigned to ${name || CREW[data.agent].name}.${packNote}`,
+      body: `${job} station reassigned to ${name || job}.${packNote}`,
     });
     return { ok: true };
   });

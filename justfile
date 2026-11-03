@@ -131,6 +131,16 @@ demo: (infra "--quiet") (_demo-banner "Claude")
 demo-fixture: (infra "--quiet") (_demo-banner "canned fixture replies")
     VITE_BRIDGE_CREW_DEMO=1 bun run dev:fixture
 
+# The Game Studio: demo mode with Game Studio picked in the lobby. Crew calls Claude.
+[group('run')]
+game-studio: (infra "--quiet") (_studio-banner "Claude")
+    VITE_BRIDGE_CREW_DEMO=1 VITE_BRIDGE_CREW_TEMPLATE=game-studio bun run dev
+
+# The Game Studio with canned crew replies: no key, no credits.
+[group('run')]
+game-studio-fixture: (infra "--quiet") (_studio-banner "canned fixture replies")
+    VITE_BRIDGE_CREW_DEMO=1 VITE_BRIDGE_CREW_TEMPLATE=game-studio bun run dev:fixture
+
 # Open the app in a new browser tab (run it twice for the second human).
 [group('run')]
 open:
@@ -168,6 +178,26 @@ _demo-banner crew:
 
     Use new tabs rather than Duplicate Tab, which copies the tab's sign-in.
     Ctrl-C stops the app; the local stack keeps running (just infra-stop).
+
+    EOF
+
+
+_studio-banner crew:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "{{crew}}" = "Claude" ] && [ -z "${ANTHROPIC_API_KEY:-}" ] && ! grep -qs '^ANTHROPIC_API_KEY=.\+' .env.local; then
+        echo "NOTE: no ANTHROPIC_API_KEY in .env.local, so crew summons will fail. Try: just game-studio-fixture"
+    fi
+    cat <<EOF
+
+    Game Studio on {{url}}  (crew: {{crew}})
+
+      1. Open {{url}} and click "Log me on as demo user 1". You're the teacher.
+      2. Game Studio is already picked. Give the student a nickname and open a room.
+      3. Read the classroom notice, then let the student start: "Storyteller, what's the story?"
+
+    One teacher and one student share this one sign-in; the switch above the message box
+    says who's talking. Ctrl-C stops the app; the local stack keeps running (just infra-stop).
 
     EOF
 

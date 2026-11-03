@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { CREW, type AgentKind } from "@/lib/crew";
+import type { Job } from "@/lib/templates";
 
 export interface Hail {
   id: string;
-  agent: AgentKind;
+  agent: string;
   summary: string;
 }
 
@@ -11,10 +11,11 @@ interface Props {
   hails: Hail[];
   onResolve: (hailId: string, grant: boolean) => void;
   busy: boolean;
-  nameFor?: (agent: AgentKind) => string;
+  jobOf: (agent: string) => Job;
+  nameFor: (agent: string) => string;
 }
 
-export function HailQueue({ hails, onResolve, busy, nameFor }: Props) {
+export function HailQueue({ hails, onResolve, busy, jobOf, nameFor }: Props) {
   if (hails.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
@@ -29,10 +30,10 @@ export function HailQueue({ hails, onResolve, busy, nameFor }: Props) {
         <li
           key={hail.id}
           className="rounded-lg border border-border bg-card p-3"
-          style={{ borderLeft: `3px solid ${CREW[hail.agent].accent}` }}
+          style={{ borderLeft: `3px solid ${jobOf(hail.agent).accent}` }}
         >
-          <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: CREW[hail.agent].accent }}>
-            {nameFor?.(hail.agent) ?? CREW[hail.agent].name} is hailing
+          <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: jobOf(hail.agent).accent }}>
+            {nameFor(hail.agent)} is hailing
           </p>
           <p className="mt-1 text-sm leading-snug text-card-foreground">{hail.summary}</p>
           <div className="mt-2 flex gap-2">

@@ -16,6 +16,17 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface CallOptions {
+  /**
+   * Whether a request the model declines may be re-run on another model in the same call
+   * (server-side refusal fallback). Game Studio turns it off, so a decline stays a decline.
+   */
+  fallback?: boolean;
+  model?: string;
+  effort?: "low" | "medium" | "high";
+  maxTokens?: number;
+}
+
 const PROVIDERS: readonly ModelProvider[] = ["anthropic", "fixture"];
 
 export function pickProvider(env: Record<string, string | undefined> = process.env): ModelProvider {
@@ -31,13 +42,14 @@ export function pickProvider(env: Record<string, string | undefined> = process.e
 export async function callModel(
   messages: ChatMessage[],
   role: ModelRole = "crew",
+  options: CallOptions = {},
 ): Promise<string> {
   const provider = pickProvider();
   if (provider === "fixture") {
     await fixtureDelay(messages);
     return fixtureReply(messages, role);
   }
-  return callAnthropic(messages, role);
+  return callAnthropic(messages, role, options);
 }
 
 // ---------- Anthropic ----------
@@ -57,11 +69,18 @@ const FALLBACK_MODELS = new Set([
 
 let anthropic: Anthropic | undefined;
 
-async function callAnthropic(messages: ChatMessage[], role: ModelRole): Promise<string> {
+async function callAnthropic(
+  messages: ChatMessage[],
+  role: ModelRole,
+  options: CallOptions,
+): Promise<string> {
   anthropic ??= new Anthropic();
   const override =
     role === "scribe" ? process.env["BRIDGE_CREW_SCRIBE_MODEL"] : process.env["BRIDGE_CREW_MODEL"];
-  const model = override?.trim() || ANTHROPIC_DEFAULTS[role].model;
+  const model = override?.trim() || options.model || ANTHROPIC_DEFAULTS[role].model;
+  const maxTokens = options.maxTokens ?? 16000;
+  // BRIDGE_CREW_INFERENCE_GEO=us keeps inference in the US (Part 9 of the education plan).
+  const geo = process.env["BRIDGE_CREW_INFERENCE_GEO"]?.trim();
   const system = messages
     .filter((m) => m.role === "system")
     .map((m) => m.content)
@@ -71,16 +90,22 @@ async function callAnthropic(messages: ChatMessage[], role: ModelRole): Promise<
     .map((m) => ({ role: "user" as const, content: m.content }));
 
   try {
-    const response = await anthropic.beta.messages.create({
+    const request = {
       model,
-      max_tokens: 16000,
-      output_config: { effort: ANTHROPIC_DEFAULTS[role].effort },
-      ...(FALLBACK_MODELS.has(model)
+      max_tokens: maxTokens,
+      output_config: { effort: options.effort ?? ANTHROPIC_DEFAULTS[role].effort },
+      ...(options.fallback !== false && FALLBACK_MODELS.has(model)
         ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }
         : {}),
+      ...(geo ? { inference_geo: geo } : {}),
       ...(system ? { system } : {}),
       messages: turns,
-    });
+    };
+    // Long outputs (a whole game) stream, so the request doesn't time out.
+    const response =
+      maxTokens > 16000
+        ? await anthropic.beta.messages.stream(request).finalMessage()
+        : await anthropic.beta.messages.create(request);
     if (response.stop_reason === "refusal") throw new Error("The model declined this one.");
     return response.content
       .flatMap((block) => (block.type === "text" ? [block.text] : []))
@@ -132,6 +157,17 @@ export function fixtureReply(messages: ChatMessage[], role: ModelRole): string {
   if (role === "scribe") {
     const material = user.split("New session material:")[1] ?? "";
     const lines = material.split("\n").filter((line) => line.includes(":")).length;
+    if (system.includes("game.md")) {
+      return [
+        "## The idea",
+        "",
+        `Fixture game notes — no model was called. ${lines} lines of session material so far.`,
+        "",
+        ...["Story", "Characters", "How to play", "Look", "Sounds", "Levels", "Bugs", "Next", "Session notes"].flatMap(
+          (section) => [`## ${section}`, "", "Nothing yet.", ""],
+        ),
+      ].join("\n");
+    }
     return [
       "## Where we are",
       "",

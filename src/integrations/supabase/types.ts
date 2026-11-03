@@ -459,6 +459,8 @@ export type Database = {
           created_at: string
           id: string
           owner_id: string
+          settings: Json
+          template: string
           title: string
           updated_at: string
         }
@@ -467,6 +469,8 @@ export type Database = {
           created_at?: string
           id?: string
           owner_id: string
+          settings?: Json
+          template?: string
           title?: string
           updated_at?: string
         }
@@ -475,6 +479,8 @@ export type Database = {
           created_at?: string
           id?: string
           owner_id?: string
+          settings?: Json
+          template?: string
           title?: string
           updated_at?: string
         }
@@ -567,6 +573,7 @@ export type Database = {
           id: string
           kind: Database["public"]["Enums"]["turn_kind"]
           session_id: string
+          speaker_role: string | null
           updated_at: string
         }
         Insert: {
@@ -579,6 +586,7 @@ export type Database = {
           id?: string
           kind?: Database["public"]["Enums"]["turn_kind"]
           session_id: string
+          speaker_role?: string | null
           updated_at?: string
         }
         Update: {
@@ -591,6 +599,7 @@ export type Database = {
           id?: string
           kind?: Database["public"]["Enums"]["turn_kind"]
           session_id?: string
+          speaker_role?: string | null
           updated_at?: string
         }
         Relationships: [

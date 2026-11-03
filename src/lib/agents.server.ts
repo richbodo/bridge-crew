@@ -1,13 +1,15 @@
-import type { AgentKind } from "./crew";
 import { callModel } from "./model.server";
+import type { Job, Template } from "./templates";
 
-const HOUSE_STYLE = `You are a crew member in a live working session with two humans.
+function houseStyle(template: Template): string {
+  return `${template.setting}
+
 You never interrupt. You do a piece of work, then hand back one short spoken read.
 If the message contains a "Standing context — required reading" section, you MUST read it in
 full and use it: prefer its specifics over your own recollection, cite the concrete details it
 gives you, and say plainly when it does not cover something the task needs.
 Write the SPOKEN section as plain speech: no bullet points, no headings, no markdown,
-at most 10 sentences, the way a colleague would say it out loud.
+at most ${template.spokenCap} sentences, the way a colleague would say it out loud.
 Write the BRIEF section as the full written detail, markdown allowed.
 Respond in exactly this shape:
 
@@ -16,19 +18,7 @@ SPOKEN:
 
 BRIEF:
 <the full written brief>`;
-
-const ROLE_PROMPT: Record<AgentKind, string> = {
-  scribe:
-    "You are Scribe. You keep the session's living plan document accurate, short and current.",
-  scout:
-    "You are Scout. You go and find out. Report what you found, how confident you are, and what is still unknown.",
-  advocate:
-    "You are Advocate. Make the strongest honest case FOR the option on the table. No strawmen, no hedging.",
-  skeptic:
-    "You are Skeptic. Make the strongest honest case AGAINST, and name the concrete failure modes.",
-  analyst:
-    "You are Analyst. One careful pass. Think it through in writing first, then say the short version.",
-};
+}
 
 export interface AgentResult {
   spokenRaw: string;
@@ -40,30 +30,38 @@ export interface AgentProfile {
   duty?: string | null;
 }
 
+/** The system prompt: the crew member's duty (or the one it was reassigned), then the house style. */
+export function systemPromptFor(template: Template, job: Job, profile?: AgentProfile): string {
+  const name = profile?.name?.trim();
+  const duty = profile?.duty?.trim();
+  const role = duty
+    ? `You are ${name || job.name}. ${duty}`
+    : name
+      ? `${job.duty}\nIn this room you go by the name ${name}.`
+      : job.duty;
+  return `${role}\n\n${houseStyle(template)}`;
+}
+
 export async function runAgentBrief(
-  agent: AgentKind,
+  template: Template,
+  job: Job,
   brief: string,
   context: string,
   profile?: AgentProfile,
 ): Promise<AgentResult> {
-  const name = profile?.name?.trim();
-  const duty = profile?.duty?.trim();
-  const role = duty
-    ? `You are ${name || agent}. ${duty}`
-    : name
-      ? `${ROLE_PROMPT[agent]}\nIn this session you go by the name ${name}.`
-      : ROLE_PROMPT[agent];
-
-  const raw = await callModel([
-    { role: "system", content: `${role}\n\n${HOUSE_STYLE}` },
-    {
-      role: "user",
-      content: `${context || "## Session transcript\n\n(nothing yet)"}\n\n## Your task\n\n${brief}`,
-    },
-  ]);
+  const raw = await callModel(
+    [
+      { role: "system", content: systemPromptFor(template, job, profile) },
+      {
+        role: "user",
+        content: `${context || "## Session transcript\n\n(nothing yet)"}\n\n## Your task\n\n${brief}`,
+      },
+    ],
+    "crew",
+    { fallback: template.refusalFallback, ...job.model },
+  );
   return parseAgentOutput(raw);
 }
-
 
 export function parseAgentOutput(raw: string): AgentResult {
   const match = raw.match(/SPOKEN:\s*([\s\S]*?)\n\s*BRIEF:\s*([\s\S]*)$/i);
@@ -71,33 +69,37 @@ export function parseAgentOutput(raw: string): AgentResult {
   return { spokenRaw: (match[1] ?? "").trim(), brief: (match[2] ?? "").trim() };
 }
 
-export async function writePlanDoc(context: string, current: string): Promise<string> {
+/** The Scribe's update of a room's shared document (docs/state_machines.md §9). */
+export async function writeSharedDoc(
+  template: Template,
+  material: string,
+  current: string,
+): Promise<string> {
   return callModel(
     [
-      {
-        role: "system",
-        content:
-          "You are Scribe. Maintain a living plan.md for a working session. Output markdown only, no preamble. Keep it under 40 lines with sections: ## Where we are, ## Decisions, ## Open questions, ## Next.",
-      },
+      { role: "system", content: template.doc.scribe },
       {
         role: "user",
-        content: `Current plan.md:\n${current || "(empty)"}\n\nNew session material:\n${context}\n\nReturn the updated plan.md.`,
+        content: `Current ${template.doc.file}:\n${current || "(empty)"}\n\nNew session material:\n${material}\n\nReturn the updated ${template.doc.file}.`,
       },
     ],
     "scribe",
+    { fallback: template.refusalFallback },
   );
 }
 
-export type NameLookup = (agent: AgentKind) => string;
+export type NameLookup = (agent: string) => string;
 
+/** A crew member's name: the one it was given in this room, or its job's. */
 export function makeNameLookup(
   rows: Array<{ agent: string; display_name?: string | null }> | null | undefined,
-  fallback: Record<AgentKind, { name: string }>,
+  template: Template,
 ): NameLookup {
   const map = new Map<string, string>();
   for (const row of rows ?? []) {
     const name = row.display_name?.trim();
     if (name) map.set(row.agent, name);
   }
-  return (agent) => map.get(agent) ?? fallback[agent].name;
+  return (agent) =>
+    map.get(agent) ?? template.roster.find((job) => job.key === agent)?.name ?? agent;
 }

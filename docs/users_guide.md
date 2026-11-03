@@ -22,10 +22,14 @@ rooms.
 
 ## 2. Open a room
 
-1. Type **your name in the room** (this is what the other human sees next to your colour dot).
-2. Pick a colour.
-3. Give the session a **title**.
-4. Press **Open a room** — or **Open a demo room** to get a pre-filled example (see §9, Demo room).
+1. Pick the **kind of room**:
+   - **Deliberation**: two people work through a plan or a debate with five crew members. The
+     rest of this guide describes it.
+   - **Game Studio**: one teacher and one student make a browser game. See §11.
+2. Type **your name in the room** (this is what the other human sees next to your colour dot).
+3. Pick a colour.
+4. Give the session a **title**.
+5. Press **Open a room** — or **Open a demo room** to get a pre-filled example (see §9, Demo room).
 
 You are dropped straight into the room and the header shows the **join code**.
 
@@ -48,6 +52,7 @@ Click **Invite** in the header. You can:
 
 The other person signs in, picks their own name and colour, and joins the same room.
 They can also type the six-character code into the lobby's **Join with a code** box.
+A Deliberation room has two seats: a third person who tries to join is told the room is full.
 
 ![Inviting the second human](images/03-invite.png)
 
@@ -167,6 +172,34 @@ Everything you do *after* opening the demo room is real. To start clean, leave a
 **Leave** returns you to the lobby; the room keeps its state. Your recent rooms are listed in
 the lobby sidebar — reopen one and the whole conversation, stations, and plan are as you left
 them.
+
+**Delete room**, in the header, removes the room and everything in it for good. Only the person
+who opened the room sees it, and it asks first.
+
+## 11. The Game Studio
+
+A Game Studio room is for one teacher and one student, making a small browser game on the
+teacher's laptop. The student is the producer: they ask the crew for things and decide what
+goes into the game. `just game-studio` opens the lobby with it picked.
+
+- **Opening one.** The teacher signs in, picks **Game Studio**, and gives the student a
+  **nickname** (not their real name). A Game Studio room has one seat, so there's no invite.
+- **The classroom notice** opens every time the room does. Read it together, then press
+  **We've read it**. "These are AI characters, and they can be wrong" stays under the header.
+- **The crew** has six jobs: Storyteller, Game designer, Artist, Sound designer, Engineer and
+  Tester. Every crew member reads the `game-studio` context pack.
+- **Who's talking.** The switch above the message box says whether a prompt is the student's or
+  the teacher's, and the crew sees which. It starts on the student.
+- **Asking a crew member.** Start with their name and a comma, like "Artist, draw the mole", or
+  put `@` before it anywhere. A name in the middle of a sentence is just a word. There are no
+  slash commands.
+- **Answers.** A crew member works, then hails. Spoken parts are at most three sentences; the
+  full detail is in the brief.
+- **`game.md`** is the game's design notes, kept by the Scribe in the background. It only
+  writes down what the student said yes to, and the Engineer will build from it.
+- **Safety settings.** Every crew member follows rules for young people: short literal
+  sentences, nothing unsuitable for 13 and over, no personal questions, and no judging the
+  student. A request the model declines stays declined.
 
 ## Not built yet
 
