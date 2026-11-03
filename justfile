@@ -189,6 +189,11 @@ e2e *args: (infra "--quiet")
 e2e-live *args: (infra "--quiet")
     bun run e2e:live {{args}}
 
+# The explorer: every sequence of 9 events through the room's state machines (docs/state_machines.md).
+[group('test')]
+flows:
+    EXPLORER_DEPTH=9 bun run test src/lib/__tests__/explorer.test.ts
+
 # Typecheck and unit tests; run before pushing.
 [group('test')]
 check:
