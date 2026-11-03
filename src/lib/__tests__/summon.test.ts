@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseMentions, parseSummon } from "../summon";
+import { findAddressees, parseSummon, type Addressable } from "../summon";
 
 describe("parseSummon", () => {
   it("ignores plain speech", () => {
@@ -46,15 +46,41 @@ describe("parseSummon", () => {
   });
 });
 
-describe("parseMentions", () => {
-  it("finds named crew in plain speech, in order, de-duplicated", () => {
-    expect(parseMentions("@advocate and @skeptic, come back with @advocate examples")).toEqual([
+const CREW: Addressable[] = [
+  { key: "advocate", names: ["Advocate"] },
+  { key: "skeptic", names: ["Skeptic"] },
+  { key: "scout", names: ["Scout", "research"] },
+  { key: "game-designer", names: ["Game designer"] },
+  { key: "scribe", names: ["Scribe", "Sound"] },
+];
+
+describe("findAddressees (F12)", () => {
+  it("finds @names anywhere, in order, without repeats", () => {
+    expect(findAddressees("@advocate and @skeptic, come back with @advocate examples", CREW)).toEqual([
       "advocate",
       "skeptic",
     ]);
   });
 
-  it("ignores unknown handles and unmentioned lines", () => {
-    expect(parseMentions("hey @rich2 what do you think?")).toEqual([]);
+  it("finds a name at the start, before a comma or colon", () => {
+    expect(findAddressees("Scout, what did the vendor docs say?", CREW)).toEqual(["scout"]);
+    expect(findAddressees("game designer: make it harder", CREW)).toEqual(["game-designer"]);
+  });
+
+  it("matches job keys and names ignoring case, spaces, hyphens and underscores", () => {
+    expect(findAddressees("@game-designer @GameDesigner @game_designer", CREW)).toEqual([
+      "game-designer",
+    ]);
+    expect(findAddressees("@research latency numbers", CREW)).toEqual(["scout"]);
+  });
+
+  it("ignores a name in the middle of a sentence without the @", () => {
+    expect(findAddressees("the sound is too loud", CREW)).toEqual([]);
+    expect(findAddressees("I asked the scout yesterday", CREW)).toEqual([]);
+  });
+
+  it("ignores unknown handles and ordinary openings", () => {
+    expect(findAddressees("hey @rich2 what do you think?", CREW)).toEqual([]);
+    expect(findAddressees("Hmm, I'm not sure", CREW)).toEqual([]);
   });
 });

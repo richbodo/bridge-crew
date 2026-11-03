@@ -52,4 +52,7 @@ Setup, demo mode and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md).
 - `docs/users_guide.md` is the single source of truth for the users guide; the app links to it
   on GitHub. Keep it current when user-facing behavior changes.
 - Two humans are first-class, and floor control is the novel part — see
-  [docs/floor_state_control.md](docs/floor_state_control.md).
+  [docs/floor_state_control.md](docs/floor_state_control.md). Every state in a room is drawn in
+  [docs/state_machines.md](docs/state_machines.md): keep it in step with the code, in the same
+  commit. Crew member moves go through the database functions in
+  `supabase/migrations/20261103080000_crew_machines.sql`, never direct status writes.

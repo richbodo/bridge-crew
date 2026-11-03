@@ -9,6 +9,8 @@ export interface TranscriptLine {
   agent: AgentKind | null;
   body: string;
   author_id: string | null;
+  /** For a crew member's line: the contribution it spoke. */
+  contribution_id?: string | null;
 }
 
 export interface ContributionRow {
@@ -16,6 +18,7 @@ export interface ContributionRow {
   agent: AgentKind;
   spoken: string;
   brief: string;
+  outcome?: string | null;
 }
 
 interface Props {
@@ -46,7 +49,10 @@ export function ChatPane({ lines, contributions, colorFor, nameFor }: Props) {
 
         if (line.kind === "agent" && line.agent) {
           const member = CREW[line.agent];
-          const brief = contributions.filter((c) => c.agent === line.agent).at(-1)?.brief;
+          // The line's own contribution; lines from before Phase 1 fall back to the newest.
+          const brief = line.contribution_id
+            ? contributions.find((c) => c.id === line.contribution_id)?.brief
+            : contributions.filter((c) => c.agent === line.agent).at(-1)?.brief;
           return (
             <div
               key={line.id}

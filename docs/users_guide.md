@@ -70,18 +70,27 @@ Three ways, all equivalent:
 | `/debate <question>` | Sends Advocate *and* Skeptic on opposite sides |
 | `/scribe <brief>`, `/scout …`, `/advocate …`, `/skeptic …`, `/analyst …` | Summons that one station |
 | `/redirect <station> <new brief>` | Replaces what a working station is doing |
-| `/stop <station>` | Stands a station down |
+| `/stop <station>` | Stops a station, wherever it is |
 
-**Naming them in ordinary speech** — `@scout, what did the vendor docs actually say?`
-re-engages Scout with that line as the brief. Several mentions in one line engage several
-stations.
+**Naming them in ordinary speech** — put `@` before a name anywhere (`what did the vendor docs
+say, @scout?`), or start with the name and a comma or colon (`Scout, what did the vendor docs
+say?`). That re-engages Scout with the whole line as the brief. Several `@` names in one line
+engage several stations. A name in the middle of a sentence without the `@` is just a word, so
+"I asked the scout" summons nobody.
 
 **Station buttons** — each card has **Engage** (or **Redirect** when it's already working),
 **Stand down**, and **Reassign**.
 
-Stations move through five statuses: `standing by` → `working` → `hailing` → `has the floor`,
-plus `stood down`. Only one station can hold the floor at a time. The full state machine is in
-[floor_state_control.md](floor_state_control.md).
+Stations move through four states: `standing by` → `working` → `hailing` → `on the floor`.
+Only one station can hold the floor at a time. Summoning a station that's already working
+redirects it: it drops the old task, and only the new one comes back. Summoning one that's
+hailing replaces its hail with new work; the old brief stays readable. **Stand down** (or
+`/stop`) stops a station wherever it is and withdraws its hail. The full state machines are in
+[state_machines.md](state_machines.md).
+
+The crew's work happens on the server, so you can close the tab mid-run and the hail will be
+waiting when you come back. **Send** never greys out: while stations work, the line under the
+box says who's at work, and you can keep talking.
 
 ## 6. Grant the floor
 
@@ -95,6 +104,8 @@ brief: press **On screen** under the agent's line to read it, **Clear screen** t
 ![An agent with the floor](images/06-granted.png)
 
 Either human can grant or dismiss any hail. A human typing always preempts a speaking agent.
+If a grant can't happen, the message says why: another station is speaking, the hail was
+already answered, or the station has moved on to newer work.
 
 ## 7. Reassign a station
 

@@ -78,9 +78,11 @@ test.describe("summoning and the floor", () => {
       timeout: 30_000,
     });
     await analyst.getByRole("button", { name: "Stand down" }).click();
-    await expect(stationCard(page, "Analyst").getByText("stood down")).toBeVisible({
+    await expect(stationCard(page, "Analyst").getByText("standing by")).toBeVisible({
       timeout: 30_000,
     });
+    // Its run is over and any hail it raised is withdrawn.
+    await expect(page.getByText("No hails. The floor is yours.")).toBeVisible();
   });
 
   test("an attached context pack is actually read — the canary fact comes back", async ({ page }) => {

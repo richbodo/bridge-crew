@@ -7,18 +7,14 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.15"
-  }
   public: {
     Tables: {
       agents_state: {
         Row: {
-          agent: Database["public"]["Enums"]["agent_kind"]
+          agent: string
           context_packs: string[]
           created_at: string
+          current_run_id: string | null
           current_task: string | null
           display_name: string | null
           duty: string | null
@@ -29,9 +25,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          agent: Database["public"]["Enums"]["agent_kind"]
+          agent: string
           context_packs?: string[]
           created_at?: string
+          current_run_id?: string | null
           current_task?: string | null
           display_name?: string | null
           duty?: string | null
@@ -42,9 +39,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          agent?: Database["public"]["Enums"]["agent_kind"]
+          agent?: string
           context_packs?: string[]
           created_at?: string
+          current_run_id?: string | null
           current_task?: string | null
           display_name?: string | null
           duty?: string | null
@@ -55,6 +53,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "agents_state_current_run_id_fkey"
+            columns: ["current_run_id"]
+            isOneToOne: false
+            referencedRelation: "runs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "agents_state_session_id_fkey"
             columns: ["session_id"]
@@ -136,36 +141,49 @@ export type Database = {
       }
       contributions: {
         Row: {
-          agent: Database["public"]["Enums"]["agent_kind"]
+          agent: string
           brief: string
           created_at: string
           id: string
+          outcome: string | null
+          run_id: string | null
           session_id: string
           spoken: string
           summon_id: string | null
           updated_at: string
         }
         Insert: {
-          agent: Database["public"]["Enums"]["agent_kind"]
+          agent: string
           brief?: string
           created_at?: string
           id?: string
+          outcome?: string | null
+          run_id?: string | null
           session_id: string
           spoken: string
           summon_id?: string | null
           updated_at?: string
         }
         Update: {
-          agent?: Database["public"]["Enums"]["agent_kind"]
+          agent?: string
           brief?: string
           created_at?: string
           id?: string
+          outcome?: string | null
+          run_id?: string | null
           session_id?: string
           spoken?: string
           summon_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contributions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "runs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contributions_session_id_fkey"
             columns: ["session_id"]
@@ -184,33 +202,46 @@ export type Database = {
       }
       floor_events: {
         Row: {
+          actor: string | null
           created_at: string
           detail: string | null
           event: string
           holder: string
           id: string
+          run_id: string | null
           session_id: string
           updated_at: string
         }
         Insert: {
+          actor?: string | null
           created_at?: string
           detail?: string | null
           event: string
           holder: string
           id?: string
+          run_id?: string | null
           session_id: string
           updated_at?: string
         }
         Update: {
+          actor?: string | null
           created_at?: string
           detail?: string | null
           event?: string
           holder?: string
           id?: string
+          run_id?: string | null
           session_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "floor_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "runs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "floor_events_session_id_fkey"
             columns: ["session_id"]
@@ -222,39 +253,59 @@ export type Database = {
       }
       hand_raises: {
         Row: {
-          agent: Database["public"]["Enums"]["agent_kind"]
+          agent: string
+          contribution_id: string | null
           created_at: string
           id: string
           resolved_at: string | null
           resolved_by: string | null
+          run_id: string | null
           session_id: string
           state: string
           summary: string
           updated_at: string
         }
         Insert: {
-          agent: Database["public"]["Enums"]["agent_kind"]
+          agent: string
+          contribution_id?: string | null
           created_at?: string
           id?: string
           resolved_at?: string | null
           resolved_by?: string | null
+          run_id?: string | null
           session_id: string
           state?: string
           summary: string
           updated_at?: string
         }
         Update: {
-          agent?: Database["public"]["Enums"]["agent_kind"]
+          agent?: string
+          contribution_id?: string | null
           created_at?: string
           id?: string
           resolved_at?: string | null
           resolved_by?: string | null
+          run_id?: string | null
           session_id?: string
           state?: string
           summary?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "hand_raises_contribution_id_fkey"
+            columns: ["contribution_id"]
+            isOneToOne: false
+            referencedRelation: "contributions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hand_raises_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "runs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "hand_raises_session_id_fkey"
             columns: ["session_id"]
@@ -352,6 +403,56 @@ export type Database = {
           },
         ]
       }
+      runs: {
+        Row: {
+          agent: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          mode: string
+          session_id: string
+          started_at: string
+          state: string
+          summoned_by: string | null
+          task: string
+          updated_at: string
+        }
+        Insert: {
+          agent: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          mode?: string
+          session_id: string
+          started_at?: string
+          state?: string
+          summoned_by?: string | null
+          task: string
+          updated_at?: string
+        }
+        Update: {
+          agent?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          mode?: string
+          session_id?: string
+          started_at?: string
+          state?: string
+          summoned_by?: string | null
+          task?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "runs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sessions: {
         Row: {
           code: string
@@ -384,6 +485,7 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          scribe_state: string
           session_id: string
           slug: string
           updated_at: string
@@ -392,6 +494,7 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          scribe_state?: string
           session_id: string
           slug: string
           updated_at?: string
@@ -400,6 +503,7 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          scribe_state?: string
           session_id?: string
           slug?: string
           updated_at?: string
@@ -416,7 +520,7 @@ export type Database = {
       }
       summons: {
         Row: {
-          agent: Database["public"]["Enums"]["agent_kind"]
+          agent: string
           brief: string
           created_at: string
           id: string
@@ -425,7 +529,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          agent: Database["public"]["Enums"]["agent_kind"]
+          agent: string
           brief: string
           created_at?: string
           id?: string
@@ -434,7 +538,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          agent?: Database["public"]["Enums"]["agent_kind"]
+          agent?: string
           brief?: string
           created_at?: string
           id?: string
@@ -454,10 +558,11 @@ export type Database = {
       }
       transcript: {
         Row: {
-          agent: Database["public"]["Enums"]["agent_kind"] | null
+          agent: string | null
           author_id: string | null
           author_name: string
           body: string
+          contribution_id: string | null
           created_at: string
           id: string
           kind: Database["public"]["Enums"]["turn_kind"]
@@ -465,10 +570,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          agent?: Database["public"]["Enums"]["agent_kind"] | null
+          agent?: string | null
           author_id?: string | null
           author_name: string
           body: string
+          contribution_id?: string | null
           created_at?: string
           id?: string
           kind?: Database["public"]["Enums"]["turn_kind"]
@@ -476,10 +582,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          agent?: Database["public"]["Enums"]["agent_kind"] | null
+          agent?: string | null
           author_id?: string | null
           author_name?: string
           body?: string
+          contribution_id?: string | null
           created_at?: string
           id?: string
           kind?: Database["public"]["Enums"]["turn_kind"]
@@ -487,6 +594,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transcript_contribution_id_fkey"
+            columns: ["contribution_id"]
+            isOneToOne: false
+            referencedRelation: "contributions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transcript_session_id_fkey"
             columns: ["session_id"]
@@ -501,13 +615,68 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      crew_move_allowed: {
+        Args: {
+          _from: Database["public"]["Enums"]["agent_status"]
+          _to: Database["public"]["Enums"]["agent_status"]
+        }
+        Returns: boolean
+      }
+      decline_hail: { Args: { _hail: string }; Returns: string }
+      done_speaking: {
+        Args: { _agent: string; _session: string }
+        Returns: undefined
+      }
+      expire_stale_runs: {
+        Args: { _limit: string; _session: string }
+        Returns: string[]
+      }
+      fail_run: { Args: { _reason: string; _run: string }; Returns: boolean }
+      finish_run: {
+        Args: {
+          _brief: string
+          _run: string
+          _spoken: string
+          _summary: string
+        }
+        Returns: string
+      }
+      grant_hail: { Args: { _hail: string }; Returns: Json }
+      interrupt_speaker: { Args: { _session: string }; Returns: string }
       is_participant: {
         Args: { _session_id: string; _user_id: string }
         Returns: boolean
       }
+      log_event: {
+        Args: {
+          _detail: string
+          _event: string
+          _holder: string
+          _run: string
+          _session: string
+        }
+        Returns: undefined
+      }
+      scribe_done: {
+        Args: { _session: string; _slug: string }
+        Returns: boolean
+      }
+      scribe_request: {
+        Args: { _session: string; _slug: string }
+        Returns: boolean
+      }
+      start_run: {
+        Args: {
+          _agent: string
+          _mode?: string
+          _session: string
+          _task: string
+        }
+        Returns: string
+      }
+      stop_crew: { Args: { _agent: string; _session: string }; Returns: string }
     }
     Enums: {
-      agent_kind: "scribe" | "scout" | "advocate" | "skeptic" | "analyst"
       agent_status: "idle" | "working" | "hand_raised" | "speaking" | "stopped"
       turn_kind: "human" | "system" | "agent"
     }
@@ -525,12 +694,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -554,11 +723,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -579,11 +748,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -604,11 +773,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never) = never,
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -621,11 +790,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never) = never,
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -637,9 +806,9 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      agent_kind: ["scribe", "scout", "advocate", "skeptic", "analyst"],
       agent_status: ["idle", "working", "hand_raised", "speaking", "stopped"],
       turn_kind: ["human", "system", "agent"],
     },
   },
 } as const
+

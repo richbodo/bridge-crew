@@ -446,27 +446,31 @@ These are what the tests check (see the plan's Part 1).
 9. Every action by a person, and every change of state, goes into the captain's log.
 10. Only one Scribe update runs at a time.
 
-## 15. Where today's code differs
+## 15. Where the code differs
 
-The IDs match the findings in Part 2 of the education plan, which lists the fixes.
+The IDs match the findings in Part 2 of the education plan, which lists the fixes. Phase 1
+fixed the crew member, run, hail, floor and Scribe machines; the planned machines (proposal,
+made thing, screen and room) come with Phases 2 to 5.
 
-| ID  | Today's code                                                                                                                       | Rule broken |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| F1  | The crew member machine exists twice: a tested copy the server doesn't use, and the server's own direct updates.                  | all         |
-| F2  | Summoning a Hailing crew member leaves its hail Open, pointing at old work.                                                        | 3           |
-| F3  | A redirect doesn't supersede the first run. Both runs finish and both raise a hail.                                               | 3           |
-| F4  | A grant speaks the crew member's newest contribution, not the one its hail belongs to.                                            | 4           |
-| F5  | Not now on an old hail can send a Working crew member back to Idle.                                                               | 3           |
-| F6  | The Stand down button leaves the hail Open. `/stop` closes it.                                                                     | 3           |
-| F10 | The browser tab that sent a summon drives its run and the Scribe. Closing it can leave a crew member Working forever, and two tabs can run two Scribe updates at once. | 5, 10       |
-| F12 | A crew member's name anywhere in a prompt summons it, even without `@`.                                                            | 8           |
-| F13 | The log records only grants and dismissals.                                                                                        | 9           |
-| F15 | Any room member's browser can write any crew member's state straight into the database.                                           | all         |
-| F16 | A Scribe update sets the Scribe crew member to Working and then Idle, whatever it was doing. If the Scribe was Hailing or Working on a summon, that state is lost. | 3           |
+| ID  | Finding                                                                                       | Status                                     |
+| --- | --------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| F1  | The crew member machine existed twice.                                                        | Fixed: one table, checked by the database. |
+| F2  | Summoning a Hailing crew member left its hail Open.                                           | Fixed: the hail ends as Replaced.          |
+| F3  | A redirect didn't supersede the first run, so both hailed.                                    | Fixed: runs have IDs.                      |
+| F4  | A grant spoke the newest contribution, not its hail's.                                        | Fixed: a hail records its run.             |
+| F5  | Not now on an old hail could send a Working crew member to Idle.                              | Fixed.                                     |
+| F6  | The Stand down button left the hail Open.                                                     | Fixed: one stop.                           |
+| F10 | The browser tab drove runs and the Scribe.                                                    | Fixed: the server does, with a time limit. |
+| F12 | A name anywhere in a prompt summoned, even without `@`.                                       | Fixed.                                     |
+| F13 | The log recorded only grants and dismissals.                                                  | Fixed: every event.                        |
+| F14 | Nothing limits how many people are in a room.                                                 | Phase 2, with templates.                   |
+| F15 | A browser could write any crew member's state into the database.                              | Fixed: illegal moves are refused.          |
+| F16 | A Scribe update overwrote the Scribe crew member's state.                                     | Fixed: the Scribe has its own state.       |
 
-Today's code also has a fifth crew member state, **Stopped**. Its only job is to tell a run that's
-still going to throw its result away. With run IDs, a stopped run is superseded instead, so
-Stopped merges into Idle.
+The database still allows a fifth crew member state, **Stopped**, for old rows, but nothing
+moves into it: a stopped run is superseded instead, and the crew member goes back to Idle.
+Full screen isn't saved with the room, because a browser can only enter it when someone
+presses a button; a reload comes back On screen.
 
 ## 16. Not drawn yet
 
@@ -478,34 +482,34 @@ Stopped merges into Idle.
 
 ### Words in the code
 
-The code still uses older names.
+The code still uses some older names.
 
 | This document                     | Code                                                                                   |
 | --------------------------------- | -------------------------------------------------------------------------------------- |
 | room                              | a `sessions` row. The code's "session" is this document's room.                        |
 | session                           | not stored yet                                                                         |
-| crew member                       | agent (`agents_state`, `AgentKind`); "station" in the UI                               |
-| job                               | `AgentKind` (`scribe`, `scout`, `advocate`, `skeptic`, `analyst`)                      |
-| Idle, Working, Hailing, Speaking  | `idle`, `working`, `hand_raised`, `speaking`, plus `stopped`                           |
+| crew member                       | agent: an `agents_state` row; "station" in the UI                                      |
+| job                               | the `agent` column's text key (`scout`, `analyst`, …)                                  |
+| Idle, Working, Hailing, Speaking  | `idle`, `working`, `hand_raised`, `speaking` (`stopped` is legacy)                     |
 | prompt                            | line: a `transcript` row of kind `human`                                               |
-| summon, redirect                  | a `summons` row; a redirect is a summon while `working`                                |
-| run                               | none yet; the nearest is a `summons` row (`contributions.summon_id`)                   |
-| contribution, spoken part, brief  | a `contributions` row (`spoken`, `brief`)                                              |
-| hail; Open, Granted, Declined     | a `hand_raises` row; `pending`, `granted`, `dismissed`                                 |
+| summon, redirect                  | `start_run` (a redirect is a summon while `working`); the old `summons` table is unused |
+| run                               | a `runs` row; `agents_state.current_run_id` is the current run                         |
+| contribution, spoken part, brief  | a `contributions` row (`spoken`, `brief`, `outcome`, `run_id`)                         |
+| hail; Open, Granted, Declined     | a `hand_raises` row; `pending`, `granted`, `dismissed`, plus `replaced`, `withdrawn`   |
 | floor                             | worked out: the agent whose status is `speaking`, if any                               |
 | shared document                   | a `stage_docs` row (slug `plan`)                                                       |
-| Scribe update                     | `runScribe`                                                                            |
-| captain's log                     | `floor_events` (grants and dismissals only)                                            |
+| Scribe update; Scribe state       | `requestScribe` in `src/lib/room.server.ts`; `stage_docs.scribe_state`                 |
+| captain's log                     | `floor_events`                                                                         |
 | proposal, made thing, screen, room state | planned (see the plan's Part 3)                                                 |
 
 ### Where to look
 
-- `src/lib/floor.ts`: the crew member machine's transition table, used only by its tests today
-  (F1).
-- `src/lib/room.functions.ts`: post a prompt, run a crew member, grant or decline a hail, stop,
-  and the Scribe update.
-- `src/lib/summon.ts`: how a prompt becomes a summon.
-- `src/routes/_authenticated/session.$id.tsx`: the browser code that starts runs and Scribe
-  updates today (F10).
+- `src/lib/machines.ts`: the crew member machine's table, and the room model the explorer walks.
+- `supabase/migrations/20261103080000_crew_machines.sql`: the same table as a trigger, and the
+  transitions as database functions.
+- `src/lib/room.server.ts`: reads prompts, runs crew members in the background, answers hails,
+  stops crew members, and runs the Scribe.
+- `src/lib/summon.ts`: slash commands, and who a prompt names.
 - `src/lib/agents.server.ts`: the crew's prompts.
-- `supabase/migrations/`: the schema.
+- `src/lib/__tests__/`: `machines.test.ts` (the link table), `explorer.test.ts` (the rules),
+  `machines-sql.test.ts` (the SQL and TypeScript tables match).
