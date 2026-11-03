@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { defineConfig, devices } from "@playwright/test";
 
@@ -20,7 +21,12 @@ const DEMO_PORT = 8182;
 const baseURL = remoteURL ?? `http://localhost:${LOCAL_PORT}`;
 const demoURL = `http://localhost:${DEMO_PORT}`;
 const liveModel = process.env["E2E_LIVE_MODEL"] === "1";
-const modelEnv: Record<string, string> = liveModel ? {} : { BRIDGE_CREW_MODEL_PROVIDER: "fixture" };
+// Games the tests make go to test-results/games, not the teacher's games folder.
+export const E2E_GAMES_DIR = resolve("test-results/games");
+const modelEnv: Record<string, string> = {
+  BRIDGE_CREW_GAMES_DIR: E2E_GAMES_DIR,
+  ...(liveModel ? {} : { BRIDGE_CREW_MODEL_PROVIDER: "fixture" }),
+};
 
 // Always a fresh server, so the model provider and demo setting are the ones under test.
 const devServer = (port: number, env: Record<string, string>) => ({

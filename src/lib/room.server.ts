@@ -1,12 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import type { Database } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 
 import { makeNameLookup, runAgentBrief, writeSharedDoc, type NameLookup } from "./agents.server";
 import { assembleContext, type ContributionNote } from "./context";
 import { loadPackDocs } from "./context.server";
 import type { Mode } from "./machines";
 import { enforceSpeechCap } from "./speech";
+import { saveCurrent, saveVersion, type RoomName } from "./games.server";
 import { findAddressees, parseSummon, type Addressable } from "./summon";
 import { jobOf, templateOf, type Template } from "./templates";
 
@@ -35,16 +36,25 @@ async function note(sb: Client, sessionId: string, body: string) {
   });
 }
 
+/** Screen state (docs/state_machines.md §10). Full screen is the browser's, so it isn't saved. */
+export interface Screen {
+  view: "off" | "on";
+  showing: { kind: "made" | "contribution"; id: string } | null;
+}
+
 export interface RoomSettings {
   seats?: number;
   /** The student's nickname, on a shared seat. */
   studentName?: string;
+  /** The made thing that's the current version (§8). */
+  currentVersion?: string;
+  screen?: Screen;
 }
 
 /** A room's template, settings and crew: what every transition needs to know. */
 async function roomOf(sb: Client, sessionId: string) {
   const [{ data: session }, { data: crew }] = await Promise.all([
-    sb.from("sessions").select("template, settings").eq("id", sessionId).maybeSingle(),
+    sb.from("sessions").select("code, title, template, settings").eq("id", sessionId).maybeSingle(),
     sb
       .from("agents_state")
       .select("agent, display_name, status, duty, context_packs, current_run_id")
@@ -55,9 +65,36 @@ async function roomOf(sb: Client, sessionId: string) {
   return {
     template,
     settings: (session?.settings ?? {}) as RoomSettings,
+    name: { code: session?.code ?? "room", title: session?.title ?? "game" } as RoomName,
     crew: rows,
     nameOf: makeNameLookup(rows, template),
   };
+}
+
+/** The game so far, for a crew member's context: the current version, and what's in use. */
+async function gameSoFar(sb: Client, sessionId: string, settings: RoomSettings) {
+  const { data: things } = await sb
+    .from("made_things")
+    .select("id, kind, name, body, state")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: true });
+  const current = (things ?? []).find((t) => t.id === settings.currentVersion);
+  const used = (things ?? []).filter((t) => t.state === "used" && t.kind !== "version");
+  const parts = [
+    current
+      ? `### The current version (${current.name})\n\n\`\`\`html\n${current.body}\n\`\`\``
+      : "No version of the game has been built yet.",
+    ...used
+      .filter((t) => t.kind === "picture")
+      .map((t) => `### Picture: ${t.name}\n\n\`\`\`svg\n${t.body}\n\`\`\``),
+  ];
+  const sounds = used.filter((t) => t.kind === "sound");
+  if (sounds.length) {
+    parts.push(
+      `### Sounds (call zzfx(...list))\n\n${sounds.map((t) => `- ${t.name}: ${t.body}`).join("\n")}`,
+    );
+  }
+  return parts.join("\n\n");
 }
 
 export async function namesFor(sb: Client, sessionId: string): Promise<NameLookup> {
@@ -115,6 +152,7 @@ async function gatherContext(
   sb: Client,
   sessionId: string,
   template: Template,
+  settings: RoomSettings,
   packs: string[],
   nameOf: NameLookup,
 ) {
@@ -147,6 +185,7 @@ async function gatherContext(
     docs,
     plan: doc?.body ?? "",
     planTitle: template.doc.file,
+    game: template.bigScreen ? await gameSoFar(sb, sessionId, settings) : "",
     contributions,
     transcript: (lines ?? []).map(asRead),
   });
@@ -158,12 +197,12 @@ export async function executeRun(sb: Client, runId: string) {
   if (!run) return;
   const sessionId = run.session_id;
   const agent = run.agent;
-  const { template, crew, nameOf } = await roomOf(sb, sessionId);
+  const { template, settings, name, crew, nameOf } = await roomOf(sb, sessionId);
   const me = crew.find((row) => row.agent === agent);
 
   try {
     const packs = (me?.context_packs as string[] | null) ?? [];
-    const context = await gatherContext(sb, sessionId, template, packs, nameOf);
+    const context = await gatherContext(sb, sessionId, template, settings, packs, nameOf);
     await sb
       .from("agents_state")
       .update({ progress: "gathering and drafting…" })
@@ -184,18 +223,63 @@ export async function executeRun(sb: Client, runId: string) {
     const provenance = context.read ? `_Read: ${context.read}_\n\n` : "";
     const brief = provenance + (overflow ? `${result.brief}\n\n---\n\n${overflow}` : result.brief);
     const summary = spoken.split(/(?<=[.!?])\s+/)[0] || spoken.slice(0, 140);
+    // Help changes nothing in the game unless asked (Part 6), so a help run makes nothing.
+    const made = run.mode === "help" ? [] : result.made;
     const { error } = await sb.rpc("finish_run", {
       _run: runId,
       _spoken: spoken,
       _brief: brief,
       _summary: summary,
+      _made: made as unknown as Json,
     });
     if (error) throw new Error(error.message);
+    if (made.some((thing) => thing.kind === "version")) await saveVersionsOf(sb, runId, name);
   } catch (error) {
     const message = (error as Error).message;
     const { data: failed } = await sb.rpc("fail_run", { _run: runId, _reason: message });
     if (failed) await note(sb, sessionId, `${nameOf(agent)} couldn't finish: ${message}`);
   }
+}
+
+/** Saves a run's versions to the room's games folder (Part 5). */
+async function saveVersionsOf(sb: Client, runId: string, name: RoomName) {
+  const { data: versions } = await sb
+    .from("made_things")
+    .select("version, body")
+    .eq("run_id", runId)
+    .eq("kind", "version");
+  for (const v of versions ?? []) {
+    if (v.version) await saveVersion(name, v.version, v.body).catch(logFileError);
+  }
+}
+
+/** index.html follows the current version. */
+async function saveCurrentVersion(sb: Client, sessionId: string) {
+  const { settings, name } = await roomOf(sb, sessionId);
+  if (!settings.currentVersion) return;
+  const { data: current } = await sb
+    .from("made_things")
+    .select("body")
+    .eq("id", settings.currentVersion)
+    .maybeSingle();
+  if (current) await saveCurrent(name, current.body).catch(logFileError);
+}
+
+/** One entry in the captain's log (floor_events), as whoever is signed in. */
+async function logEvent(sb: Client, sessionId: string, holder: string, event: string, detail: string | null) {
+  await sb.rpc("log_event", {
+    _session: sessionId,
+    _holder: holder,
+    _event: event,
+    // The SQL function takes nulls; the generated types don't say so.
+    _detail: detail as string,
+    _run: null as unknown as string,
+  });
+}
+
+function logFileError(error: unknown) {
+  // The game is safe in the database; only the copy on disk is missing.
+  console.error("couldn't write to the games folder", error);
 }
 
 /** Stop: from the Stop button or `/stop` (F6). */
@@ -212,6 +296,8 @@ export async function stopCrewMember(sb: Client, sessionId: string, agent: strin
 
 export type Speaker = "teacher" | "student";
 
+const SCREEN_WORDS = /^\s*(on|off)\s+screen[.!]?\s*$/i;
+
 export async function handlePrompt(
   sb: Client,
   userId: string,
@@ -220,7 +306,8 @@ export async function handlePrompt(
     body,
     mode = "direct",
     speaker,
-  }: { sessionId: string; body: string; mode?: Mode; speaker?: Speaker },
+    replyTo,
+  }: { sessionId: string; body: string; mode?: Mode; speaker?: Speaker; replyTo?: string | null },
 ) {
   const text = body.trim();
   if (!text) return { ok: true as const };
@@ -235,6 +322,14 @@ export async function handlePrompt(
       .maybeSingle(),
   ]);
   const statusOf = (agent: string) => crew.find((row) => row.agent === agent)?.status ?? "idle";
+
+  // "on screen" and "off screen" switch the view; they aren't added to the transcript (§12).
+  const words = SCREEN_WORDS.exec(text);
+  if (template.bigScreen && words) {
+    const on = words[1]!.toLowerCase() === "on";
+    await setScreen(sb, sessionId, on ? { view: "on", showing: await newestThing(sb, sessionId) } : { view: "off" });
+    return { ok: true as const };
+  }
 
   // On a shared seat, the switch says who's talking: the student, or the teacher signed in.
   const role = template.sharedSeat ? (speaker ?? "student") : null;
@@ -269,12 +364,193 @@ export async function handlePrompt(
     const verb = statusOf(command.agent) === "working" ? "redirected" : "is on it";
     await summon(command.agent, command.brief, `${nameOf(command.agent)} ${verb}: ${command.brief}`);
   } else {
-    for (const agent of findAddressees(text, addressable(template, crew))) {
+    // Reply: a prompt linked to a contribution goes to its crew member, unless it names others.
+    const answering = replyTo
+      ? (
+          await sb
+            .from("contributions")
+            .select("agent, spoken")
+            .eq("id", replyTo)
+            .eq("session_id", sessionId)
+            .maybeSingle()
+        ).data
+      : null;
+    const named = findAddressees(text, addressable(template, crew));
+    const agents = named.length ? named : answering ? [answering.agent] : [];
+    for (const agent of agents) {
       const verb = statusOf(agent) === "working" ? "was redirected" : "was called on";
-      await summon(agent, text, `${nameOf(agent)} ${verb}: ${text}`);
+      const task =
+        answering?.agent === agent
+          ? `Replying to what you said: “${answering.spoken}”\n\n${text}`
+          : text;
+      await summon(agent, task, `${nameOf(agent)} ${verb}: ${text}`);
     }
   }
   return { ok: true as const };
+}
+
+// ---------- the screen (docs/state_machines.md §10) ----------
+
+/** The newest thing worth showing: the newest made thing, or else the newest spoken contribution. */
+async function newestThing(sb: Client, sessionId: string): Promise<Screen["showing"]> {
+  const [{ data: thing }, { data: said }] = await Promise.all([
+    sb
+      .from("made_things")
+      .select("id")
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    sb
+      .from("contributions")
+      .select("id")
+      .eq("session_id", sessionId)
+      .eq("outcome", "said")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (thing) return { kind: "made", id: thing.id };
+  if (said) return { kind: "contribution", id: said.id };
+  return null;
+}
+
+/** On screen, Off screen, or what's showing. Saved with the room, so it survives a reload. */
+export async function setScreen(
+  sb: Client,
+  sessionId: string,
+  next: { view: Screen["view"]; showing?: Screen["showing"] },
+) {
+  const { settings } = await roomOf(sb, sessionId);
+  const screen: Screen = {
+    view: next.view,
+    showing: next.showing === undefined ? (settings.screen?.showing ?? null) : next.showing,
+  };
+  const { error } = await sb
+    .from("sessions")
+    .update({ settings: { ...settings, screen } as unknown as Json })
+    .eq("id", sessionId);
+  if (error) throw new Error(error.message);
+  await logEvent(sb, sessionId, "room", next.view === "on" ? "on_screen" : "off_screen", screen.showing ? `${screen.showing.kind} ${screen.showing.id}` : null);
+}
+
+// ---------- made things (docs/state_machines.md §8) ----------
+
+/** Use this: the student picks a made thing that wasn't used. */
+export async function useThing(sb: Client, sessionId: string, thingId: string) {
+  const { error } = await sb.rpc("use_made_thing", { _thing: thingId });
+  if (error) throw new Error(error.message);
+  await saveCurrentVersion(sb, sessionId);
+}
+
+/** A version crashed on the big screen: the room proposes asking the Engineer to fix it. */
+export async function reportCrash(sb: Client, sessionId: string, thingId: string, message: string) {
+  const { template, nameOf } = await roomOf(sb, sessionId);
+  const { data: thing } = await sb
+    .from("made_things")
+    .select("name, kind")
+    .eq("id", thingId)
+    .eq("session_id", sessionId)
+    .maybeSingle();
+  const engineer = template.roster.find((job) => job.makes === "version");
+  if (!thing || thing.kind !== "version" || !engineer) return { ok: false as const };
+
+  // "Uncaught Error: the mole fell off the map" reads better without the browser's prefix.
+  const what =
+    message
+      .trim()
+      .replace(/^Uncaught\s+/, "")
+      .replace(/^Error:\s*/, "")
+      .slice(0, 200) || "something went wrong";
+  const label = `Version ${thing.name.replace(/^v/, "")}`;
+  const { error } = await sb.from("proposals").insert({
+    session_id: sessionId,
+    source: "room",
+    kind: "summon",
+    target: engineer.key,
+    task: `${label} crashed with this error: “${what}”. Find the cause, fix it, and change nothing else.`,
+    question: `${label} crashed: “${what}”. Ask the ${nameOf(engineer.key)} to fix it?`,
+    made_thing_id: thingId,
+  });
+  // One open crash proposal per version: a second report of the same crash changes nothing.
+  if (error) return { ok: false as const };
+  await note(sb, sessionId, `${label} crashed: ${what}`);
+  await logEvent(sb, sessionId, "room", "crashed", what);
+  return { ok: true as const };
+}
+
+// ---------- proposals (docs/state_machines.md §7) ----------
+
+/** Yes or No thanks. Yes starts the summon in the name of whoever is speaking. */
+export async function answerProposal(
+  sb: Client,
+  sessionId: string,
+  proposalId: string,
+  yes: boolean,
+  userId: string,
+) {
+  const { data: answered, error } = await sb
+    .from("proposals")
+    .update({
+      state: yes ? "accepted" : "declined",
+      answered_by: userId,
+      answered_at: new Date().toISOString(),
+    })
+    .eq("id", proposalId)
+    .eq("session_id", sessionId)
+    .eq("state", "open")
+    .select("kind, target, task, question")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!answered) return { ok: false as const, reason: "not_open" as const };
+  await logEvent(sb, sessionId, answered.target, yes ? "proposal_accepted" : "proposal_declined", answered.question);
+  if (yes) {
+    const nameOf = await namesFor(sb, sessionId);
+    await startRun(sb, sessionId, answered.target, answered.task, "direct", `${nameOf(answered.target)} is on it: ${answered.task}`);
+  }
+  return { ok: true as const };
+}
+
+// ---------- How did you do that? (Part 6) ----------
+
+export async function explain(
+  sb: Client,
+  userId: string,
+  { sessionId, contributionId, speaker }: { sessionId: string; contributionId: string; speaker?: Speaker },
+) {
+  const { data: contribution } = await sb
+    .from("contributions")
+    .select("agent, spoken")
+    .eq("id", contributionId)
+    .eq("session_id", sessionId)
+    .maybeSingle();
+  if (!contribution) throw new Error("That contribution isn't in this room.");
+  const { template, settings, nameOf } = await roomOf(sb, sessionId);
+  const { data: me } = await sb
+    .from("participants")
+    .select("display_name")
+    .eq("session_id", sessionId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const role = template.sharedSeat ? (speaker ?? "student") : null;
+  await sb.from("transcript").insert({
+    session_id: sessionId,
+    author_id: userId,
+    author_name: role === "student" ? settings.studentName || "Student" : (me?.display_name ?? "Someone"),
+    kind: "human" as const,
+    body: `${nameOf(contribution.agent)}, how did you do that?`,
+    speaker_role: role,
+  });
+  await sb.rpc("interrupt_speaker", { _session: sessionId });
+  const who = role ?? "person";
+  await startRun(
+    sb,
+    sessionId,
+    contribution.agent,
+    `The ${who} pressed “How did you do that?” on what you said: “${contribution.spoken}”\n\nExplain how you made it, step by step, at the ${who}'s level. Show the one small piece that matters most (a few lines of code, a part of the picture, or a sound's numbers) in the brief, and say what each part does. Don't change anything: just explain. Don't hand back a FILE, PICTURE or SOUNDS block this time.`,
+    "help",
+    `${nameOf(contribution.agent)} is working out how to explain it.`,
+  );
 }
 
 // ---------- hails ----------
@@ -314,6 +590,8 @@ export async function answerHail(
   // In text, speaking ends as soon as the spoken part is in the transcript.
   await sb.rpc("done_speaking", { _session: sessionId, _agent: agent });
   requestScribe(sb, sessionId);
+  // A granted version became the current version (the database did that), so index.html follows.
+  await saveCurrentVersion(sb, sessionId);
   return { ok: true };
 }
 

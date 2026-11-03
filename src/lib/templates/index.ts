@@ -72,6 +72,8 @@ export interface Template {
   refusalFallback: boolean;
   /** Who leads a "Team" huddle (Phase 4). */
   teamLead: string | null;
+  /** On screen / Off screen, and the things the crew makes (Parts 4 and 5). */
+  bigScreen: boolean;
 }
 
 export const TEMPLATES: Record<TemplateKey, Template> = {

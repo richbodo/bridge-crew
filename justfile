@@ -141,6 +141,17 @@ game-studio: (infra "--quiet") (_studio-banner "Claude")
 game-studio-fixture: (infra "--quiet") (_studio-banner "canned fixture replies")
     VITE_BRIDGE_CREW_DEMO=1 VITE_BRIDGE_CREW_TEMPLATE=game-studio bun run dev:fixture
 
+# Open the folder where Game Studio games are saved (BRIDGE_CREW_GAMES_DIR in .env.local to move it).
+[group('run')]
+games:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    dir="${BRIDGE_CREW_GAMES_DIR:-$(grep -s '^BRIDGE_CREW_GAMES_DIR=' .env.local | cut -d= -f2- | tr -d '"' || true)}"
+    dir="${dir:-$HOME/Bridge Crew Games}"
+    mkdir -p "$dir"
+    echo "Games are saved in: $dir"
+    {{opener}} "$dir"
+
 # Open the app in a new browser tab (run it twice for the second human).
 [group('run')]
 open:

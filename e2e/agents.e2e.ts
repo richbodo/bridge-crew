@@ -30,10 +30,10 @@ test.describe("summoning and the floor", () => {
     await expect(page.getByText("No hails. The floor is yours.")).toBeVisible();
 
     // The full brief folds open and closed.
-    await page.getByRole("button", { name: "On screen" }).first().click();
-    await expect(page.getByRole("button", { name: "Clear screen" })).toBeVisible();
-    await page.getByRole("button", { name: "Clear screen" }).click();
-    await expect(page.getByRole("button", { name: "On screen" }).first()).toBeVisible();
+    await page.getByRole("button", { name: "Show detail" }).first().click();
+    await expect(page.getByRole("button", { name: "Hide detail" })).toBeVisible();
+    await page.getByRole("button", { name: "Hide detail" }).click();
+    await expect(page.getByRole("button", { name: "Show detail" }).first()).toBeVisible();
   });
 
   test("Not now dismisses a hail without anything being said", async ({ page }) => {
@@ -100,7 +100,7 @@ test.describe("summoning and the floor", () => {
     await page.getByRole("button", { name: "Grant the floor" }).click();
     await expect(page.getByText("Scout has the floor")).toBeVisible({ timeout: 60_000 });
 
-    await page.getByRole("button", { name: "On screen" }).first().click();
+    await page.getByRole("button", { name: "Show detail" }).first().click();
     await expect(page.getByText(/Marama Whitiora/i).first()).toBeVisible({ timeout: 30_000 });
   });
 });

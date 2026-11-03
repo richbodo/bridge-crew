@@ -1,3 +1,4 @@
+import { formatFor, splitMade, type MadeDraft } from "./made";
 import { callModel } from "./model.server";
 import type { Job, Template } from "./templates";
 
@@ -23,6 +24,7 @@ BRIEF:
 export interface AgentResult {
   spokenRaw: string;
   brief: string;
+  made: MadeDraft[];
 }
 
 export interface AgentProfile {
@@ -39,7 +41,8 @@ export function systemPromptFor(template: Template, job: Job, profile?: AgentPro
     : name
       ? `${job.duty}\nIn this room you go by the name ${name}.`
       : job.duty;
-  return `${role}\n\n${houseStyle(template)}`;
+  const made = formatFor(job.makes);
+  return `${role}\n\n${houseStyle(template)}${made ? `\n\n${made}` : ""}`;
 }
 
 export async function runAgentBrief(
@@ -64,9 +67,10 @@ export async function runAgentBrief(
 }
 
 export function parseAgentOutput(raw: string): AgentResult {
-  const match = raw.match(/SPOKEN:\s*([\s\S]*?)\n\s*BRIEF:\s*([\s\S]*)$/i);
-  if (!match) return { spokenRaw: raw, brief: raw };
-  return { spokenRaw: (match[1] ?? "").trim(), brief: (match[2] ?? "").trim() };
+  const { text, made } = splitMade(raw);
+  const match = text.match(/SPOKEN:\s*([\s\S]*?)\n\s*BRIEF:\s*([\s\S]*)$/i);
+  if (!match) return { spokenRaw: text, brief: text, made };
+  return { spokenRaw: (match[1] ?? "").trim(), brief: (match[2] ?? "").trim(), made };
 }
 
 /** The Scribe's update of a room's shared document (docs/state_machines.md §9). */

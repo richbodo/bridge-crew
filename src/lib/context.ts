@@ -69,6 +69,8 @@ export interface AssembleInput {
   plan?: string;
   /** What the shared document is called: plan.md, game.md. */
   planTitle?: string;
+  /** In a Game Studio: the current version, and the pictures and sounds in use. */
+  game?: string;
   /** The crew's earlier work, oldest first. */
   contributions?: ContributionNote[];
   transcript: string[];
@@ -92,6 +94,7 @@ export function assembleContext({
   docs,
   plan = "",
   planTitle,
+  game = "",
   contributions = [],
   transcript,
   budget = CONTEXT_BUDGET,
@@ -101,7 +104,8 @@ export function assembleContext({
 
   const heading = planTitle ? `Living document: ${planTitle}` : "Living plan";
   const planBlock = plan.trim() ? `## ${heading}\n\n${plan.trim()}` : "";
-  const overhead = planBlock.length + 400;
+  const gameBlock = game.trim() ? `## The game so far\n\n${game.trim()}` : "";
+  const overhead = planBlock.length + gameBlock.length + 400;
 
   // Packs get everything except a reserve for the plan, the crew's work and the transcript.
   const transcriptReserve = Math.min(
@@ -176,7 +180,7 @@ export function assembleContext({
     ? `## Note\n\nThe following did not fit and was left out: ${dropped.join("; ")}.`
     : "";
 
-  const text = [packBlock, planBlock, workBlock, transcriptBlock, droppedBlock]
+  const text = [packBlock, planBlock, gameBlock, workBlock, transcriptBlock, droppedBlock]
     .filter(Boolean)
     .join("\n\n");
 

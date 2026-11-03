@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import type { Job } from "@/lib/templates";
 
@@ -27,9 +27,23 @@ interface Props {
   colorFor: (authorId: string | null) => string;
   jobOf: (agent: string) => Job;
   nameFor: (agent: string) => string;
+  /** What a contribution made, drawn by the room (Game Studio). */
+  madeFor?: (contributionId: string) => ReactNode;
+  /** Reply and How did you do that? (Part 6). */
+  onReply?: (contribution: ContributionRow) => void;
+  onExplain?: (contribution: ContributionRow) => void;
 }
 
-export function ChatPane({ lines, contributions, colorFor, jobOf, nameFor }: Props) {
+export function ChatPane({
+  lines,
+  contributions,
+  colorFor,
+  jobOf,
+  nameFor,
+  madeFor,
+  onReply,
+  onExplain,
+}: Props) {
   const endRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
@@ -51,9 +65,10 @@ export function ChatPane({ lines, contributions, colorFor, jobOf, nameFor }: Pro
         if (line.kind === "agent" && line.agent) {
           const member = jobOf(line.agent);
           // The line's own contribution; lines from before Phase 1 fall back to the newest.
-          const brief = line.contribution_id
-            ? contributions.find((c) => c.id === line.contribution_id)?.brief
-            : contributions.filter((c) => c.agent === line.agent).at(-1)?.brief;
+          const contribution = line.contribution_id
+            ? contributions.find((c) => c.id === line.contribution_id)
+            : contributions.filter((c) => c.agent === line.agent).at(-1);
+          const brief = contribution?.brief;
           return (
             <div
               key={line.id}
@@ -64,6 +79,29 @@ export function ChatPane({ lines, contributions, colorFor, jobOf, nameFor }: Pro
                 {nameFor(line.agent)} has the floor
               </p>
               <p className="mt-1 text-sm leading-relaxed text-card-foreground">{line.body}</p>
+              {contribution && madeFor ? madeFor(contribution.id) : null}
+              {contribution && (onReply || onExplain) ? (
+                <div className="mt-2 flex gap-3">
+                  {onReply ? (
+                    <button
+                      type="button"
+                      className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground"
+                      onClick={() => onReply(contribution)}
+                    >
+                      Reply
+                    </button>
+                  ) : null}
+                  {onExplain ? (
+                    <button
+                      type="button"
+                      className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground"
+                      onClick={() => onExplain(contribution)}
+                    >
+                      How did you do that?
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
               {brief ? (
                 <>
                   <button
@@ -71,7 +109,7 @@ export function ChatPane({ lines, contributions, colorFor, jobOf, nameFor }: Pro
                     className="mt-2 text-[11px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground"
                     onClick={() => setOpen((prev) => ({ ...prev, [line.id]: !prev[line.id] }))}
                   >
-                    {open[line.id] ? "Clear screen" : "On screen"}
+                    {open[line.id] ? "Hide detail" : "Show detail"}
                   </button>
                   {open[line.id] ? (
                     <pre className="mt-2 whitespace-pre-wrap rounded-md bg-background/60 p-3 text-xs leading-relaxed text-muted-foreground">

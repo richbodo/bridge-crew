@@ -449,8 +449,9 @@ These are what the tests check (see the plan's Part 1).
 ## 15. Where the code differs
 
 The IDs match the findings in Part 2 of the education plan, which lists the fixes. Phase 1
-fixed the crew member, run, hail, floor and Scribe machines; the planned machines (proposal,
-made thing, screen and room) come with Phases 2 to 5.
+fixed the crew member, run, hail, floor and Scribe machines. Phase 3 built the made thing and
+screen machines, and proposals from the room (a crash). Proposals from the crew come with Phase
+4, and the room machine (Wrap up and Reopen) with Phase 5.
 
 | ID  | Finding                                                                                       | Status                                     |
 | --- | --------------------------------------------------------------------------------------------- | ------------------------------------------ |
@@ -501,7 +502,11 @@ The code still uses some older names.
 | shared document                   | a `stage_docs` row (slug `plan` or `game`)                                             |
 | Scribe update; Scribe state       | `requestScribe` in `src/lib/room.server.ts`; `stage_docs.scribe_state`                 |
 | captain's log                     | `floor_events`                                                                         |
-| proposal, made thing, screen, room state | planned (see the plan's Part 3)                                                 |
+| made thing; Waiting, Used, Not used | a `made_things` row; `waiting`, `used`, `not_used`                                   |
+| current version                   | `sessions.settings.currentVersion`                                                     |
+| proposal                          | a `proposals` row (`source` is `room` for a crash)                                     |
+| screen; what's showing            | `sessions.settings.screen`                                                             |
+| room state                        | planned (Phase 5)                                                                      |
 
 ### Where to look
 

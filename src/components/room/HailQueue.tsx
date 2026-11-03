@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { Button } from "@/components/ui/button";
 import type { Job } from "@/lib/templates";
 
@@ -5,6 +7,7 @@ export interface Hail {
   id: string;
   agent: string;
   summary: string;
+  contribution_id?: string | null;
 }
 
 interface Props {
@@ -13,9 +16,11 @@ interface Props {
   busy: boolean;
   jobOf: (agent: string) => Job;
   nameFor: (agent: string) => string;
+  /** What the hail's contribution made: it comes with the hail. */
+  madeFor?: (contributionId: string) => ReactNode;
 }
 
-export function HailQueue({ hails, onResolve, busy, jobOf, nameFor }: Props) {
+export function HailQueue({ hails, onResolve, busy, jobOf, nameFor, madeFor }: Props) {
   if (hails.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
@@ -36,6 +41,7 @@ export function HailQueue({ hails, onResolve, busy, jobOf, nameFor }: Props) {
             {nameFor(hail.agent)} is hailing
           </p>
           <p className="mt-1 text-sm leading-snug text-card-foreground">{hail.summary}</p>
+          {hail.contribution_id && madeFor ? madeFor(hail.contribution_id) : null}
           <div className="mt-2 flex gap-2">
             <Button size="sm" className="h-7 px-3 text-xs" disabled={busy} onClick={() => onResolve(hail.id, true)}>
               Grant the floor

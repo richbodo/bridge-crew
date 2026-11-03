@@ -362,6 +362,73 @@ export type Database = {
           },
         ]
       }
+      made_things: {
+        Row: {
+          agent: string
+          body: string
+          contribution_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          name: string
+          run_id: string | null
+          session_id: string
+          state: string
+          updated_at: string
+          version: number | null
+        }
+        Insert: {
+          agent: string
+          body: string
+          contribution_id?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          name: string
+          run_id?: string | null
+          session_id: string
+          state?: string
+          updated_at?: string
+          version?: number | null
+        }
+        Update: {
+          agent?: string
+          body?: string
+          contribution_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          name?: string
+          run_id?: string | null
+          session_id?: string
+          state?: string
+          updated_at?: string
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "made_things_contribution_id_fkey"
+            columns: ["contribution_id"]
+            isOneToOne: false
+            referencedRelation: "contributions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "made_things_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "made_things_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       participants: {
         Row: {
           color: string
@@ -396,6 +463,82 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "participants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposals: {
+        Row: {
+          answered_at: string | null
+          answered_by: string | null
+          contribution_id: string | null
+          created_at: string
+          id: string
+          kind: string
+          made_thing_id: string | null
+          proposed_by: string | null
+          question: string
+          session_id: string
+          source: string
+          state: string
+          target: string
+          task: string
+          updated_at: string
+        }
+        Insert: {
+          answered_at?: string | null
+          answered_by?: string | null
+          contribution_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          made_thing_id?: string | null
+          proposed_by?: string | null
+          question: string
+          session_id: string
+          source: string
+          state?: string
+          target: string
+          task: string
+          updated_at?: string
+        }
+        Update: {
+          answered_at?: string | null
+          answered_by?: string | null
+          contribution_id?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          made_thing_id?: string | null
+          proposed_by?: string | null
+          question?: string
+          session_id?: string
+          source?: string
+          state?: string
+          target?: string
+          task?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_contribution_id_fkey"
+            columns: ["contribution_id"]
+            isOneToOne: false
+            referencedRelation: "contributions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_made_thing_id_fkey"
+            columns: ["made_thing_id"]
+            isOneToOne: false
+            referencedRelation: "made_things"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposals_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "sessions"
@@ -644,6 +787,7 @@ export type Database = {
       finish_run: {
         Args: {
           _brief: string
+          _made?: Json
           _run: string
           _spoken: string
           _summary: string
@@ -666,6 +810,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      make_current: {
+        Args: { _session: string; _version: string }
+        Returns: undefined
+      }
       scribe_done: {
         Args: { _session: string; _slug: string }
         Returns: boolean
@@ -684,6 +832,7 @@ export type Database = {
         Returns: string
       }
       stop_crew: { Args: { _agent: string; _session: string }; Returns: string }
+      use_made_thing: { Args: { _thing: string }; Returns: undefined }
     }
     Enums: {
       agent_status: "idle" | "working" | "hand_raised" | "speaking" | "stopped"
