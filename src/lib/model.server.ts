@@ -200,8 +200,26 @@ export function fixtureReply(messages: ChatMessage[], role: ModelRole): string {
     `- Task: ${task}`,
     "- Provider: fixture (no model was called)",
     `- Context supplied: ${user.length} characters`,
-    fixtureMade(system, task),
+    fixtureExtras(system, user, task),
   ].join("\n");
+}
+
+/**
+ * The fixture's extras: with "remove" in the task, a REMOVE of every thing that's not used;
+ * with "from the <job>", an ASK of that job (src/lib/made.ts); otherwise a made thing.
+ */
+function fixtureExtras(system: string, user: string, task: string): string {
+  if (system.includes("\nREMOVE:") && /\bremove\b/i.test(task)) {
+    const unused = [...user.matchAll(/^- #(\d+) .*\(not used\)$/gm)].map((m) => `#${m[1]}`);
+    return unused.length ? `\nREMOVE: ${unused.join(", ")}` : "";
+  }
+  const jobs = /^ASK: <one job: ([^>]+)>$/m.exec(system)?.[1]?.split(", ") ?? [];
+  // A crew member that was asked never asks on, so a Yes doesn't start a chain.
+  const asked = /suggested asking you/.test(task)
+    ? undefined
+    : jobs.find((job) => new RegExp(`\\bfrom the ${job}\\b`, "i").test(task));
+  const ask = asked ? `\nASK: ${asked}\nPlease help with this: ${task}` : "";
+  return `${fixtureMade(system, task)}${ask}`;
 }
 
 /** A made thing for the jobs that make one (src/lib/made.ts). "crash" in the task makes a game that throws. */

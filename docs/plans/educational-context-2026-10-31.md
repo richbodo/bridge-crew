@@ -280,7 +280,9 @@ whoever the switch shows. The student has no account and no email.
 - **`proposals` (new):** what it suggests (a summon or a huddle), the job and task, where it came
   from (a contribution, or the room), and its state.
 - **`made_things` (new):** versions, pictures and sounds in one table, each with its state
-  (`waiting`, `used` or `not_used`).
+  (`waiting`, `used`, `not_used` or `removed`).
+- **`contributions.ask` and `contributions.removes`:** a crew member's suggestion and the things
+  it removes, which take effect only if its hail is granted.
 - **`transcript.speaker_role`:** `teacher`, `student` or null.
 - **`floor_events` widens** to every event in the link table, and becomes the captain's log.
 - **Delete room** removes the room's rows and its games folder.
@@ -575,8 +577,13 @@ The phases run in this order, with no dates. Sizes are relative, as in the maste
 | Gate | **Dress rehearsal and pre-launch discussion**: rehearse on the finished studio, choose a legal adviser, and work through Part 9 | — | The adviser has looked at it, and the notice and teacher's guide are ready |
 | 6 | The teacher's laptop and the first student session | S | The teacher is ready, and the student and their family have agreed |
 
-Status: Phases 0–3 are built on the `game-studio` branch, ready for the project lead's first
-test.
+Status: Phases 0–3 are built on the `game-studio` branch, and the project lead's first test is
+under way. Its first notes brought two parts of Phase 4 forward: proposals from the crew (a crew
+member suggests asking another, and the student says Yes or No thanks), and **Manage** for made
+things (rename, remove and put back, and a crew member removing what it made when asked). The
+same round made Reply, How did you do that? and Show detail separate buttons, rendered briefs
+and `game.md` as formatted text, and made the browser's Back button ask before leaving a Game
+Studio room. Phase 4 still has Ask for help, huddles and the Tester's coaching.
 
 ## Not in this plan
 

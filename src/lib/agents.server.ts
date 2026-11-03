@@ -1,4 +1,4 @@
-import { formatFor, splitMade, type MadeDraft } from "./made";
+import { formatFor, splitExtras, splitMade, type AskDraft, type MadeDraft } from "./made";
 import { callModel } from "./model.server";
 import type { Job, Template } from "./templates";
 
@@ -25,6 +25,24 @@ export interface AgentResult {
   spokenRaw: string;
   brief: string;
   made: MadeDraft[];
+  /** A suggestion to ask a crew member (docs/state_machines.md §7). */
+  ask: AskDraft | null;
+  /** Numbers from "Made in this room" to remove if the hail is granted (§8). */
+  removes: number[];
+}
+
+/** How a crew member suggests asking a crew member, in rooms that allow it (§7). */
+function askFormat(template: Template): string {
+  const jobs = template.roster.map((job) => job.name).join(", ");
+  return `You can't start another crew member's work, but you can suggest it. When the student asks
+you to get something from another crew member, or another job should do the next step, add
+one suggestion after the BRIEF:
+
+ASK: <one job: ${jobs}>
+<what to ask them, in one or two sentences, written to them>
+
+The student sees it after you speak, and says Yes or No thanks. Make at most one, and leave it
+out when nobody else is needed. Say in SPOKEN who you'd like to ask, and why.`;
 }
 
 export interface AgentProfile {
@@ -41,8 +59,8 @@ export function systemPromptFor(template: Template, job: Job, profile?: AgentPro
     : name
       ? `${job.duty}\nIn this room you go by the name ${name}.`
       : job.duty;
-  const made = formatFor(job.makes);
-  return `${role}\n\n${houseStyle(template)}${made ? `\n\n${made}` : ""}`;
+  const extras = [formatFor(job.makes), template.crewProposals ? askFormat(template) : null];
+  return [role, houseStyle(template), ...extras.filter(Boolean)].join("\n\n");
 }
 
 export async function runAgentBrief(
@@ -67,10 +85,11 @@ export async function runAgentBrief(
 }
 
 export function parseAgentOutput(raw: string): AgentResult {
-  const { text, made } = splitMade(raw);
+  const { text: rest, ask, removes } = splitExtras(raw);
+  const { text, made } = splitMade(rest);
   const match = text.match(/SPOKEN:\s*([\s\S]*?)\n\s*BRIEF:\s*([\s\S]*)$/i);
-  if (!match) return { spokenRaw: text, brief: text, made };
-  return { spokenRaw: (match[1] ?? "").trim(), brief: (match[2] ?? "").trim(), made };
+  if (!match) return { spokenRaw: text.trim(), brief: text.trim(), made, ask, removes };
+  return { spokenRaw: (match[1] ?? "").trim(), brief: (match[2] ?? "").trim(), made, ask, removes };
 }
 
 /** The Scribe's update of a room's shared document (docs/state_machines.md §9). */

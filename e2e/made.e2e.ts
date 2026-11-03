@@ -88,6 +88,64 @@ test.describe("making the game", () => {
     await expect(made(page).getByText("in the game")).toBeVisible();
   });
 
+  test("Manage renames a picture, removes it and puts it back", async ({ page }) => {
+    await openStudio(page, { title: `E2E manage ${Date.now()}` });
+    await say(page, "Artist, draw the mole.");
+    await grantNext(page, "Artist");
+
+    await made(page).getByRole("button", { name: "Manage" }).click();
+    const dialog = page.getByRole("dialog", { name: "Made in this room" });
+    await dialog.getByRole("button", { name: "Rename" }).click();
+    await dialog.getByLabel("New name for Picture: mole").fill("grip");
+    await dialog.getByRole("button", { name: "Save" }).click();
+    await expect(dialog.getByText("Picture: grip")).toBeVisible();
+
+    await dialog.getByRole("button", { name: "Remove" }).click();
+    await dialog.getByText("Removed (1)").click();
+    await expect(made(page).getByText("Picture: grip")).toHaveCount(0);
+
+    await dialog.getByRole("button", { name: "Put back" }).click();
+    await expect(dialog.getByText("Removed (1)")).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(made(page).getByText("Picture: grip")).toBeVisible();
+    await expect(made(page).getByText("not used")).toBeVisible();
+  });
+
+  test("the current version can't be removed, and Manage is on the big screen too", async ({ page }) => {
+    await openStudio(page, { title: `E2E manage version ${Date.now()}` });
+    await say(page, "Engineer, make the mole dig.");
+    await grantNext(page, "Engineer");
+    await say(page, "on screen");
+
+    await page.getByRole("button", { name: "Manage" }).click();
+    const dialog = page.getByRole("dialog", { name: "Made in this room" });
+    await expect(dialog.getByText("Can't remove: the current version")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Remove" })).toHaveCount(0);
+
+    await dialog.getByRole("button", { name: "Rename" }).click();
+    await dialog.getByLabel("New name for Version 1").fill("digging");
+    await dialog.getByRole("button", { name: "Save" }).click();
+    await expect(dialog.getByText("Version 1: digging")).toBeVisible();
+  });
+
+  test("asked to, a crew member removes what it made, once its hail is granted", async ({ page }) => {
+    await openStudio(page, { title: `E2E crew removes ${Date.now()}` });
+    await say(page, "Artist, draw a gem.");
+    await expect(page.getByText("Artist is hailing")).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: "Not now" }).click();
+    await expect(made(page).getByText("not used")).toBeVisible();
+
+    await say(page, "Artist, remove the pictures we don't need.");
+    await expect(page.getByText("Artist is hailing")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText("Removes, if you grant it:")).toBeVisible();
+    // Nothing is removed before the grant.
+    await expect(made(page).getByText("Picture: mole")).toBeVisible();
+
+    await page.getByRole("button", { name: "Grant the floor" }).click();
+    await expect(page.getByText("Removed:")).toBeVisible();
+    await expect(made(page).getByText("Picture: mole")).toHaveCount(0);
+  });
+
   test("the Sound designer's sounds have play buttons", async ({ page }) => {
     await openStudio(page, { title: `E2E sounds ${Date.now()}` });
     await say(page, "Sound designer, make a digging sound.");

@@ -6,6 +6,7 @@ import { makeNameLookup, runAgentBrief, writeSharedDoc, type NameLookup } from "
 import { assembleContext, type ContributionNote } from "./context";
 import { loadPackDocs } from "./context.server";
 import type { Mode } from "./machines";
+import { labelOf, type AskDraft } from "./made";
 import { enforceSpeechCap } from "./speech";
 import { saveCurrent, saveVersion, type RoomName } from "./games.server";
 import { findAddressees, parseSummon, type Addressable } from "./summon";
@@ -71,18 +72,49 @@ async function roomOf(sb: Client, sessionId: string) {
   };
 }
 
-/** The game so far, for a crew member's context: the current version, and what's in use. */
-async function gameSoFar(sb: Client, sessionId: string, settings: RoomSettings) {
-  const { data: things } = await sb
+/**
+ * A room's made things in a fixed order. A thing's number in "Made in this room" is its place
+ * in this list, which never changes, because removing a thing only marks it Removed.
+ */
+async function madeInOrder(sb: Client, sessionId: string) {
+  const { data } = await sb
     .from("made_things")
-    .select("id, kind, name, body, state")
+    .select("id, kind, name, version, body, state, agent")
     .eq("session_id", sessionId)
-    .order("created_at", { ascending: true });
-  const current = (things ?? []).find((t) => t.id === settings.currentVersion);
-  const used = (things ?? []).filter((t) => t.state === "used" && t.kind !== "version");
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
+  return data ?? [];
+}
+
+/**
+ * The game so far, for a crew member's context: the current version, what's in use, and a
+ * numbered list of everything made, which REMOVE refers to (§8).
+ */
+async function gameSoFar(
+  sb: Client,
+  sessionId: string,
+  template: Template,
+  settings: RoomSettings,
+  nameOf: NameLookup,
+) {
+  const things = await madeInOrder(sb, sessionId);
+  const current = things.find((t) => t.id === settings.currentVersion);
+  const used = things.filter((t) => t.state === "used" && t.kind !== "version");
+  const listed = things
+    .map((thing, i) => ({ thing, number: i + 1 }))
+    .filter(({ thing }) => thing.state !== "removed" && thing.state !== "waiting")
+    .map(({ thing, number }) => {
+      const state =
+        thing.id === settings.currentVersion
+          ? "the current version"
+          : thing.state === "used"
+            ? "in the game"
+            : "not used";
+      return `- #${number} ${labelOf(thing)}, by ${called(template, nameOf, thing.agent)} (${state})`;
+    });
   const parts = [
     current
-      ? `### The current version (${current.name})\n\n\`\`\`html\n${current.body}\n\`\`\``
+      ? `### The current version (${labelOf(current)})\n\n\`\`\`html\n${current.body}\n\`\`\``
       : "No version of the game has been built yet.",
     ...used
       .filter((t) => t.kind === "picture")
@@ -94,7 +126,53 @@ async function gameSoFar(sb: Client, sessionId: string, settings: RoomSettings) 
       `### Sounds (call zzfx(...list))\n\n${sounds.map((t) => `- ${t.name}: ${t.body}`).join("\n")}`,
     );
   }
+  if (listed.length) parts.push(`### Made in this room\n\n${listed.join("\n")}`);
   return parts.join("\n\n");
+}
+
+/** The things a REMOVE named, by number: only this crew member's, and never the current version. */
+async function removable(
+  sb: Client,
+  sessionId: string,
+  agent: string,
+  settings: RoomSettings,
+  numbers: number[],
+): Promise<string[]> {
+  const things = await madeInOrder(sb, sessionId);
+  return numbers
+    .map((number) => things[number - 1])
+    .filter((thing) => thing !== undefined)
+    .filter(
+      (thing) =>
+        thing.agent === agent &&
+        (thing.state === "used" || thing.state === "not_used") &&
+        thing.id !== settings.currentVersion,
+    )
+    .map((thing) => thing.id);
+}
+
+/** "the Sound designer", or the name the room gave that crew member. */
+function called(template: Template, nameOf: NameLookup, agent: string) {
+  const name = nameOf(agent);
+  return name === jobOf(template, agent).name ? `the ${name}` : name;
+}
+
+/** A crew member's ASK, as a proposal that opens if its hail is granted (§7). */
+function proposalFrom(
+  template: Template,
+  crew: Array<{ agent: string; display_name: string | null }>,
+  nameOf: NameLookup,
+  draft: AskDraft,
+  mode: Mode,
+) {
+  const [target] = findAddressees(`${draft.name}:`, addressable(template, crew));
+  if (!target) return null;
+  return {
+    target,
+    task: draft.task,
+    question: `Ask ${called(template, nameOf, target)}: “${draft.task}”`,
+    mode,
+  };
 }
 
 export async function namesFor(sb: Client, sessionId: string): Promise<NameLookup> {
@@ -185,7 +263,7 @@ async function gatherContext(
     docs,
     plan: doc?.body ?? "",
     planTitle: template.doc.file,
-    game: template.bigScreen ? await gameSoFar(sb, sessionId, settings) : "",
+    game: template.bigScreen ? await gameSoFar(sb, sessionId, template, settings, nameOf) : "",
     contributions,
     transcript: (lines ?? []).map(asRead),
   });
@@ -223,14 +301,25 @@ export async function executeRun(sb: Client, runId: string) {
     const provenance = context.read ? `_Read: ${context.read}_\n\n` : "";
     const brief = provenance + (overflow ? `${result.brief}\n\n---\n\n${overflow}` : result.brief);
     const summary = spoken.split(/(?<=[.!?])\s+/)[0] || spoken.slice(0, 140);
-    // Help changes nothing in the game unless asked (Part 6), so a help run makes nothing.
-    const made = run.mode === "help" ? [] : result.made;
+    // Help changes nothing in the game unless asked (Part 6), so a help run makes and removes nothing.
+    const help = run.mode === "help";
+    const made = help ? [] : result.made;
+    const removes =
+      help || !result.removes.length
+        ? []
+        : await removable(sb, sessionId, agent, settings, result.removes);
+    const ask =
+      template.crewProposals && result.ask
+        ? proposalFrom(template, crew, nameOf, result.ask, run.mode as Mode)
+        : null;
     const { error } = await sb.rpc("finish_run", {
       _run: runId,
       _spoken: spoken,
       _brief: brief,
       _summary: summary,
       _made: made as unknown as Json,
+      _ask: ask as unknown as Json,
+      _removes: removes,
     });
     if (error) throw new Error(error.message);
     if (made.some((thing) => thing.kind === "version")) await saveVersionsOf(sb, runId, name);
@@ -398,6 +487,7 @@ async function newestThing(sb: Client, sessionId: string): Promise<Screen["showi
       .from("made_things")
       .select("id")
       .eq("session_id", sessionId)
+      .neq("state", "removed")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -443,12 +533,48 @@ export async function useThing(sb: Client, sessionId: string, thingId: string) {
   await saveCurrentVersion(sb, sessionId);
 }
 
+/** Why Manage couldn't remove, rename or put back a thing, in words. */
+const MANAGE_REFUSALS: Record<string, string> = {
+  current: "That's the current version. Use another version first, then remove this one.",
+  waiting: "That's still waiting on its hail. Grant it or press Not now first.",
+  removed_already: "That was already removed.",
+  not_removed: "That isn't removed.",
+  empty: "Give it a name.",
+};
+
+/** Manage (§8): Rename, Remove or Put back, from the people. */
+export async function manageThing(
+  sb: Client,
+  sessionId: string,
+  thingId: string,
+  action: { type: "rename"; name: string } | { type: "remove" } | { type: "put_back" },
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const { data: thing } = await sb
+    .from("made_things")
+    .select("id")
+    .eq("id", thingId)
+    .eq("session_id", sessionId)
+    .maybeSingle();
+  if (!thing) return { ok: false, message: "That isn't in this room." };
+  const { data, error } =
+    action.type === "rename"
+      ? await sb.rpc("rename_made_thing", { _thing: thingId, _name: action.name })
+      : action.type === "remove"
+        ? await sb.rpc("remove_made_thing", { _thing: thingId })
+        : await sb.rpc("put_back_made_thing", { _thing: thingId });
+  if (error) throw new Error(error.message);
+  const done = { rename: "renamed", remove: "removed", put_back: "put_back" }[action.type];
+  if (data !== done)
+    return { ok: false, message: MANAGE_REFUSALS[data] ?? "That didn't work. Try again." };
+  return { ok: true };
+}
+
 /** A version crashed on the big screen: the room proposes asking the Engineer to fix it. */
 export async function reportCrash(sb: Client, sessionId: string, thingId: string, message: string) {
   const { template, nameOf } = await roomOf(sb, sessionId);
   const { data: thing } = await sb
     .from("made_things")
-    .select("name, kind")
+    .select("name, kind, version")
     .eq("id", thingId)
     .eq("session_id", sessionId)
     .maybeSingle();
@@ -462,7 +588,7 @@ export async function reportCrash(sb: Client, sessionId: string, thingId: string
       .replace(/^Uncaught\s+/, "")
       .replace(/^Error:\s*/, "")
       .slice(0, 200) || "something went wrong";
-  const label = `Version ${thing.name.replace(/^v/, "")}`;
+  const label = labelOf(thing);
   const { error } = await sb.from("proposals").insert({
     session_id: sessionId,
     source: "room",
@@ -499,14 +625,25 @@ export async function answerProposal(
     .eq("id", proposalId)
     .eq("session_id", sessionId)
     .eq("state", "open")
-    .select("kind, target, task, question")
+    .select("kind, target, task, question, source, proposed_by, mode")
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!answered) return { ok: false as const, reason: "not_open" as const };
   await logEvent(sb, sessionId, answered.target, yes ? "proposal_accepted" : "proposal_declined", answered.question);
   if (yes) {
-    const nameOf = await namesFor(sb, sessionId);
-    await startRun(sb, sessionId, answered.target, answered.task, "direct", `${nameOf(answered.target)} is on it: ${answered.task}`);
+    const { template, nameOf } = await roomOf(sb, sessionId);
+    const suggested =
+      answered.source === "crew" && answered.proposed_by
+        ? `${called(template, nameOf, answered.proposed_by).replace(/^the /, "The ")} suggested asking you this, and the student said yes:\n\n${answered.task}`
+        : answered.task;
+    await startRun(
+      sb,
+      sessionId,
+      answered.target,
+      suggested,
+      answered.mode as Mode,
+      `${nameOf(answered.target)} is on it: ${answered.task}`,
+    );
   }
   return { ok: true as const };
 }

@@ -72,6 +72,21 @@ export const useThing = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Manage: rename, remove or put back a made thing (docs/state_machines.md §8). */
+export const manageThing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: {
+      sessionId: string;
+      thingId: string;
+      action: { type: "rename"; name: string } | { type: "remove" } | { type: "put_back" };
+    }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const { manageThing: manage } = await import("./room.server");
+    return manage(context.supabase, data.sessionId, data.thingId, data.action);
+  });
+
 /** The big screen's frame caught a crash in a version of the game. */
 export const reportCrash = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

@@ -13,6 +13,16 @@ export interface MadeDraft {
   body: string;
 }
 
+/** A made thing's name on screen: "Version 3", "Version 3: with gems", "Picture: mole". */
+export function labelOf(thing: { kind: string; name: string; version: number | null }): string {
+  if (thing.kind === "version") {
+    const number = thing.version ?? thing.name.replace(/^v/, "");
+    const title = thing.name && !/^v\d+$/.test(thing.name) ? `: ${thing.name}` : "";
+    return `Version ${number}${title}`;
+  }
+  return `${thing.kind === "picture" ? "Picture" : "Sound"}: ${thing.name}`;
+}
+
 /** ZzFX's parameters, in order, so the Sound designer and Engineer know what each number is. */
 export const ZZFX_PARAMETERS =
   "volume, randomness, frequency, attack, sustain, release, shape (0 sine, 1 triangle, 2 saw, 3 tan, 4 noise), shapeCurve, slide, deltaSlide, pitchJump, pitchJumpTime, repeatTime, noise, modulation, bitCrush, delay, sustainVolume, decay, tremolo, filter";
@@ -58,9 +68,19 @@ Each name is one word, and each list is the arguments for zzfx(...), in this ord
 ${ZZFX_PARAMETERS}. Keep the volume (the first number) at 1 or below.`,
 };
 
+/** Removing what you made, when the student asks (§8). Only for jobs that make things. */
+const TIDY = `If the student asks you to remove things you made that aren't needed any more, list
+them by their numbers under "Made in this room", after the BRIEF:
+
+REMOVE: #2, #5
+
+Only things you made. The current version can't be removed. Nothing is removed until the
+student grants you the floor, so say in SPOKEN what you'll remove.`;
+
 /** The instructions for what this job hands back, if it makes something. */
 export function formatFor(makes: Makes): string | null {
-  return FORMATS[makes] ?? null;
+  const format = FORMATS[makes];
+  return format ? `${format}\n\n${TIDY}` : null;
 }
 
 const MARKER = /\n\s*(FILE|PICTURE|SOUNDS):/;
@@ -114,4 +134,83 @@ function cleanName(name: string, fallback: string): string {
     .trim()
     .slice(0, 30);
   return clean || fallback;
+}
+
+/** A crew member's suggestion to ask a crew member (§7), as its reply wrote it. */
+export interface AskDraft {
+  /** The job, as the reply named it: "Sound designer". */
+  name: string;
+  /** What to ask, written to that crew member. */
+  task: string;
+}
+
+const SECTION = /^\s*(FILE|PICTURE|SOUNDS|ASK|REMOVE):/;
+const FENCE = /^\s*```/;
+
+/**
+ * Takes the ASK and REMOVE sections out of a reply, and leaves the rest for splitMade. Lines
+ * inside code fences are skipped, so a game's code is never read as one. ASK is a job on its
+ * own line or before a colon, then the task; REMOVE lists numbers from "Made in this room".
+ */
+export function splitExtras(raw: string): {
+  text: string;
+  ask: AskDraft | null;
+  removes: number[];
+} {
+  const lines = raw.split("\n");
+  const kept: string[] = [];
+  const removes: number[] = [];
+  let ask: AskDraft | null = null;
+  let fenced = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? "";
+    if (FENCE.test(line)) fenced = !fenced;
+    if (fenced || FENCE.test(line)) {
+      kept.push(line);
+      continue;
+    }
+    const asking = /^\s*ASK:\s*(.*)$/.exec(line);
+    if (asking) {
+      const rest: string[] = [];
+      while (i + 1 < lines.length) {
+        const next = lines[i + 1] ?? "";
+        if (!next.trim() || SECTION.test(next) || FENCE.test(next)) break;
+        rest.push(next.trim());
+        i++;
+      }
+      ask ??= toAsk(asking[1] ?? "", rest.join(" "));
+      continue;
+    }
+    const removing = /^\s*REMOVE:\s*(.*)$/.exec(line);
+    if (removing) {
+      // "#2, #5"; bare numbers only when there are no #s, so "Version 2 (#5)" means #5.
+      const list = removing[1] ?? "";
+      for (const match of list.matchAll(list.includes("#") ? /#(\d+)/g : /\b(\d+)\b/g)) {
+        const number = Number(match[1]);
+        if (number > 0 && !removes.includes(number)) removes.push(number);
+      }
+      continue;
+    }
+    kept.push(line);
+  }
+  return { text: kept.join("\n"), ask, removes: removes.slice(0, 20) };
+}
+
+function toAsk(head: string, rest: string): AskDraft | null {
+  let name = head.trim();
+  let task = rest.trim();
+  if (!task) {
+    // All on one line: "ASK: Sound designer: make a crunchy sound".
+    const split = /^(.{1,40}?)\s*(?::|—|–|\s-\s|,)\s*(.+)$/.exec(name);
+    if (!split) return null;
+    name = split[1] ?? "";
+    task = split[2] ?? "";
+  }
+  name = name
+    .replace(/^(?:the|our)\s+/i, "")
+    .replace(/[.:,;—–-]+$/, "")
+    .trim();
+  task = task.slice(0, 600).trim();
+  return name && task ? { name, task } : null;
 }

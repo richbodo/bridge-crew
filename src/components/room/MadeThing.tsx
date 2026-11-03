@@ -1,5 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { prepareGame, slugify } from "@/lib/game-file";
+import { labelOf } from "@/lib/made";
+
+export { labelOf };
 
 /** A version, picture or sound a crew member made (docs/state_machines.md §8). */
 export interface MadeRow {
@@ -8,7 +11,7 @@ export interface MadeRow {
   name: string;
   version: number | null;
   body: string;
-  state: "waiting" | "used" | "not_used";
+  state: "waiting" | "used" | "not_used" | "removed";
   agent: string;
   contribution_id: string | null;
 }
@@ -17,12 +20,8 @@ const STATE_LABEL: Record<MadeRow["state"], string> = {
   waiting: "waiting for a yes",
   used: "in the game",
   not_used: "not used",
+  removed: "removed",
 };
-
-export function labelOf(thing: Pick<MadeRow, "kind" | "name" | "version">): string {
-  if (thing.kind === "version") return `Version ${thing.version ?? thing.name.replace(/^v/, "")}`;
-  return `${thing.kind === "picture" ? "Picture" : "Sound"}: ${thing.name}`;
-}
 
 export function svgSource(svg: string): string {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
@@ -62,7 +61,9 @@ export function MadeThing({ thing, current, title, compact, onScreen, onUse }: P
 
   return (
     <div
-      className="flex items-center gap-3 rounded-md border border-border bg-background/50 p-2"
+      className={`flex items-center gap-3 rounded-md border border-border bg-background/50 p-2 ${
+        thing.state === "removed" ? "opacity-60" : ""
+      }`}
       data-made={thing.kind}
     >
       {thing.kind === "picture" ? (
@@ -78,31 +79,48 @@ export function MadeThing({ thing, current, title, compact, onScreen, onUse }: P
           {current ? "current version" : STATE_LABEL[thing.state]}
         </p>
       </div>
-      <div className="flex shrink-0 flex-wrap justify-end gap-1">
-        {thing.kind === "sound" ? (
-          <Button size="sm" variant="secondary" className="h-6 px-2 text-[11px]" onClick={() => void playSound(thing.body)}>
-            Play
-          </Button>
-        ) : null}
-        <Button size="sm" variant="ghost" className="h-6 px-2 text-[11px]" onClick={() => onScreen(thing)}>
-          On screen
-        </Button>
-        {thing.kind === "version" && !compact ? (
+      {thing.state === "removed" ? null : (
+        <div className="flex shrink-0 flex-wrap justify-end gap-1">
+          {thing.kind === "sound" ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-6 px-2 text-[11px]"
+              onClick={() => void playSound(thing.body)}
+            >
+              Play
+            </Button>
+          ) : null}
           <Button
             size="sm"
             variant="ghost"
             className="h-6 px-2 text-[11px]"
-            onClick={() => downloadVersion(thing, title)}
+            onClick={() => onScreen(thing)}
           >
-            Download
+            On screen
           </Button>
-        ) : null}
-        {canUse && !compact ? (
-          <Button size="sm" variant="secondary" className="h-6 px-2 text-[11px]" onClick={() => onUse(thing)}>
-            Use this
-          </Button>
-        ) : null}
-      </div>
+          {thing.kind === "version" && !compact ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-[11px]"
+              onClick={() => downloadVersion(thing, title)}
+            >
+              Download
+            </Button>
+          ) : null}
+          {canUse && !compact ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-6 px-2 text-[11px]"
+              onClick={() => onUse(thing)}
+            >
+              Use this
+            </Button>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

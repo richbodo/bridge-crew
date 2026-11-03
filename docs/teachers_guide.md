@@ -53,7 +53,19 @@ Next week, open the same room from **Recent rooms** in the lobby and carry on.
 - **When something breaks.** If a version crashes on screen, the room suggests asking the
   Engineer to fix it. The student says **Yes** or **No thanks**.
 - **Learning how.** **How did you do that?** under any crew member's line asks them to explain,
-  at the student's level, without changing the game. **Reply** asks them a follow-up.
+  at the student's level, without changing the game. **Reply** asks them a follow-up, and puts
+  the cursor in the message box.
+- **One crew member asking another.** The student can ask a crew member to get something from
+  another, as in "Game designer, get the sounds for catching a ladybug from the Sound designer."
+  Once the student grants the hail, a suggestion appears under **Suggestions**, and **Yes** asks
+  the Sound designer. Crew members never start each other's work without the student's yes.
+- **Tidying up.** **Manage**, beside **Made in this room** and on the big screen, renames things
+  and removes the ones the student doesn't need. Removed things can be put back, and every
+  version stays in the games folder. The student can also ask a crew member to remove what it
+  made; it lists what it would remove, and removes it only if the student grants it.
+- **The Back button.** The browser's Back button, or a two-finger swipe on the trackpad, asks
+  "Leave the studio?" first, so a slip doesn't end the session. For fewer distractions, **Full
+  screen** on the big screen hides the browser altogether.
 - **Typing is slow?** The laptop's dictation types for you: on a Mac, press the dictation key or
   Fn twice. "On screen" and "off screen" work by voice too.
 
@@ -90,5 +102,5 @@ good.
 ## Not built yet
 
 These are planned (Phases 4 and 5 of the education plan): an **Ask for help** button beside
-Send, crew members suggesting each other, **huddles** in which several crew members talk a
-problem over, the **captain's log**, and **Wrap up** at the end of a session.
+Send, **huddles** in which several crew members talk a problem over, the **captain's log**, and
+**Wrap up** at the end of a session.

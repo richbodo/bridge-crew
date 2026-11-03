@@ -194,7 +194,16 @@ goes into the game. `just game-studio` opens the lobby with it picked.
   put `@` before it anywhere. A name in the middle of a sentence is just a word. There are no
   slash commands.
 - **Answers.** A crew member works, then hails. Spoken parts are at most three sentences; the
-  full detail is in the brief.
+  full detail is in the brief. Under each line, **Reply**, **How did you do that?** and **Show
+  detail** are separate buttons. Show detail opens the brief, formatted.
+- **Asking a crew member to ask another.** Crew members can't start each other's work, but they
+  can suggest it: "Game designer, get the sounds for catching a ladybug from the Sound
+  designer." Once the student grants the hail, the suggestion appears under **Suggestions**:
+  "Game designer suggests: Ask the Sound designer: …". **Yes** asks them; **No thanks** doesn't.
+  A suggestion lapses when the same crew member speaks again.
+- **Back asks first.** In a Game Studio room, the browser's Back button (or a two-finger swipe
+  on the trackpad) asks "Leave the studio?" before it goes. **Leave**, in the header, doesn't
+  ask.
 - **`game.md`** is the game's design notes, kept by the Scribe in the background. It only
   writes down what the student said yes to, and the Engineer will build from it.
 - **Safety settings.** Every crew member follows rules for young people: short literal
@@ -211,9 +220,17 @@ The teacher's side of a session is in [teachers_guide.md](teachers_guide.md).
 - **Nothing goes into the game until the student says yes.** Granting the hail puts it in the
   game, and a version becomes the **current version**: the one the Engineer builds from next.
   **Not now** leaves it **not used**, but it isn't lost.
-- **Made in this room**, in the right column, lists everything, newest first, with what happened
-  to it. **Use this** puts something that wasn't used into the game, or makes an older version
-  current again. **Play** plays a sound; nothing plays on its own.
+- **Made in this room**, in the right column under `game.md`, lists everything, newest first,
+  with what happened to it. **Use this** puts something that wasn't used into the game, or makes
+  an older version current again. **Play** plays a sound; nothing plays on its own.
+- **Manage**, beside that list and on the big screen, renames things and removes the ones you
+  don't need. A version can get a title, as in "Version 3: with gems". **Remove** takes a thing
+  out of the lists and out of what the crew builds with, but deletes nothing: **Removed** at the
+  bottom of Manage has **Put back**, and every version stays in the games folder. The current
+  version can't be removed; use another version first.
+- **Asking a crew member to tidy up.** "Artist, remove the old mole pictures." The crew member
+  lists what it would remove with its hail ("Removes, if you grant it"), and only removes it if
+  the student grants it. A crew member only removes things it made.
 - **On screen and Off screen.** **On screen** shows one thing, large: the game (playable), a
   picture, the sounds, or what a crew member said. Press **On screen** on anything or in the
   header, or just type "on screen". "Off screen" comes back to the bridge. **Full screen** fills

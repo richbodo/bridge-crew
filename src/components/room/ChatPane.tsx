@@ -1,6 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ChevronDown, ChevronUp, CircleQuestionMark, Reply, type LucideIcon } from "lucide-react";
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 
+import { Button } from "@/components/ui/button";
 import type { Job } from "@/lib/templates";
+
+import { Markdown } from "./Markdown";
 
 export interface TranscriptLine {
   id: string;
@@ -19,6 +23,8 @@ export interface ContributionRow {
   spoken: string;
   brief: string;
   outcome?: string | null;
+  /** Made things this contribution removes when it's spoken (Game Studio). */
+  removes?: string[];
 }
 
 interface Props {
@@ -80,43 +86,24 @@ export function ChatPane({
               </p>
               <p className="mt-1 text-sm leading-relaxed text-card-foreground">{line.body}</p>
               {contribution && madeFor ? madeFor(contribution.id) : null}
-              {contribution && (onReply || onExplain) ? (
-                <div className="mt-2 flex gap-3">
-                  {onReply ? (
-                    <button
-                      type="button"
-                      className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground"
-                      onClick={() => onReply(contribution)}
-                    >
-                      Reply
-                    </button>
-                  ) : null}
-                  {onExplain ? (
-                    <button
-                      type="button"
-                      className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground"
-                      onClick={() => onExplain(contribution)}
-                    >
-                      How did you do that?
-                    </button>
-                  ) : null}
-                </div>
+              {contribution ? (
+                <ContributionActions
+                  onReply={onReply ? () => onReply(contribution) : undefined}
+                  onExplain={onExplain ? () => onExplain(contribution) : undefined}
+                  detail={
+                    brief
+                      ? {
+                          open: Boolean(open[line.id]),
+                          onToggle: () => setOpen((prev) => ({ ...prev, [line.id]: !prev[line.id] })),
+                        }
+                      : undefined
+                  }
+                />
               ) : null}
-              {brief ? (
-                <>
-                  <button
-                    type="button"
-                    className="mt-2 text-[11px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground"
-                    onClick={() => setOpen((prev) => ({ ...prev, [line.id]: !prev[line.id] }))}
-                  >
-                    {open[line.id] ? "Hide detail" : "Show detail"}
-                  </button>
-                  {open[line.id] ? (
-                    <pre className="mt-2 whitespace-pre-wrap rounded-md bg-background/60 p-3 text-xs leading-relaxed text-muted-foreground">
-                      {brief}
-                    </pre>
-                  ) : null}
-                </>
+              {brief && open[line.id] ? (
+                <Markdown className="mt-2 rounded-md bg-background/60 p-3 text-xs leading-relaxed text-muted-foreground">
+                  {brief}
+                </Markdown>
               ) : null}
             </div>
           );
@@ -138,6 +125,60 @@ export function ChatPane({
         );
       })}
       <div ref={endRef} />
+    </div>
+  );
+}
+
+function Action({
+  icon: Icon,
+  children,
+  ...props
+}: { icon: LucideIcon; children: ReactNode } & ComponentProps<typeof Button>) {
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      className="h-7 gap-1.5 px-2.5 text-xs font-normal [&_svg]:size-3.5"
+      {...props}
+    >
+      <Icon aria-hidden />
+      {children}
+    </Button>
+  );
+}
+
+/**
+ * Reply, How did you do that? and Show detail, under a contribution: separate outlined buttons,
+ * so nobody reads them as one line of text.
+ */
+export function ContributionActions({
+  onReply,
+  onExplain,
+  detail,
+}: {
+  onReply?: (() => void) | undefined;
+  onExplain?: (() => void) | undefined;
+  detail?: { open: boolean; onToggle: () => void } | undefined;
+}) {
+  if (!onReply && !onExplain && !detail) return null;
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      {onReply ? (
+        <Action icon={Reply} onClick={onReply}>
+          Reply
+        </Action>
+      ) : null}
+      {onExplain ? (
+        <Action icon={CircleQuestionMark} onClick={onExplain}>
+          How did you do that?
+        </Action>
+      ) : null}
+      {detail ? (
+        <Action icon={detail.open ? ChevronUp : ChevronDown} aria-expanded={detail.open} onClick={detail.onToggle}>
+          {detail.open ? "Hide detail" : "Show detail"}
+        </Action>
+      ) : null}
     </div>
   );
 }

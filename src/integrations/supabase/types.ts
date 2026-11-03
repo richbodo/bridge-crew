@@ -142,10 +142,12 @@ export type Database = {
       contributions: {
         Row: {
           agent: string
+          ask: Json | null
           brief: string
           created_at: string
           id: string
           outcome: string | null
+          removes: string[]
           run_id: string | null
           session_id: string
           spoken: string
@@ -154,10 +156,12 @@ export type Database = {
         }
         Insert: {
           agent: string
+          ask?: Json | null
           brief?: string
           created_at?: string
           id?: string
           outcome?: string | null
+          removes?: string[]
           run_id?: string | null
           session_id: string
           spoken: string
@@ -166,10 +170,12 @@ export type Database = {
         }
         Update: {
           agent?: string
+          ask?: Json | null
           brief?: string
           created_at?: string
           id?: string
           outcome?: string | null
+          removes?: string[]
           run_id?: string | null
           session_id?: string
           spoken?: string
@@ -479,6 +485,7 @@ export type Database = {
           id: string
           kind: string
           made_thing_id: string | null
+          mode: string
           proposed_by: string | null
           question: string
           session_id: string
@@ -496,6 +503,7 @@ export type Database = {
           id?: string
           kind?: string
           made_thing_id?: string | null
+          mode?: string
           proposed_by?: string | null
           question: string
           session_id: string
@@ -513,6 +521,7 @@ export type Database = {
           id?: string
           kind?: string
           made_thing_id?: string | null
+          mode?: string
           proposed_by?: string | null
           question?: string
           session_id?: string
@@ -786,8 +795,10 @@ export type Database = {
       fail_run: { Args: { _reason: string; _run: string }; Returns: boolean }
       finish_run: {
         Args: {
+          _ask?: Json
           _brief: string
           _made?: Json
+          _removes?: string[]
           _run: string
           _spoken: string
           _summary: string
@@ -813,6 +824,12 @@ export type Database = {
       make_current: {
         Args: { _session: string; _version: string }
         Returns: undefined
+      }
+      put_back_made_thing: { Args: { _thing: string }; Returns: string }
+      remove_made_thing: { Args: { _thing: string }; Returns: string }
+      rename_made_thing: {
+        Args: { _name: string; _thing: string }
+        Returns: string
       }
       scribe_done: {
         Args: { _session: string; _slug: string }

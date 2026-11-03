@@ -72,6 +72,8 @@ export interface Template {
   refusalFallback: boolean;
   /** Who leads a "Team" huddle (Phase 4). */
   teamLead: string | null;
+  /** Crew members may suggest asking a crew member, and the student says Yes or No thanks (§7). */
+  crewProposals: boolean;
   /** On screen / Off screen, and the things the crew makes (Parts 4 and 5). */
   bigScreen: boolean;
 }
