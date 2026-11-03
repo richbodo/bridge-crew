@@ -22,19 +22,37 @@ function toAgent(word: string): AgentKind | null {
   return AGENT_ALIASES[word.toLowerCase()] ?? null;
 }
 
-/**
- * Finds @mentions of crew members in ordinary speech, in the order they appear,
- * de-duplicated. Pure — no IO. "@advocate and @skeptic, come back with…" re-engages both.
- */
-export function parseMentions(input: string): AgentKind[] {
-  const found: AgentKind[] = [];
-  for (const match of input.matchAll(/@([a-z]+)/gi)) {
-    const agent = toAgent(match[1] ?? "");
-    if (agent && !found.includes(agent)) found.push(agent);
-  }
-  return found;
+export interface Addressable {
+  /** The crew member's job key. */
+  key: string;
+  /** Every name it answers to: its job's name, a custom name, aliases. */
+  names: string[];
 }
 
+const squash = (name: string) => name.toLowerCase().replace(/[\s_-]+/g, "");
+
+/**
+ * Who a prompt names (F12): `@Name` anywhere, or `Name,` or `Name:` at the start. A name
+ * matches a crew member's job key or any of its names, ignoring case, spaces, hyphens and
+ * underscores, so `@game-designer` and `Game designer,` both work. Returns job keys in the
+ * order they're named, without repeats. Pure — no IO.
+ */
+export function findAddressees(input: string, crew: Addressable[]): string[] {
+  const lookup = new Map<string, string>();
+  for (const member of crew) {
+    for (const name of [member.key, ...member.names]) {
+      if (name.trim()) lookup.set(squash(name), member.key);
+    }
+  }
+  const found: string[] = [];
+  const add = (name: string | undefined) => {
+    const key = name === undefined ? undefined : lookup.get(squash(name));
+    if (key && !found.includes(key)) found.push(key);
+  };
+  add(/^\s*([^,:\n@]{1,40}?)\s*[,:]/.exec(input)?.[1]);
+  for (const match of input.matchAll(/@([\p{L}\p{N}_-]+)/gu)) add(match[1]);
+  return found;
+}
 
 /**
  * Parses a typed line into a summon. Pure — no IO, no side effects.

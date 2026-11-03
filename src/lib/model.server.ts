@@ -33,7 +33,10 @@ export async function callModel(
   role: ModelRole = "crew",
 ): Promise<string> {
   const provider = pickProvider();
-  if (provider === "fixture") return fixtureReply(messages, role);
+  if (provider === "fixture") {
+    await fixtureDelay(messages);
+    return fixtureReply(messages, role);
+  }
   return callAnthropic(messages, role);
 }
 
@@ -107,6 +110,17 @@ async function callAnthropic(messages: ChatMessage[], role: ModelRole): Promise<
 }
 
 // ---------- Fixture (deterministic, for tests and offline demos) ----------
+
+/** How long a fixture run takes when its task says "slowly": long enough to redirect or stop it. */
+export const FIXTURE_SLOW_MS = 4000;
+
+async function fixtureDelay(messages: ChatMessage[]) {
+  const task = messages
+    .filter((m) => m.role === "user")
+    .map((m) => m.content.split("## Your task")[1] ?? "")
+    .join(" ");
+  if (/\bslowly\b/i.test(task)) await new Promise((resolve) => setTimeout(resolve, FIXTURE_SLOW_MS));
+}
 
 export function fixtureReply(messages: ChatMessage[], role: ModelRole): string {
   const system = messages.find((m) => m.role === "system")?.content ?? "";

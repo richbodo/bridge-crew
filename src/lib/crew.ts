@@ -1,5 +1,9 @@
+import type { CrewStatus } from "./machines";
+
 export type AgentKind = "scribe" | "scout" | "advocate" | "skeptic" | "analyst";
-export type AgentStatus = "idle" | "working" | "hand_raised" | "speaking" | "stopped";
+/** `stopped` is a legacy value the database still allows; nothing moves into it any more. */
+export type AgentStatus = CrewStatus | "stopped";
+export { STATUS_LABEL } from "./machines";
 
 export interface CrewMember {
   kind: AgentKind;
@@ -7,6 +11,8 @@ export interface CrewMember {
   station: string;
   accent: string; // css variable name
   blurb: string;
+  /** Other names a prompt can call this crew member by. */
+  aliases?: string[];
 }
 
 export const CREW: Record<AgentKind, CrewMember> = {
@@ -23,6 +29,7 @@ export const CREW: Record<AgentKind, CrewMember> = {
     station: "Long Range",
     accent: "var(--crew-scout)",
     blurb: "Goes and finds out. Returns with a short read and a full brief.",
+    aliases: ["research"],
   },
   advocate: {
     kind: "advocate",
@@ -44,15 +51,8 @@ export const CREW: Record<AgentKind, CrewMember> = {
     station: "Deep Scan",
     accent: "var(--crew-analyst)",
     blurb: "One long careful pass, written first, spoken second.",
+    aliases: ["analyze", "analyse"],
   },
 };
 
 export const CREW_ORDER: AgentKind[] = ["scribe", "scout", "advocate", "skeptic", "analyst"];
-
-export const STATUS_LABEL: Record<AgentStatus, string> = {
-  idle: "standing by",
-  working: "working",
-  hand_raised: "hailing",
-  speaking: "on the floor",
-  stopped: "stood down",
-};

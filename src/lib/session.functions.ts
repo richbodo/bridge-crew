@@ -87,6 +87,9 @@ export const getRoom = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const sessionId = data.sessionId;
+    // The time limit: runs that outlived it (say, across a server restart) fail now (F10).
+    const { expireStaleRuns } = await import("./room.server");
+    await expireStaleRuns(supabase, sessionId);
 
     const [session, participants, transcript, agents, hails, contributions, doc] =
       await Promise.all([
@@ -131,6 +134,7 @@ export const getRoom = createServerFn({ method: "POST" })
       hails: hails.data ?? [],
       contributions: contributions.data ?? [],
       plan: doc.data?.body ?? "",
+      scribeState: doc.data?.scribe_state ?? "idle",
     };
   });
 

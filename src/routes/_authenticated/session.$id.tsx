@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AgentCard } from "@/components/room/AgentCard";
@@ -15,14 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { listContextPacks } from "@/lib/context.functions";
 import { CREW, CREW_ORDER, type AgentKind, type AgentStatus } from "@/lib/crew";
 import { USERS_GUIDE_URL } from "@/lib/links";
-import {
-  postLine,
-  resolveHail,
-  runAgent,
-  runScribe,
-  stopAgent,
-  updateAgentProfile,
-} from "@/lib/room.functions";
+import { answerHail, postPrompt, stopCrewMember, updateAgentProfile } from "@/lib/room.functions";
 import { getRoom } from "@/lib/session.functions";
 
 export const Route = createFileRoute("/_authenticated/session/$id")({
@@ -40,6 +33,13 @@ export const Route = createFileRoute("/_authenticated/session/$id")({
   component: RoomPage,
 });
 
+/** What a refused grant or Not now means, in words (F7). */
+const REFUSALS: Record<string, string> = {
+  floor_busy: "Another crew member is speaking. Try again in a moment.",
+  not_open: "That hail has already been answered.",
+  not_current: "That crew member has moved on to newer work.",
+};
+
 const WATCHED = [
   "transcript",
   "agents_state",
@@ -53,16 +53,13 @@ function RoomPage() {
   const { id } = useParams({ from: "/_authenticated/session/$id" });
   const queryClient = useQueryClient();
   const fetchRoom = useServerFn(getRoom);
-  const send = useServerFn(postLine);
-  const work = useServerFn(runAgent);
-  const resolve = useServerFn(resolveHail);
-  const standDown = useServerFn(stopAgent);
-  const scribe = useServerFn(runScribe);
+  const send = useServerFn(postPrompt);
+  const resolve = useServerFn(answerHail);
+  const standDown = useServerFn(stopCrewMember);
   const saveProfile = useServerFn(updateAgentProfile);
   const packList = useServerFn(listContextPacks);
 
   const [draft, setDraft] = useState("");
-  const humanLines = useRef(0);
 
   const roomQuery = useQuery({
     queryKey: ["room", id],
@@ -90,17 +87,10 @@ function RoomPage() {
     };
   }, [id, queryClient]);
 
+  // The server starts the crew's runs and the Scribe's updates; this tab only sends (F10).
   const sendMutation = useMutation({
     mutationFn: async (body: string) => {
-      const { runs } = await send({ data: { sessionId: id, body } });
-      await queryClient.invalidateQueries({ queryKey: ["room", id] });
-      await Promise.all(
-        runs.map((run) =>
-          work({ data: { sessionId: id, agent: run.agent, brief: run.brief, summonId: run.summonId } }),
-        ),
-      );
-      humanLines.current += 1;
-      if (humanLines.current % 4 === 0) await scribe({ data: { sessionId: id } });
+      await send({ data: { sessionId: id, body } });
       await queryClient.invalidateQueries({ queryKey: ["room", id] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -109,9 +99,15 @@ function RoomPage() {
   const hailMutation = useMutation({
     mutationFn: async ({ hailId, grant }: { hailId: string; grant: boolean }) => {
       const result = await resolve({ data: { sessionId: id, hailId, grant } });
-      if (!result.ok) throw new Error("Someone else has the floor right now.");
+      if (!result.ok) throw new Error(REFUSALS[result.reason] ?? "That didn't work. Try again.");
       await queryClient.invalidateQueries({ queryKey: ["room", id] });
-      if (grant) await scribe({ data: { sessionId: id } });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const stopMutation = useMutation({
+    mutationFn: async (agent: AgentKind) => {
+      await standDown({ data: { sessionId: id, agent } });
       await queryClient.invalidateQueries({ queryKey: ["room", id] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -164,6 +160,8 @@ function RoomPage() {
     setDraft("");
     sendMutation.mutate(body);
   };
+
+  const atWork = CREW_ORDER.filter((agent) => statusOf(agent) === "working").map(nameFor);
 
   return (
     <div className="flex h-screen flex-col bg-background">
@@ -224,11 +222,15 @@ function RoomPage() {
               }}
               className="resize-none bg-card text-sm"
             />
-            <div className="mt-2 flex items-center justify-between">
-              <p className="text-[11px] text-muted-foreground">
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <p className="text-[11px] text-muted-foreground" aria-live="polite">
+                {atWork.length ? (
+                  <span className="text-foreground">Crew at work: {atWork.join(", ")}. </span>
+                ) : null}
                 Enter sends. Humans always have the floor.
               </p>
-              <Button size="sm" onClick={submit} disabled={sendMutation.isPending}>
+              {/* Send never greys out: the people can always talk (F11). */}
+              <Button size="sm" onClick={submit}>
                 Send
               </Button>
             </div>
@@ -258,8 +260,8 @@ function RoomPage() {
                 duty={state?.duty ?? null}
                 packs={(state?.context_packs as string[] | null) ?? []}
                 availablePacks={packsQuery.data ?? []}
-                busy={sendMutation.isPending}
-                onStop={() => standDown({ data: { sessionId: id, agent } })}
+                busy={profileMutation.isPending}
+                onStop={() => stopMutation.mutate(agent)}
                 onEngage={(brief) =>
                   sendMutation.mutate(
                     active ? `/redirect ${CREW[agent].kind} ${brief}` : `/${CREW[agent].kind} ${brief}`,
@@ -275,7 +277,12 @@ function RoomPage() {
         </section>
 
         <aside className="min-h-0 overflow-y-auto p-4">
-          <h2 className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">plan.md</h2>
+          <h2 className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+            plan.md
+            {room.scribeState !== "idle" ? (
+              <span className="ml-2 normal-case tracking-normal">· Scribe is updating…</span>
+            ) : null}
+          </h2>
           <pre className="mt-3 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
             {room.plan || "Scribe hasn't written anything yet."}
           </pre>

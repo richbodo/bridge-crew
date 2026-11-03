@@ -42,9 +42,33 @@ export function summarisePacks(docs: ContextDoc[]): string {
     .join(", ");
 }
 
+/** One piece of the crew's work, and what happened to it (F9). */
+export interface ContributionNote {
+  name: string;
+  outcome: string | null;
+  spoken: string;
+  brief: string;
+}
+
+const OUTCOME_LABEL: Record<string, string> = {
+  waiting: "waiting to be heard",
+  said: "said to the room",
+  declined: "the people said not now",
+  replaced: "replaced by newer work",
+  withdrawn: "stopped before it was heard",
+  superseded: "superseded: the task changed before it finished",
+};
+
+function renderContribution(c: ContributionNote): string {
+  const outcome = (c.outcome && OUTCOME_LABEL[c.outcome]) || "earlier work";
+  return `### ${c.name} (${outcome})\n\n${c.spoken.trim()}\n\n${c.brief.trim()}`;
+}
+
 export interface AssembleInput {
   docs: ContextDoc[];
   plan?: string;
+  /** The crew's earlier work, oldest first. */
+  contributions?: ContributionNote[];
   transcript: string[];
   budget?: number;
 }
@@ -58,13 +82,14 @@ export interface AssembledContext {
 }
 
 /**
- * Builds the standing-context block a station reads before every run:
- * whole packs first, then the living plan, then the entire transcript.
+ * Builds the standing-context block a crew member reads before every run:
+ * whole packs first, then the living plan, the crew's work so far, then the transcript.
  * Nothing is trimmed silently — anything dropped is named in the prompt.
  */
 export function assembleContext({
   docs,
   plan = "",
+  contributions = [],
   transcript,
   budget = CONTEXT_BUDGET,
 }: AssembleInput): AssembledContext {
@@ -74,12 +99,17 @@ export function assembleContext({
   const planBlock = plan.trim() ? `## Living plan\n\n${plan.trim()}` : "";
   const overhead = planBlock.length + 400;
 
-  // Packs get everything except a reserve for the plan and a slice of transcript.
+  // Packs get everything except a reserve for the plan, the crew's work and the transcript.
   const transcriptReserve = Math.min(
     Math.floor(budget * 0.4),
     transcript.join("\n").length + 1,
   );
-  const packBudget = Math.max(0, budget - overhead - transcriptReserve);
+  const rendered = contributions.map(renderContribution);
+  const workReserve = Math.min(
+    Math.floor(budget * 0.3),
+    rendered.reduce((n, text) => n + text.length + 2, 0),
+  );
+  const packBudget = Math.max(0, budget - overhead - transcriptReserve - workReserve);
 
   const kept: ContextDoc[] = [];
   let used = 0;
@@ -108,7 +138,23 @@ export function assembleContext({
         .join("\n\n")}`
     : "";
 
-  const remaining = Math.max(0, budget - overhead - used);
+  // The crew's work, newest first until its reserve is spent.
+  const work: string[] = [];
+  let workUsed = 0;
+  for (let i = rendered.length - 1; i >= 0; i -= 1) {
+    const text = rendered[i] ?? "";
+    if (workUsed + text.length + 2 > workReserve) {
+      dropped.push(`${i + 1} earlier contribution${i === 0 ? "" : "s"}`);
+      break;
+    }
+    work.unshift(text);
+    workUsed += text.length + 2;
+  }
+  const workBlock = work.length
+    ? `## The crew's work so far\n\nEverything the crew has produced in this room, and what happened to it. Build on it, and don't repeat it.\n\n${work.join("\n\n")}`
+    : "";
+
+  const remaining = Math.max(0, budget - overhead - used - workUsed);
   const lines: string[] = [];
   let transcriptUsed = 0;
   for (let i = transcript.length - 1; i >= 0; i -= 1) {
@@ -126,7 +172,7 @@ export function assembleContext({
     ? `## Note\n\nThe following did not fit and was left out: ${dropped.join("; ")}.`
     : "";
 
-  const text = [packBlock, planBlock, transcriptBlock, droppedBlock]
+  const text = [packBlock, planBlock, workBlock, transcriptBlock, droppedBlock]
     .filter(Boolean)
     .join("\n\n");
 

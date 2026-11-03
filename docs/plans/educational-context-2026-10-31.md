@@ -197,7 +197,7 @@ problem, meaning what goes wrong for the people in the room, and then the fix.
 | F11 | Send greys out while crew members work (Enter still sends). That tells the student to wait, which is the opposite of the floor rule. | Send never greys out. A separate "crew at work" indicator shows instead. |
 | F12 | A renamed crew member is summoned by its name anywhere in a prompt, even without `@`. Name one "Sound", and "the sound is too loud" summons it. | Summon by `@Name` anywhere, or by name at the start of a prompt ("Artist, …"). |
 | F13 | The log records only grants and dismissals, so it can't show what happened. | Log every event in the link table, which makes it the captain's log (Part 7). |
-| F14 | Nothing limits how many people are in a room. | The template sets the seats: one for Game Studio, two for Deliberation. |
+| F14 | Nothing limits how many people are in a room. | The template sets the seats: one for Game Studio, two for Deliberation. This one ships in Phase 2, with templates. |
 | F15 | Any room member's browser can write any crew member's state straight into the database, skipping the rules. | The database refuses illegal moves. A trigger checks the same transition table. Partial unique indexes allow one crew member on the floor per room and one open hail per crew member. A test keeps the SQL and TypeScript tables identical. |
 | F16 | A Scribe update sets the Scribe crew member to Working and then Idle, whatever it was doing. In Deliberation, a Scribe that was Hailing or Working on a summon loses that state. | Scribe updates get their own machine (Section 9) and never touch a crew member's state. |
 
