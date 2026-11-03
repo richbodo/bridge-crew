@@ -44,6 +44,88 @@ test.describe("the Game Studio", () => {
     await expect(page.getByText("No hails. The floor is yours.")).toBeVisible();
   });
 
+  test("Reply, How did you do that? and Show detail are separate buttons, and the detail is formatted", async ({
+    page,
+  }) => {
+    await openStudio(page, { title: `E2E studio detail ${Date.now()}` });
+    await say(page, "Storyteller, why does the mole need gems?");
+    await expect(page.getByText("Storyteller is hailing")).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: "Grant the floor" }).click();
+
+    for (const name of ["Reply", "How did you do that?", "Show detail"]) {
+      await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
+    }
+    await page.getByRole("button", { name: "Show detail" }).click();
+    await expect(page.getByRole("heading", { name: "Fixture brief" })).toBeVisible();
+    await expect(page.getByText("## Fixture brief")).toHaveCount(0);
+
+    // Reply puts the cursor in the message box, ready to type.
+    await page.getByRole("button", { name: "Reply", exact: true }).click();
+    await expect(page.getByPlaceholder(/Say something/i)).toBeFocused();
+  });
+
+  test("the browser's Back asks before leaving the studio; Leave doesn't", async ({ page }) => {
+    const { id } = await openStudio(page, { title: `E2E studio back ${Date.now()}` });
+    const ask = page.getByRole("alertdialog", { name: "Leave the studio?" });
+
+    await page.evaluate(() => history.back());
+    await expect(ask).toBeVisible();
+    await ask.getByRole("button", { name: "Stay here" }).click();
+    await expect(ask).toBeHidden();
+    await expect(page).toHaveURL(new RegExp(`/session/${id}`));
+    await expect(page.getByRole("heading", { name: "Hails" })).toBeVisible();
+
+    await page.evaluate(() => history.back());
+    await ask.getByRole("button", { name: "Leave" }).click();
+    await page.waitForURL(/\/$/);
+
+    await page.goto(`/session/${id}`);
+    await page.getByRole("button", { name: "We've read it" }).click();
+    await page.getByRole("link", { name: "Leave" }).click();
+    await page.waitForURL(/\/$/);
+    await expect(ask).toHaveCount(0);
+  });
+
+  test("a crew member suggests asking another, and Yes asks them", async ({ page }) => {
+    await openStudio(page, { title: `E2E studio suggest ${Date.now()}` });
+    await say(page, "Game designer, get a digging sound from the Sound designer.");
+    await expect(page.getByText("Game designer is hailing")).toBeVisible({ timeout: 30_000 });
+    const suggestions = page.getByRole("list", { name: "Suggestions" });
+    // Nothing is suggested until the crew member speaks.
+    await expect(suggestions).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Grant the floor" }).click();
+    await expect(suggestions.getByText("Game designer suggests:")).toBeVisible();
+    await expect(suggestions.getByText(/Ask the Sound designer: “Please help with this/)).toBeVisible();
+    await suggestions.getByRole("button", { name: "Yes" }).click();
+
+    await expect(page.getByText("Sound designer is hailing")).toBeVisible({ timeout: 30_000 });
+    await expect(suggestions).toHaveCount(0);
+    await page.getByRole("button", { name: "Grant the floor" }).click();
+    await expect(page.locator("aside").getByText("Sound: dig")).toBeVisible();
+    // The Sound designer was asked, so it doesn't suggest anyone in turn.
+    await expect(suggestions).toHaveCount(0);
+  });
+
+  test("a suggestion never opens after Not now, and No thanks closes it", async ({ page }) => {
+    await openStudio(page, { title: `E2E studio no thanks ${Date.now()}` });
+    const suggestions = page.getByRole("list", { name: "Suggestions" });
+
+    await say(page, "Storyteller, get a picture of the mole from the Artist.");
+    await expect(page.getByText("Storyteller is hailing")).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: "Not now" }).click();
+    await expect(page.getByText("No hails. The floor is yours.")).toBeVisible();
+    await expect(suggestions).toHaveCount(0);
+
+    await say(page, "Storyteller, get a picture of the mole from the Artist.");
+    await expect(page.getByText("Storyteller is hailing")).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: "Grant the floor" }).click();
+    await expect(suggestions.getByText(/Ask the Artist/)).toBeVisible();
+    await suggestions.getByRole("button", { name: "No thanks" }).click();
+    await expect(suggestions).toHaveCount(0);
+    await expect(page.getByText("Artist is hailing")).toHaveCount(0);
+  });
+
   test("Delete room removes the room for good", async ({ page }) => {
     const title = `E2E studio delete ${Date.now()}`;
     await openStudio(page, { title });

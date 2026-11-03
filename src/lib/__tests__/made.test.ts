@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { prepareGame, slugify } from "../game-file";
-import { splitMade } from "../made";
+import { parseAgentOutput } from "../agents.server";
+import { labelOf, splitExtras, splitMade } from "../made";
 
 const reply = (tail: string) => `SPOKEN:\nDone.\n\nBRIEF:\n## What I did\n\nIt works.\n\n${tail}`;
 
@@ -38,6 +39,63 @@ describe("splitMade", () => {
 
   it("makes nothing from a plain reply", () => {
     expect(splitMade(reply("")).made).toEqual([]);
+  });
+});
+
+describe("splitExtras", () => {
+  it("takes out an ASK, with the job on its own line", () => {
+    const { text, ask, removes } = splitExtras(
+      reply("ASK: Sound designer\nMake a crunchy sound for when Grip catches a ladybug."),
+    );
+    expect(ask).toEqual({
+      name: "Sound designer",
+      task: "Make a crunchy sound for when Grip catches a ladybug.",
+    });
+    expect(text).not.toContain("ASK:");
+    expect(text).toContain("It works.");
+    expect(removes).toEqual([]);
+  });
+
+  it("reads an ASK on one line, and drops “the”", () => {
+    expect(splitExtras(reply("ASK: the Storyteller: name the friend.")).ask).toEqual({
+      name: "Storyteller",
+      task: "name the friend.",
+    });
+    expect(splitExtras(reply("ASK: Storyteller")).ask).toBeNull();
+  });
+
+  it("reads REMOVE numbers, and prefers the ones marked #", () => {
+    expect(splitExtras(reply("REMOVE: #2, #5, #2")).removes).toEqual([2, 5]);
+    expect(splitExtras(reply("REMOVE: Version 2 (#5)")).removes).toEqual([5]);
+    expect(splitExtras(reply("REMOVE: 3 and 4")).removes).toEqual([3, 4]);
+  });
+
+  it("never reads a game's code as an ASK or a REMOVE", () => {
+    const game = "FILE:\n```html\n<script>\nASK: nobody\nREMOVE: #1\n</script>\n```";
+    const { text, ask, removes } = splitExtras(reply(game));
+    expect(ask).toBeNull();
+    expect(removes).toEqual([]);
+    expect(text).toContain("REMOVE: #1");
+  });
+
+  it("works with a made thing before or after it", () => {
+    const picture = 'PICTURE: mole\n```svg\n<svg viewBox="0 0 1 1"/>\n```';
+    for (const tail of [`${picture}\n\nASK: Engineer\nPut the mole in.`, `ASK: Engineer\nPut the mole in.\n\n${picture}`]) {
+      const result = parseAgentOutput(reply(tail));
+      expect(result.ask).toEqual({ name: "Engineer", task: "Put the mole in." });
+      expect(result.made).toHaveLength(1);
+      expect(result.brief).not.toContain("ASK:");
+      expect(result.spokenRaw).toBe("Done.");
+    }
+  });
+});
+
+describe("labelOf", () => {
+  it("names versions by number, with a title once they're renamed", () => {
+    expect(labelOf({ kind: "version", name: "v3", version: 3 })).toBe("Version 3");
+    expect(labelOf({ kind: "version", name: "with gems", version: 3 })).toBe("Version 3: with gems");
+    expect(labelOf({ kind: "picture", name: "mole", version: null })).toBe("Picture: mole");
+    expect(labelOf({ kind: "sound", name: "dig", version: null })).toBe("Sound: dig");
   });
 });
 

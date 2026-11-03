@@ -1,3 +1,5 @@
+import type { Ref } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -14,10 +16,22 @@ interface Props {
   replyingTo?: { name: string; spoken: string; onCancel: () => void } | null;
   atWork: string[];
   rows?: number;
+  /** The box itself, so Reply can put the cursor in it. */
+  inputRef?: Ref<HTMLTextAreaElement>;
 }
 
 /** The message box: the speaker switch, a Reply chip, the box itself and Send. */
-export function Composer({ draft, onDraft, onSend, placeholder, speaker, replyingTo, atWork, rows = 2 }: Props) {
+export function Composer({
+  draft,
+  onDraft,
+  onSend,
+  placeholder,
+  speaker,
+  replyingTo,
+  atWork,
+  rows = 2,
+  inputRef,
+}: Props) {
   return (
     <div>
       {speaker ? (
@@ -56,6 +70,7 @@ export function Composer({ draft, onDraft, onSend, placeholder, speaker, replyin
         </p>
       ) : null}
       <Textarea
+        ref={inputRef}
         value={draft}
         rows={rows}
         placeholder={placeholder}

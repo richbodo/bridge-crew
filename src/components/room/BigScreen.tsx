@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { CRASH_MESSAGE, prepareGame } from "@/lib/game-file";
 
 import { downloadVersion, labelOf, playSound, svgSource, type MadeRow } from "./MadeThing";
+import { Markdown } from "./Markdown";
 
 export interface Showing {
   kind: "made" | "contribution";
@@ -29,6 +30,8 @@ interface Props {
   onCrash: (thingId: string, message: string) => void;
   /** The slim strip below the screen: the message box, hails and suggestions. */
   strip: ReactNode;
+  /** The Manage button: rename and remove made things. */
+  manage?: ReactNode;
 }
 
 /**
@@ -46,6 +49,7 @@ export function BigScreen({
   onOff,
   onCrash,
   strip,
+  manage,
 }: Props) {
   const screenRef = useRef<HTMLDivElement>(null);
   const [full, setFull] = useState(false);
@@ -59,7 +63,7 @@ export function BigScreen({
   const thing = showing?.kind === "made" ? made.find((t) => t.id === showing.id) : undefined;
   const contribution =
     showing?.kind === "contribution" ? said.find((c) => c.id === showing.id) : undefined;
-  const value = showing ? `${showing.kind}:${showing.id}` : "";
+  const value = thing || contribution ? `${showing?.kind}:${showing?.id}` : "";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -77,11 +81,13 @@ export function BigScreen({
           <article className="mx-auto h-full max-w-3xl overflow-y-auto text-white">
             <p className="text-xs uppercase tracking-[0.2em] text-white/60">{nameFor(contribution.agent)}</p>
             <p className="mt-3 text-2xl leading-snug">{contribution.spoken}</p>
-            <pre className="mt-6 whitespace-pre-wrap text-sm leading-relaxed text-white/80">{contribution.brief}</pre>
+            <Markdown className="mt-6 text-sm leading-relaxed text-white/80">{contribution.brief}</Markdown>
           </article>
         ) : (
           <p className="flex h-full items-center justify-center text-sm text-white/70">
-            Nothing to show yet. When the crew makes something, it can go on screen.
+            {showing
+              ? "That isn't here any more. Pick something else below."
+              : "Nothing to show yet. When the crew makes something, it can go on screen."}
           </p>
         )}
         {full ? (
@@ -120,6 +126,7 @@ export function BigScreen({
             ))}
           </select>
           <div className="flex gap-2">
+            {manage}
             {thing?.kind === "version" ? (
               <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => downloadVersion(thing, title)}>
                 Download

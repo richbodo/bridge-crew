@@ -46,5 +46,6 @@ export const deliberation: Template = {
   slashCommands: true,
   refusalFallback: true,
   teamLead: null,
+  crewProposals: false,
   bigScreen: false,
 };

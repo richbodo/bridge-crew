@@ -7,9 +7,9 @@ planning features, writing tests (the rules in Section 14 are what the tests che
 the user and teacher guides.
 
 Every word with a special meaning is defined in Section 1 before anything else uses it. Most
-examples come from the Game Studio, the room planned for teaching
-([the education plan](plans/educational-context-2026-10-31.md)). Some machines are **planned**
-and don't exist in the code yet. Section 15 lists where today's code differs from these
+examples come from the Game Studio, the room for teaching
+([the education plan](plans/educational-context-2026-10-31.md)). The room machine is **planned**
+and doesn't exist in the code yet. Section 15 lists where today's code differs from these
 machines.
 
 ## 1. Words
@@ -22,7 +22,7 @@ machines.
 - **Template:** the kind of room. It sets who sits at it, which AI characters it has, and what it
   makes. There are two:
   - **Deliberation:** today's room, in which two adults work through a plan or a debate.
-  - **Game Studio** (planned): the room for teaching. Two people share one laptop: a **teacher**
+  - **Game Studio:** the room for teaching. Two people share one laptop: a **teacher**
     and a **student**. The student leads, and the teacher helps.
 - **Session:** one sitting in a room, such as a 90-minute lesson. It runs from opening the room
   until someone presses Wrap up (defined below). A room can be used for many sessions, so a
@@ -90,6 +90,15 @@ machines.
   - a **sound**, made by the Sound designer.
 
   The **current version** is the version the Engineer builds from next.
+- **Manage** (Game Studio): a button beside the list of made things, on the bridge and on the
+  big screen. In it, a person can:
+  - **rename** a picture or a sound, or give a version a title, as in "Version 3: with gems";
+  - **remove** a made thing that isn't needed. It leaves the room's lists and what the crew
+    builds with, but nothing is deleted, and a version stays in the games folder;
+  - **put back** a removed thing. It comes back as not used.
+
+  A crew member can also remove things it made, when the student asks it to. Its hail lists them,
+  and they're removed only if the student grants it.
 - **Hail:** a crew member's request to speak, raised when its run finishes. A hail shows a
   one-line summary and belongs to exactly one run. On screen it looks like a raised hand, but
   this document only says hail. A crew member has at most one hail **open**, meaning not yet
@@ -123,7 +132,9 @@ machines.
   - The huddle reaches the student as the lead's one contribution, and the discussion is its
     brief. The other convened crew members don't change state.
 - **Proposal:** a suggestion attached to a contribution. It can ask a job (another crew member, or
-  the same one) to do something, or it can convene a huddle.
+  the same one) to do something, or it can convene a huddle. A crew member makes one when the
+  student asks it to get something from another job, or when another job should do the next
+  step. The room calls proposals **Suggestions**.
   - The student sees it once the contribution is spoken, with two buttons. **Yes** starts it in
     the student's name, and **No thanks** closes it.
   - Crew members never start each other's work.
@@ -146,14 +157,14 @@ machines.
 
 | Thing       | States                                         | Section | In today's code?                                    |
 | ----------- | ---------------------------------------------- | ------- | --------------------------------------------------- |
-| Crew member | Idle, Working, Hailing, Speaking               | 3       | Yes, plus a fifth state, Stopped                    |
-| Run         | Running, Finished, Failed, Superseded          | 4       | No: there's no run record or run ID                 |
-| Hail        | Open, Granted, Declined, Replaced, Withdrawn   | 5       | Partly: pending, granted and dismissed              |
+| Crew member | Idle, Working, Hailing, Speaking               | 3       | Yes. Old rows may still say Stopped (Section 15)    |
+| Run         | Running, Finished, Failed, Superseded          | 4       | Yes                                                 |
+| Hail        | Open, Granted, Declined, Replaced, Withdrawn   | 5       | Yes                                                 |
 | Floor       | Free, Held                                     | 6       | Yes, worked out from the crew members' states       |
-| Proposal    | Open, Accepted, Declined, Lapsed               | 7       | Planned                                             |
-| Made thing  | Waiting, Used, Not used                        | 8       | Planned                                             |
-| Scribe      | Idle, Updating, Behind                         | 9       | Yes, but driven by the browser                      |
-| Screen      | Off screen, On screen, Full screen             | 10      | Planned                                             |
+| Proposal    | Open, Accepted, Declined, Lapsed               | 7       | From the room and the crew. Huddles are planned     |
+| Made thing  | Waiting, Used, Not used, Removed               | 8       | Yes                                                 |
+| Scribe      | Idle, Updating, Behind                         | 9       | Yes                                                 |
+| Screen      | Off screen, On screen, Full screen             | 10      | Yes. Full screen isn't saved (Section 15)           |
 | Room        | Open, Wrapped up                               | 11      | Planned: today a room is always open                |
 
 ## 3. Crew member state
@@ -251,7 +262,7 @@ stateDiagram-v2
 A grant while the floor is Held is refused. The hail stays open, and the student can grant it
 once the floor is Free.
 
-## 7. Proposal state (planned)
+## 7. Proposal state
 
 A proposal opens when its contribution is spoken. If the hail ends any other way, the proposal
 never opens.
@@ -269,15 +280,19 @@ stateDiagram-v2
 ```
 
 - **Yes** starts a summon or a huddle in the student's name, in the mode of the summon that led to
-  the proposal.
+  the proposal. The crew member it asks is told who suggested it.
 - **Lapsed** keeps old suggestions from piling up. A crew member's newer contribution replaces its
   older suggestion.
+- **One per contribution.** A crew member makes at most one proposal with each contribution, and
+  its spoken part says who it would like to ask, and why.
 - A crash proposal from the room opens when the version crashes, and it lapses once a newer
   version is used.
+- Proposals that convene a huddle come with huddles, in Phase 4.
 
-## 8. Made thing state (planned, Game Studio)
+## 8. Made thing state (Game Studio)
 
-Nothing goes into the game until the student says yes.
+Nothing goes into the game until the student says yes, and a crew member takes nothing out
+without a yes either.
 
 ```mermaid
 stateDiagram-v2
@@ -288,6 +303,9 @@ stateDiagram-v2
   Waiting --> Used: hail granted
   Waiting --> NotUsed: not now, replaced, or withdrawn
   NotUsed --> Used: student picks it
+  Used --> Removed: removed
+  NotUsed --> Removed: removed
+  Removed --> NotUsed: put back
 ```
 
 - **Every made thing is saved** the moment its run finishes. Versions go to the games folder as
@@ -296,6 +314,15 @@ stateDiagram-v2
   used, and the newest used version becomes the current version.
 - **Not used** things stay in the room. The student can open one and press **Use this**, which
   makes it Used. For a version, that also makes it the current version.
+- **Removed** things are out of the room's lists, off the big screen, and out of what the crew
+  builds with. They're still saved, and a version stays in the games folder. A removed picture
+  or sound stays in the versions already built, until the Engineer builds one without it.
+- **Who removes:** a person, with Manage; or a crew member, when the student asks, and only
+  things it made itself. A crew member's removals come with its hail, as a made thing does, and
+  happen only if the student grants it.
+- **What can't be removed:** the current version (use another version first), and a thing that's
+  still Waiting (answer its hail first).
+- **Rename** changes only a thing's name, not its state.
 
 ## 9. Scribe state
 
@@ -326,7 +353,7 @@ stateDiagram-v2
 - **It never hails and never holds the floor.** In Deliberation the Scribe is also a crew member,
   but these updates never touch its crew member state.
 
-## 10. Screen state (planned, Game Studio)
+## 10. Screen state (Game Studio)
 
 ```mermaid
 stateDiagram-v2
@@ -409,7 +436,7 @@ captain's log.
 | Redirected (summoned while Working)            | The old run Running → Superseded. A new run starts. The crew member stays Working.                                                                                         |
 | The run finishes                               | Run Running → Finished. Crew member Working → Hailing. A new hail, Open. Its made thing, if any, Waiting.                                                                   |
 | The run fails                                  | Run Running → Failed. Crew member Working → Idle. A note goes into the transcript.                                                                                        |
-| Student grants, floor Free                     | Hail Open → Granted. Crew member Hailing → Speaking. Floor Free → Held. Made thing Waiting → Used; a version becomes current. Its proposal, if any, Open. The Scribe updates. |
+| Student grants, floor Free                     | Hail Open → Granted. Crew member Hailing → Speaking. Floor Free → Held. Made thing Waiting → Used; a version becomes current. Things it removes → Removed. Its proposal, if any, Open. The Scribe updates. |
 | Student grants, floor Held                     | Refused. Nothing changes.                                                                                                                                                  |
 | Not now                                        | Hail Open → Declined. Crew member Hailing → Idle. Made thing Waiting → Not used.                                                                                          |
 | Finishes speaking, or interrupted              | Crew member Speaking → Idle. Floor Held → Free.                                                                                                                            |
@@ -418,6 +445,9 @@ captain's log.
 | No thanks                                      | Proposal Open → Declined.                                                                                                                                                  |
 | A crew member speaks again                     | Its earlier open proposal → Lapsed.                                                                                                                                        |
 | Use this                                       | Made thing Not used → Used. A version becomes current.                                                                                                                     |
+| Remove, in Manage                              | Made thing Used or Not used → Removed. Refused for the current version, and for a thing still Waiting.                                                                     |
+| Put back, in Manage                            | Made thing Removed → Not used.                                                                                                                                             |
+| Rename, in Manage                              | Only the name changes.                                                                                                                                                     |
 | Every fourth prompt                            | The Scribe updates.                                                                                                                                                         |
 | On screen, Off screen, Full screen, Esc        | Screen only.                                                                                                                                                               |
 | Wrap up                                        | Every busy crew member as Stopped. Open proposals → Lapsed. The Scribe updates, with session notes. Room Open → Wrapped up. Screen → On screen, showing the notes.          |
@@ -438,9 +468,10 @@ These are what the tests check (see the plan's Part 1).
 5. Every run ends: it finishes, fails, is superseded or hits the time limit. No crew member stays
    Working forever.
 6. Nothing is lost. Every brief stays readable, whatever happens to its hail, and every made thing
-   is saved.
+   is saved, even after it's removed.
 7. Nothing goes into the game until the student says yes. A made thing is used only after a grant
-   or Use this, and the Scribe writes down only granted work and what the people said.
+   or Use this, a crew member removes something only after a grant, and the Scribe writes down
+   only granted work and what the people said.
 8. Crew members never start each other's work. Only a person's prompt, button or Yes starts a
    run.
 9. Every action by a person, and every change of state, goes into the captain's log.
@@ -450,8 +481,9 @@ These are what the tests check (see the plan's Part 1).
 
 The IDs match the findings in Part 2 of the education plan, which lists the fixes. Phase 1
 fixed the crew member, run, hail, floor and Scribe machines. Phase 3 built the made thing and
-screen machines, and proposals from the room (a crash). Proposals from the crew come with Phase
-4, and the room machine (Wrap up and Reopen) with Phase 5.
+screen machines, and proposals from the room (a crash). Testing brought two parts of Phase 4
+forward: proposals from the crew, and Manage. Huddles and Ask for help are still to come in
+Phase 4, and the room machine (Wrap up and Reopen) in Phase 5.
 
 | ID  | Finding                                                                                       | Status                                     |
 | --- | --------------------------------------------------------------------------------------------- | ------------------------------------------ |
@@ -502,9 +534,11 @@ The code still uses some older names.
 | shared document                   | a `stage_docs` row (slug `plan` or `game`)                                             |
 | Scribe update; Scribe state       | `requestScribe` in `src/lib/room.server.ts`; `stage_docs.scribe_state`                 |
 | captain's log                     | `floor_events`                                                                         |
-| made thing; Waiting, Used, Not used | a `made_things` row; `waiting`, `used`, `not_used`                                   |
+| made thing; Waiting, Used, Not used, Removed | a `made_things` row; `waiting`, `used`, `not_used`, `removed`             |
 | current version                   | `sessions.settings.currentVersion`                                                     |
-| proposal                          | a `proposals` row (`source` is `room` for a crash)                                     |
+| proposal                          | a `proposals` row (`source` is `room` for a crash, `crew` with `proposed_by` the job)  |
+| what comes with a hail            | the contribution's made things, `contributions.ask` and `contributions.removes`, settled by the `settle_hail` trigger |
+| a crew member's suggestion, removals | the `ASK:` and `REMOVE:` sections of its reply (`splitExtras` in `src/lib/made.ts`); REMOVE uses the numbers in "Made in this room" |
 | screen; what's showing            | `sessions.settings.screen`                                                             |
 | room state                        | planned (Phase 5)                                                                      |
 
@@ -515,7 +549,10 @@ The code still uses some older names.
   transitions as database functions.
 - `src/lib/room.server.ts`: reads prompts, runs crew members in the background, answers hails,
   stops crew members, and runs the Scribe.
+- `supabase/migrations/20261104090000_suggestions_and_tidying.sql`: what a hail's end settles,
+  and Remove, Put back and Rename.
 - `src/lib/summon.ts`: slash commands, and who a prompt names.
+- `src/lib/made.ts`: what a crew member hands back besides its contribution, and how it's read.
 - `src/lib/agents.server.ts`: the crew's prompts.
 - `src/lib/__tests__/`: `machines.test.ts` (the link table), `explorer.test.ts` (the rules),
   `machines-sql.test.ts` (the SQL and TypeScript tables match).

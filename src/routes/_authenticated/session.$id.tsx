@@ -1,17 +1,34 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useBlocker, useNavigate, useParams } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AgentCard } from "@/components/room/AgentCard";
 import { BigScreen, type Showing } from "@/components/room/BigScreen";
-import { ChatPane, type ContributionRow, type TranscriptLine } from "@/components/room/ChatPane";
+import {
+  ChatPane,
+  ContributionActions,
+  type ContributionRow,
+  type TranscriptLine,
+} from "@/components/room/ChatPane";
 import { Composer, type Speaker } from "@/components/room/Composer";
 import { ContextPanel } from "@/components/room/ContextPanel";
 import { HailQueue } from "@/components/room/HailQueue";
 import { InvitePanel } from "@/components/room/InvitePanel";
-import { MadeThing, type MadeRow } from "@/components/room/MadeThing";
+import { labelOf, MadeThing, svgSource, type MadeRow } from "@/components/room/MadeThing";
+import { ManageMade, type ManageAction } from "@/components/room/ManageMade";
+import { Markdown } from "@/components/room/Markdown";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { listContextPacks } from "@/lib/context.functions";
@@ -21,6 +38,7 @@ import {
   answerHail,
   answerProposal,
   explain,
+  manageThing,
   postPrompt,
   reportCrash,
   setScreen,
@@ -75,6 +93,8 @@ const WATCHED = [
 interface Proposal {
   id: string;
   question: string;
+  source: "room" | "crew";
+  proposed_by: string | null;
 }
 
 function RoomPage() {
@@ -93,16 +113,26 @@ function RoomPage() {
   const crashed = useServerFn(reportCrash);
   const answer = useServerFn(answerProposal);
   const askHow = useServerFn(explain);
+  const manage = useServerFn(manageThing);
 
   const [draft, setDraft] = useState("");
   const [speaker, setSpeaker] = useState<Speaker>("student");
   const [replyTo, setReplyTo] = useState<ContributionRow | null>(null);
   const [noticeOpen, setNoticeOpen] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const boxRef = useRef<HTMLTextAreaElement>(null);
 
   const roomQuery = useQuery({
     queryKey: ["room", id],
     queryFn: () => fetchRoom({ data: { sessionId: id } }),
+  });
+
+  // The browser's Back (or a swipe on the trackpad) asks first in a room with a student in it.
+  // Leave and Delete room are buttons, so they don't ask.
+  const leaving = useBlocker({
+    shouldBlockFn: ({ action }) => action !== "PUSH" && action !== "REPLACE",
+    disabled: !(roomQuery.data && templateOf(roomQuery.data.template).sharedSeat),
+    withResolver: true,
   });
 
   const packsQuery = useQuery({
@@ -196,6 +226,15 @@ function RoomPage() {
     onError: fail,
   });
 
+  const manageMutation = useMutation({
+    mutationFn: async ({ thingId, action }: { thingId: string; action: ManageAction }) => {
+      const result = await manage({ data: { sessionId: id, thingId, action } });
+      if (!result.ok) throw new Error(result.message);
+      await refresh();
+    },
+    onError: fail,
+  });
+
   const profileMutation = useMutation({
     mutationFn: async (input: { agent: string; name: string; duty: string; contextPacks: string[] }) => {
       await saveProfile({ data: { sessionId: id, ...input } });
@@ -271,13 +310,21 @@ function RoomPage() {
   const reply = (contribution: ContributionRow) => {
     setReplyTo(contribution);
     setDraft((prev) => (prev.trim() ? prev : `@${contribution.agent} `));
+    requestAnimationFrame(() => {
+      const box = boxRef.current;
+      box?.focus();
+      box?.setSelectionRange(box.value.length, box.value.length);
+    });
   };
 
   const show = (showing: Showing) => screenMutation.mutate({ view: "on", showing });
 
+  /** What a contribution made, and what it removes: with its hail, or once it's said. */
   const madeFor = (contributionId: string, compact = false) => {
     const things = made.filter((t) => t.contribution_id === contributionId);
-    if (!things.length) return null;
+    const removes = contributions.find((c) => c.id === contributionId)?.removes ?? [];
+    const removing = made.filter((t) => removes.includes(t.id));
+    if (!things.length && !removing.length) return null;
     return (
       <div className="mt-2 space-y-1">
         {things.map((thing) => (
@@ -291,9 +338,40 @@ function RoomPage() {
             onUse={(t) => useThingMutation.mutate(t.id)}
           />
         ))}
+        {removing.length ? (
+          <div className="rounded-md border border-dashed border-border p-2">
+            <p className="text-[11px] text-muted-foreground">
+              {compact ? "Removes, if you grant it:" : "Removed:"}
+            </p>
+            <ul className="mt-1 flex flex-wrap gap-1.5">
+              {removing.map((thing) => (
+                <li
+                  key={thing.id}
+                  className="flex items-center gap-1.5 rounded-sm bg-background/60 px-1.5 py-0.5 text-[11px] text-foreground"
+                >
+                  {thing.kind === "picture" ? (
+                    <img src={svgSource(thing.body)} alt="" className="size-5 object-contain" />
+                  ) : null}
+                  {labelOf(thing)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
     );
   };
+
+  const shown = made.filter((t) => t.state !== "removed");
+  const manageButton = (
+    <ManageMade
+      made={made}
+      currentVersion={currentVersion}
+      nameFor={nameFor}
+      busy={manageMutation.isPending}
+      onAction={(thing, action) => manageMutation.mutate({ thingId: thing.id, action })}
+    />
+  );
 
   const roster = template.roster.map((job) => job.key);
   const atWork = roster.filter((agent) => statusOf(agent) === "working").map(nameFor);
@@ -327,6 +405,7 @@ function RoomPage() {
           : null
       }
       atWork={atWork}
+      inputRef={boxRef}
     />
   );
 
@@ -334,7 +413,12 @@ function RoomPage() {
     <ul className="space-y-2" aria-label="Suggestions">
       {proposals.map((proposal) => (
         <li key={proposal.id} className="rounded-lg border border-ring/60 bg-card p-3">
-          <p className="text-sm text-card-foreground">{proposal.question}</p>
+          <p className="text-sm text-card-foreground">
+            {proposal.source === "crew" && proposal.proposed_by ? (
+              <span className="font-medium">{nameFor(proposal.proposed_by)} suggests: </span>
+            ) : null}
+            {proposal.question}
+          </p>
           <div className="mt-2 flex gap-2">
             <Button
               size="sm"
@@ -460,17 +544,44 @@ function RoomPage() {
         </div>
       ) : null}
 
+      <AlertDialog open={leaving.status === "blocked"} onOpenChange={(open) => (open ? null : leaving.reset?.())}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave the studio?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The game is saved. You can come back to this room from Recent rooms in the lobby.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {/* Staying is the bold choice, and has the focus: a slip shouldn't end the session. */}
+          <AlertDialogFooter>
+            <AlertDialogAction
+              className="border border-input bg-background text-foreground shadow-sm hover:bg-accent hover:text-accent-foreground"
+              onClick={() => leaving.proceed?.()}
+            >
+              Leave
+            </AlertDialogAction>
+            <AlertDialogCancel
+              className="border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/90 hover:text-primary-foreground"
+              onClick={() => leaving.reset?.()}
+            >
+              Stay here
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {onScreen ? (
         <BigScreen
           title={room.session.title}
           showing={screen?.showing ?? null}
-          made={made}
+          made={shown}
           said={said}
           currentVersion={currentVersion}
           nameFor={nameFor}
           onShow={show}
           onOff={() => screenMutation.mutate({ view: "off" })}
           onCrash={onCrash}
+          manage={manageButton}
           strip={
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
               {composer(1)}
@@ -557,20 +668,12 @@ function RoomPage() {
                         {nameFor(c.agent)} · {NOT_SAID[c.outcome ?? ""]}
                       </p>
                       <p className="mt-1 text-card-foreground">{c.spoken}</p>
-                      <pre className="mt-1 whitespace-pre-wrap text-muted-foreground">{c.brief}</pre>
+                      <Markdown className="mt-1 text-muted-foreground">{c.brief}</Markdown>
                       {template.bigScreen ? (
-                        <div className="mt-1 flex gap-3">
-                          <button type="button" className="uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground" onClick={() => reply(c)}>
-                            Reply
-                          </button>
-                          <button
-                            type="button"
-                            className="uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground"
-                            onClick={() => explainMutation.mutate(c.id)}
-                          >
-                            How did you do that?
-                          </button>
-                        </div>
+                        <ContributionActions
+                          onReply={() => reply(c)}
+                          onExplain={() => explainMutation.mutate(c.id)}
+                        />
                       ) : null}
                     </li>
                   ))}
@@ -621,17 +724,20 @@ function RoomPage() {
                 <span className="ml-2 normal-case tracking-normal">· Scribe is updating…</span>
               ) : null}
             </h2>
-            <pre className="mt-3 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground">
+            <Markdown className="mt-3 text-xs leading-relaxed text-muted-foreground">
               {room.plan || template.doc.empty}
-            </pre>
+            </Markdown>
             {template.bigScreen ? (
               <>
-                <h2 className="mt-6 text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-                  Made in this room
-                </h2>
-                {made.length ? (
+                <div className="mt-6 flex items-center justify-between gap-2">
+                  <h2 className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+                    Made in this room
+                  </h2>
+                  {made.length ? manageButton : null}
+                </div>
+                {shown.length ? (
                   <div className="mt-3 space-y-1">
-                    {[...made].reverse().map((thing) => (
+                    {[...shown].reverse().map((thing) => (
                       <MadeThing
                         key={thing.id}
                         thing={thing}
