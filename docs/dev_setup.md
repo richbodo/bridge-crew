@@ -76,6 +76,7 @@ room** in the lobby, which seeds a scripted conversation into a new room
 | `just doctor` | Checks tools, Docker, the local stack, the key, port 8080 |
 | `just demo` / `just demo-fixture` | Demo mode (above), with Claude / with canned replies |
 | `just game-studio` / `just game-studio-fixture` | Demo mode with the Game Studio picked in the lobby (users guide §11) |
+| `just games` | Opens the folder Game Studio games are saved in |
 | `just run` / `just run-fixture` | The app with ordinary sign-in, with Claude / with canned replies |
 | `just open` | Opens <http://localhost:8080> in a new browser tab |
 | `just stop` | Stops whatever is serving port 8080 |
@@ -140,11 +141,15 @@ values into `process.env`, so the browser and the server functions always agree.
 | `BRIDGE_CREW_MODEL_PROVIDER=anthropic` | Force the Anthropic provider. |
 | `BRIDGE_CREW_MODEL`, `BRIDGE_CREW_SCRIBE_MODEL` | Override the Claude model for the crew / Scribe. |
 | `BRIDGE_CREW_INFERENCE_GEO=us` | Keeps inference in the US (`inference_geo`, at a small extra cost). |
+| `BRIDGE_CREW_GAMES_DIR` | Where Game Studio games are saved. Default `~/Bridge Crew Games`; `just e2e` uses `test-results/games`. |
 
 Opus requests in Deliberation rooms opt into server-side refusal fallback
 (`fallbacks: "default"`). Game Studio rooms don't, so a request the model declines stays
 declined. A room template can also set a model, effort and output limit per job
-(`src/lib/templates/`).
+(`src/lib/templates/`): the Game Studio's Engineer writes whole games, so it streams with a
+32,000-token limit. In tests, the fixture crew makes a tiny game, an SVG mole and two sounds,
+and a task with "crash" in it makes a game that throws; a task with "slowly" in it takes four
+seconds, long enough to redirect or stop.
 
 ---
 

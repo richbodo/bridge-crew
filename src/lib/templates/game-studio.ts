@@ -114,4 +114,5 @@ export const gameStudio: Template = {
   slashCommands: false,
   refusalFallback: false,
   teamLead: "game-designer",
+  bigScreen: true,
 };

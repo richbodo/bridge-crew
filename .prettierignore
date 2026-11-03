@@ -9,3 +9,4 @@ routeTree.gen.ts
 e2e/.auth/
 test-results/
 playwright-report/
+src/lib/vendor/

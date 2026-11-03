@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+import type { RoomSettings } from "./room.server";
 import { templateOf, type TemplateKey } from "./templates";
 
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -67,7 +68,7 @@ export const createSession = createServerFn({ method: "POST" })
       session_id: session.id,
       author_name: "Bridge",
       kind: "system" as const,
-      body: `Session open. Join code ${session.code}. ${template.openingNote}`,
+      body: `Session open.${template.seats > 1 ? ` Join code ${session.code}.` : ""} ${template.openingNote}`,
     });
 
     return session;
@@ -118,7 +119,7 @@ export const getRoom = createServerFn({ method: "POST" })
       .maybeSingle();
     const template = templateOf(room?.template);
 
-    const [session, participants, transcript, agents, hails, contributions, doc] =
+    const [session, participants, transcript, agents, hails, contributions, doc, made, proposals] =
       await Promise.all([
         supabase
           .from("sessions")
@@ -150,6 +151,17 @@ export const getRoom = createServerFn({ method: "POST" })
           .eq("session_id", sessionId)
           .eq("slug", template.doc.slug)
           .maybeSingle(),
+        supabase
+          .from("made_things")
+          .select("id, kind, name, version, body, state, agent, contribution_id, created_at")
+          .eq("session_id", sessionId)
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("proposals")
+          .select("id, source, proposed_by, contribution_id, kind, target, question, made_thing_id")
+          .eq("session_id", sessionId)
+          .eq("state", "open")
+          .order("created_at", { ascending: true }),
       ]);
 
     if (!session.data) throw new Error("Session not found.");
@@ -159,7 +171,7 @@ export const getRoom = createServerFn({ method: "POST" })
     return {
       session: session.data,
       template: template.key,
-      settings: (session.data.settings ?? {}) as { seats?: number; studentName?: string },
+      settings: (session.data.settings ?? {}) as RoomSettings,
       me,
       participants: participants.data ?? [],
       transcript: transcript.data ?? [],
@@ -168,6 +180,8 @@ export const getRoom = createServerFn({ method: "POST" })
       contributions: contributions.data ?? [],
       plan: doc.data?.body ?? "",
       scribeState: doc.data?.scribe_state ?? "idle",
+      made: made.data ?? [],
+      proposals: proposals.data ?? [],
     };
   });
 
@@ -181,9 +195,13 @@ export const deleteRoom = createServerFn({ method: "POST" })
       .delete()
       .eq("id", data.sessionId)
       .eq("owner_id", context.userId)
-      .select("id");
+      .select("code, title");
     if (error) throw new Error(error.message);
-    if (!gone?.length) throw new Error("Only the person who opened this room can delete it.");
+    const room = gone?.[0];
+    if (!room) throw new Error("Only the person who opened this room can delete it.");
+    // The games folder goes with it.
+    const { removeRoomFolder } = await import("./games.server");
+    await removeRoomFolder(room).catch((err: unknown) => console.error("games folder", err));
     return { ok: true };
   });
 

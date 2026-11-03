@@ -200,5 +200,50 @@ export function fixtureReply(messages: ChatMessage[], role: ModelRole): string {
     `- Task: ${task}`,
     "- Provider: fixture (no model was called)",
     `- Context supplied: ${user.length} characters`,
+    fixtureMade(system, task),
   ].join("\n");
+}
+
+/** A made thing for the jobs that make one (src/lib/made.ts). "crash" in the task makes a game that throws. */
+function fixtureMade(system: string, task: string): string {
+  if (system.includes("\nFILE:")) {
+    const crash = /\bcrash/i.test(task) ? 'throw new Error("the mole fell off the map");' : "";
+    return `
+FILE:
+\`\`\`html
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Fixture game</title>
+<style>body{margin:0;background:#2b1d14;color:#f5e6d3;font-family:sans-serif}canvas{display:block;margin:0 auto}</style>
+</head>
+<body>
+<p>Arrow keys move the mole. A fixture game: no model was called.</p>
+<canvas id="c" width="320" height="200"></canvas>
+<script>
+const c = document.getElementById("c").getContext("2d");
+let x = 150;
+function draw() { c.fillStyle = "#4a3426"; c.fillRect(0, 0, 320, 200); c.fillStyle = "#9a8270"; c.fillRect(x, 90, 20, 20); }
+addEventListener("keydown", (e) => { if (e.key === "ArrowLeft") x -= 10; if (e.key === "ArrowRight") x += 10; draw(); });
+draw();
+${crash}
+</script>
+</body>
+</html>
+\`\`\``;
+  }
+  if (system.includes("\nPICTURE:")) {
+    return `
+PICTURE: mole
+\`\`\`svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="100" cy="110" r="70" fill="#9a8270"/><circle cx="75" cy="95" r="8" fill="#1c1410"/><circle cx="125" cy="95" r="8" fill="#1c1410"/><ellipse cx="100" cy="125" rx="16" ry="11" fill="#e8a0a0"/></svg>
+\`\`\``;
+  }
+  if (system.includes("\nSOUNDS:")) {
+    return `
+SOUNDS:
+\`\`\`json
+{ "dig": [1, 0.05, 120, 0, 0.05, 0.15, 4, 1.5], "gem": [1, 0, 900, 0.01, 0.05, 0.2, 0, 1, 10] }
+\`\`\``;
+  }
+  return "";
 }

@@ -13,8 +13,13 @@ import type { Mode } from "./machines";
 export const postPrompt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (data: { sessionId: string; body: string; mode?: Mode; speaker?: "teacher" | "student" }) =>
-      data,
+    (data: {
+      sessionId: string;
+      body: string;
+      mode?: Mode;
+      speaker?: "teacher" | "student";
+      replyTo?: string | null;
+    }) => data,
   )
   .handler(async ({ data, context }) => {
     const { handlePrompt } = await import("./room.server");
@@ -35,6 +40,64 @@ export const stopCrewMember = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { stopCrewMember: stop } = await import("./room.server");
     await stop(context.supabase, data.sessionId, data.agent);
+    return { ok: true };
+  });
+
+/** On screen and Off screen (docs/state_machines.md §10). */
+export const setScreen = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: {
+      sessionId: string;
+      view: "on" | "off";
+      showing?: { kind: "made" | "contribution"; id: string } | null;
+    }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const { setScreen: set } = await import("./room.server");
+    await set(context.supabase, data.sessionId, {
+      view: data.view,
+      ...(data.showing === undefined ? {} : { showing: data.showing }),
+    });
+    return { ok: true };
+  });
+
+/** Use this: a made thing that wasn't used goes into the game. */
+export const useThing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { sessionId: string; thingId: string }) => data)
+  .handler(async ({ data, context }) => {
+    const { useThing: use } = await import("./room.server");
+    await use(context.supabase, data.sessionId, data.thingId);
+    return { ok: true };
+  });
+
+/** The big screen's frame caught a crash in a version of the game. */
+export const reportCrash = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { sessionId: string; thingId: string; message: string }) => data)
+  .handler(async ({ data, context }) => {
+    const { reportCrash: report } = await import("./room.server");
+    return report(context.supabase, data.sessionId, data.thingId, data.message);
+  });
+
+export const answerProposal = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { sessionId: string; proposalId: string; yes: boolean }) => data)
+  .handler(async ({ data, context }) => {
+    const { answerProposal: answer } = await import("./room.server");
+    return answer(context.supabase, data.sessionId, data.proposalId, data.yes, context.userId);
+  });
+
+/** How did you do that? */
+export const explain = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: { sessionId: string; contributionId: string; speaker?: "teacher" | "student" }) => data,
+  )
+  .handler(async ({ data, context }) => {
+    const { explain: run } = await import("./room.server");
+    await run(context.supabase, context.userId, data);
     return { ok: true };
   });
 

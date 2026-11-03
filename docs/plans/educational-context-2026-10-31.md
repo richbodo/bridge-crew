@@ -279,8 +279,8 @@ whoever the switch shows. The student has no account and no email.
 - **Hail states:** `hand_raises.state` gains `replaced` and `withdrawn`.
 - **`proposals` (new):** what it suggests (a summon or a huddle), the job and task, where it came
   from (a contribution, or the room), and its state.
-- **`builds` and `assets` (new):** made things, each with its state (`waiting`, `used` or
-  `not_used`).
+- **`made_things` (new):** versions, pictures and sounds in one table, each with its state
+  (`waiting`, `used` or `not_used`).
 - **`transcript.speaker_role`:** `teacher`, `student` or null.
 - **`floor_events` widens** to every event in the link table, and becomes the captain's log.
 - **Delete room** removes the room's rows and its games folder.
@@ -335,7 +335,7 @@ with **Use this** (Section 8 of `docs/state_machines.md`).
   network access. The only outside code is ZzFX, inlined into the file.
 - The Engineer starts from the current version, `game.md`, and the used pictures and sounds by
   name. It returns a complete new file, plus a few spoken sentences on what changed.
-- Versions are stored in a new `builds` table and written to
+- Versions are stored in the `made_things` table and written to
   `$BRIDGE_CREW_GAMES_DIR/<code>-<title>/v<N>.html`, with `index.html` as the current version.
   The folder defaults to `~/Bridge Crew Games` and can be changed in `.env.local`. Nothing is
   overwritten, and any version can go back on screen.
@@ -350,8 +350,8 @@ with **Use this** (Section 8 of `docs/state_machines.md`).
 
 **Artist**
 
-- Each request produces one SVG (a character, item or background), stored in a new `assets`
-  table under a name such as "mole". It comes with the hail and can go on screen.
+- Each request produces one SVG (a character, item or background), stored as a made thing under
+  a name such as "mole". It comes with the hail and can go on screen.
 - SVG renders through an `<img>`, which doesn't run scripts.
 - The Engineer gets pictures by name.
 - The Artist also keeps a short style guide in the Look section, which is the art-director half
@@ -359,7 +359,7 @@ with **Use this** (Section 8 of `docs/state_machines.md`).
 
 **Sound designer**
 
-- Each sound effect is a named ZzFX parameter list, stored as an asset with a play button.
+- Each sound effect is a named ZzFX parameter list, stored as a made thing with a play button.
 - Nothing autoplays, and volume is capped.
 - The Engineer inlines ZzFX and the sounds into the game.
 
@@ -574,6 +574,9 @@ The phases run in this order, with no dates. Sizes are relative, as in the maste
 | 5 | Captain's log, wrap-up and reopen (Part 7) | S | The log and the session notes cover a full session, and a wrapped-up room reopens |
 | Gate | **Dress rehearsal and pre-launch discussion**: rehearse on the finished studio, choose a legal adviser, and work through Part 9 | — | The adviser has looked at it, and the notice and teacher's guide are ready |
 | 6 | The teacher's laptop and the first student session | S | The teacher is ready, and the student and their family have agreed |
+
+Status: Phases 0–3 are built on the `game-studio` branch, ready for the project lead's first
+test.
 
 ## Not in this plan
 

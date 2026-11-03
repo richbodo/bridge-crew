@@ -104,7 +104,7 @@ When an agent has something, it raises a hand and one line of what it's got appe
 dismiss it.
 
 A granted turn is short (capped at ten sentences). Anything longer goes into the written
-brief: press **On screen** under the agent's line to read it, **Clear screen** to fold it away.
+brief: press **Show detail** under the agent's line to read it, **Hide detail** to fold it away.
 
 ![An agent with the floor](images/06-granted.png)
 
@@ -200,6 +200,36 @@ goes into the game. `just game-studio` opens the lobby with it picked.
 - **Safety settings.** Every crew member follows rules for young people: short literal
   sentences, nothing unsuitable for 13 and over, no personal questions, and no judging the
   student. A request the model declines stays declined.
+
+The teacher's side of a session is in [teachers_guide.md](teachers_guide.md).
+
+## 12. Making the game
+
+- **What the crew makes.** The Engineer makes **versions** of the game, each one a single HTML
+  file. The Artist makes **pictures**, and the Sound designer makes **sounds**. Whatever a crew
+  member makes comes with its hail.
+- **Nothing goes into the game until the student says yes.** Granting the hail puts it in the
+  game, and a version becomes the **current version**: the one the Engineer builds from next.
+  **Not now** leaves it **not used**, but it isn't lost.
+- **Made in this room**, in the right column, lists everything, newest first, with what happened
+  to it. **Use this** puts something that wasn't used into the game, or makes an older version
+  current again. **Play** plays a sound; nothing plays on its own.
+- **On screen and Off screen.** **On screen** shows one thing, large: the game (playable), a
+  picture, the sounds, or what a crew member said. Press **On screen** on anything or in the
+  header, or just type "on screen". "Off screen" comes back to the bridge. **Full screen** fills
+  the laptop's display, and **Esc** comes back. A strip under the big screen keeps the message
+  box, the newest hail and any suggestions to hand.
+- **When a version crashes** on screen, the room says so and suggests "Ask the Engineer to fix
+  it?" **Yes** starts the Engineer on it; **No thanks** leaves it.
+- **Reply**, under a crew member's line, starts a prompt to them about what they said. **How did
+  you do that?** asks them to explain how they made it, step by step, without changing anything.
+- **Briefs not said**, under the hails, keeps every brief that was declined, replaced, stopped
+  or superseded, with Reply and How did you do that? on each.
+- **Saving and sharing.** Every version is saved on the laptop the moment it's made, in the
+  games folder: `v1.html`, `v2.html` and so on, with `index.html` as the current version
+  (`just games` opens the folder). **Download** saves a version wherever you like. Each file
+  opens in any browser, even offline, so the teacher can email it to the family.
+- **Delete room** also deletes the room's games folder.
 
 ## Not built yet
 
