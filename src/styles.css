@@ -88,6 +88,12 @@
   --crew-advocate: oklch(0.78 0.15 145);
   --crew-skeptic: oklch(0.72 0.16 20);
   --crew-analyst: oklch(0.75 0.15 300);
+  --crew-storyteller: oklch(0.8 0.13 65);
+  --crew-game-designer: oklch(0.78 0.13 170);
+  --crew-artist: oklch(0.76 0.15 340);
+  --crew-sound-designer: oklch(0.77 0.12 250);
+  --crew-engineer: oklch(0.8 0.14 120);
+  --crew-tester: oklch(0.74 0.16 35);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -109,6 +115,12 @@
   --crew-advocate: oklch(0.78 0.15 145);
   --crew-skeptic: oklch(0.72 0.16 20);
   --crew-analyst: oklch(0.75 0.15 300);
+  --crew-storyteller: oklch(0.8 0.13 65);
+  --crew-game-designer: oklch(0.78 0.13 170);
+  --crew-artist: oklch(0.76 0.15 340);
+  --crew-sound-designer: oklch(0.77 0.12 250);
+  --crew-engineer: oklch(0.8 0.14 120);
+  --crew-tester: oklch(0.74 0.16 35);
   --background: oklch(0.17 0.017 250);
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);

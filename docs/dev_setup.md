@@ -75,6 +75,7 @@ room** in the lobby, which seeds a scripted conversation into a new room
 | `just setup` | `bun install` and Playwright's Chromium (first time) |
 | `just doctor` | Checks tools, Docker, the local stack, the key, port 8080 |
 | `just demo` / `just demo-fixture` | Demo mode (above), with Claude / with canned replies |
+| `just game-studio` / `just game-studio-fixture` | Demo mode with the Game Studio picked in the lobby (users guide §11) |
 | `just run` / `just run-fixture` | The app with ordinary sign-in, with Claude / with canned replies |
 | `just open` | Opens <http://localhost:8080> in a new browser tab |
 | `just stop` | Stops whatever is serving port 8080 |
@@ -84,6 +85,7 @@ room** in the lobby, which seeds a scripted conversation into a new room
 | `just studio` / `just mail` / `just psql` | Supabase Studio, Mailpit, a database shell |
 | `just db-types` | Regenerates the database types after a migration |
 | `just test` / `just check` | Unit tests / typecheck + unit tests |
+| `just flows` | The explorer: every 9-event path through the state machines ([state_machines.md](state_machines.md)) |
 | `just e2e` / `just e2e-live` | Playwright, canned replies / real Claude calls (costs credits) |
 | `just lint` | ESLint + Prettier (older code still has a formatting backlog) |
 | `just build` / `just start` | Production build / serve it on :3000 |
@@ -137,8 +139,12 @@ values into `process.env`, so the browser and the server functions always agree.
 | `BRIDGE_CREW_MODEL_PROVIDER=fixture` | Canned, deterministic replies — no key, no network. Used by `just e2e`, `just run-fixture` and `just demo-fixture`. |
 | `BRIDGE_CREW_MODEL_PROVIDER=anthropic` | Force the Anthropic provider. |
 | `BRIDGE_CREW_MODEL`, `BRIDGE_CREW_SCRIBE_MODEL` | Override the Claude model for the crew / Scribe. |
+| `BRIDGE_CREW_INFERENCE_GEO=us` | Keeps inference in the US (`inference_geo`, at a small extra cost). |
 
-Opus requests opt into server-side refusal fallback (`fallbacks: "default"`).
+Opus requests in Deliberation rooms opt into server-side refusal fallback
+(`fallbacks: "default"`). Game Studio rooms don't, so a request the model declines stays
+declined. A room template can also set a model, effort and output limit per job
+(`src/lib/templates/`).
 
 ---
 

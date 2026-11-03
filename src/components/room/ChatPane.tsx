@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 
-import { CREW, type AgentKind } from "@/lib/crew";
+import type { Job } from "@/lib/templates";
 
 export interface TranscriptLine {
   id: string;
   author_name: string;
   kind: "human" | "system" | "agent";
-  agent: AgentKind | null;
+  agent: string | null;
   body: string;
   author_id: string | null;
   /** For a crew member's line: the contribution it spoke. */
@@ -15,7 +15,7 @@ export interface TranscriptLine {
 
 export interface ContributionRow {
   id: string;
-  agent: AgentKind;
+  agent: string;
   spoken: string;
   brief: string;
   outcome?: string | null;
@@ -25,10 +25,11 @@ interface Props {
   lines: TranscriptLine[];
   contributions: ContributionRow[];
   colorFor: (authorId: string | null) => string;
-  nameFor?: (agent: AgentKind) => string;
+  jobOf: (agent: string) => Job;
+  nameFor: (agent: string) => string;
 }
 
-export function ChatPane({ lines, contributions, colorFor, nameFor }: Props) {
+export function ChatPane({ lines, contributions, colorFor, jobOf, nameFor }: Props) {
   const endRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
@@ -48,7 +49,7 @@ export function ChatPane({ lines, contributions, colorFor, nameFor }: Props) {
         }
 
         if (line.kind === "agent" && line.agent) {
-          const member = CREW[line.agent];
+          const member = jobOf(line.agent);
           // The line's own contribution; lines from before Phase 1 fall back to the newest.
           const brief = line.contribution_id
             ? contributions.find((c) => c.id === line.contribution_id)?.brief
@@ -60,7 +61,7 @@ export function ChatPane({ lines, contributions, colorFor, nameFor }: Props) {
               style={{ borderLeft: `3px solid ${member.accent}` }}
             >
               <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: member.accent }}>
-                {nameFor?.(line.agent) ?? member.name} has the floor
+                {nameFor(line.agent)} has the floor
               </p>
               <p className="mt-1 text-sm leading-relaxed text-card-foreground">{line.body}</p>
               {brief ? (

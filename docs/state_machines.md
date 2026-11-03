@@ -463,7 +463,7 @@ made thing, screen and room) come with Phases 2 to 5.
 | F10 | The browser tab drove runs and the Scribe.                                                    | Fixed: the server does, with a time limit. |
 | F12 | A name anywhere in a prompt summoned, even without `@`.                                       | Fixed.                                     |
 | F13 | The log recorded only grants and dismissals.                                                  | Fixed: every event.                        |
-| F14 | Nothing limits how many people are in a room.                                                 | Phase 2, with templates.                   |
+| F14 | Nothing limited how many people were in a room.                                               | Fixed: the template sets the seats.        |
 | F15 | A browser could write any crew member's state into the database.                              | Fixed: illegal moves are refused.          |
 | F16 | A Scribe update overwrote the Scribe crew member's state.                                     | Fixed: the Scribe has its own state.       |
 
@@ -489,7 +489,8 @@ The code still uses some older names.
 | room                              | a `sessions` row. The code's "session" is this document's room.                        |
 | session                           | not stored yet                                                                         |
 | crew member                       | agent: an `agents_state` row; "station" in the UI                                      |
-| job                               | the `agent` column's text key (`scout`, `analyst`, …)                                  |
+| template                          | `sessions.template`; the rosters are in `src/lib/templates/`                           |
+| job                               | the `agent` column's text key (`scout`, `game-designer`, …)                            |
 | Idle, Working, Hailing, Speaking  | `idle`, `working`, `hand_raised`, `speaking` (`stopped` is legacy)                     |
 | prompt                            | line: a `transcript` row of kind `human`                                               |
 | summon, redirect                  | `start_run` (a redirect is a summon while `working`); the old `summons` table is unused |
@@ -497,7 +498,7 @@ The code still uses some older names.
 | contribution, spoken part, brief  | a `contributions` row (`spoken`, `brief`, `outcome`, `run_id`)                         |
 | hail; Open, Granted, Declined     | a `hand_raises` row; `pending`, `granted`, `dismissed`, plus `replaced`, `withdrawn`   |
 | floor                             | worked out: the agent whose status is `speaking`, if any                               |
-| shared document                   | a `stage_docs` row (slug `plan`)                                                       |
+| shared document                   | a `stage_docs` row (slug `plan` or `game`)                                             |
 | Scribe update; Scribe state       | `requestScribe` in `src/lib/room.server.ts`; `stage_docs.scribe_state`                 |
 | captain's log                     | `floor_events`                                                                         |
 | proposal, made thing, screen, room state | planned (see the plan's Part 3)                                                 |

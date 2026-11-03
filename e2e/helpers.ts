@@ -35,3 +35,42 @@ export async function say(page: Page, body: string) {
   await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(box).toHaveValue("");
 }
+
+export const STUDIO_JOBS = [
+  "Storyteller",
+  "Game designer",
+  "Artist",
+  "Sound designer",
+  "Engineer",
+  "Tester",
+] as const;
+
+/** Opens a Game Studio room as the teacher, and closes the classroom notice. */
+export async function openStudio(
+  page: Page,
+  { title, teacher = "Pat", student = "Sam" }: { title: string; teacher?: string; student?: string },
+) {
+  await page.goto("/");
+  await page.getByLabel("Game Studio").check();
+  await page.getByLabel("Your name in the room").fill(teacher);
+  await page.getByLabel("Student's nickname").fill(student);
+  await page.getByLabel("Session title").fill(title);
+  await page.getByRole("button", { name: "Open a room" }).click();
+  await page.waitForURL(/\/session\/[0-9a-f-]+/);
+  await expect(page.getByRole("dialog", { name: "Classroom notice" })).toBeVisible();
+  await page.getByRole("button", { name: "We've read it" }).click();
+  return { id: page.url().split("/session/")[1]! };
+}
+
+/** Signs a fresh page in through /auth. */
+export async function signIn(page: Page, email: string, password: string) {
+  await page.goto("/auth");
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel(/email/i).fill(email);
+  await page.getByLabel(/password/i).fill(password);
+  await page
+    .getByRole("button", { name: /sign in|come aboard/i })
+    .first()
+    .click();
+  await expect(page.getByRole("button", { name: "Open a room" })).toBeVisible();
+}

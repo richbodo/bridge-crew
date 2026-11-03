@@ -10,11 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { CREW, CREW_ORDER } from "@/lib/crew";
 import { demoUserFor } from "@/lib/demo";
 import { USERS_GUIDE_URL } from "@/lib/links";
 import { seedDemo } from "@/lib/room.functions";
 import { createSession, joinSession, myParticipations } from "@/lib/session.functions";
+import { isTemplateKey, TEMPLATE_ORDER, TEMPLATES, type TemplateKey } from "@/lib/templates";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -37,6 +37,11 @@ export const Route = createFileRoute("/")({
 
 const COLORS = ["#7dd3fc", "#fca5a5", "#fcd34d", "#86efac", "#c4b5fd"];
 
+// `just game-studio` opens the lobby with Game Studio picked.
+const STARTING_TEMPLATE: TemplateKey = isTemplateKey(import.meta.env["VITE_BRIDGE_CREW_TEMPLATE"])
+  ? import.meta.env["VITE_BRIDGE_CREW_TEMPLATE"]
+  : "deliberation";
+
 function Lobby() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
@@ -45,6 +50,8 @@ function Lobby() {
   const demo = useServerFn(seedDemo);
   const listMine = useServerFn(myParticipations);
 
+  const [templateKey, setTemplateKey] = useState<TemplateKey>(STARTING_TEMPLATE);
+  const [studentName, setStudentName] = useState("");
   const [title, setTitle] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [color, setColor] = useState(COLORS[0]!);
@@ -63,10 +70,18 @@ function Lobby() {
     enabled: Boolean(user),
   });
 
+  const template = TEMPLATES[templateKey];
+
   const createMutation = useMutation({
     mutationFn: async (withDemo: boolean) => {
       const session = await create({
-        data: { title: title || (withDemo ? "Demo run" : "Untitled session"), displayName, color },
+        data: {
+          title: title || (withDemo ? "Demo run" : "Untitled session"),
+          displayName,
+          color,
+          template: templateKey,
+          studentName,
+        },
       });
       if (withDemo) await demo({ data: { sessionId: session.id } });
       return session;
@@ -120,19 +135,21 @@ function Lobby() {
 
       <div className="mx-auto grid max-w-5xl gap-8 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_320px]">
         <section>
-          <h2 className="text-sm uppercase tracking-[0.25em] text-muted-foreground">The crew</h2>
+          <h2 className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
+            The crew · {template.name}
+          </h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {CREW_ORDER.map((kind) => (
+            {template.roster.map((job) => (
               <div
-                key={kind}
+                key={job.key}
                 className="rounded-lg border border-border bg-card p-4"
-                style={{ borderLeft: `3px solid ${CREW[kind].accent}` }}
+                style={{ borderLeft: `3px solid ${job.accent}` }}
               >
-                <p className="text-sm font-semibold text-card-foreground">{CREW[kind].name}</p>
+                <p className="text-sm font-semibold text-card-foreground">{job.name}</p>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                  {CREW[kind].station}
+                  {job.station}
                 </p>
-                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{CREW[kind].blurb}</p>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{job.blurb}</p>
               </div>
             ))}
           </div>
@@ -140,10 +157,15 @@ function Lobby() {
           <div className="mt-8 rounded-lg border border-border p-4">
             <h3 className="text-sm font-medium text-foreground">How a turn works</h3>
             <ol className="mt-2 space-y-1 text-xs leading-relaxed text-muted-foreground">
-              <li>1. You type. A crew member is summoned with /research, /analyze or /debate.</li>
+              <li>
+                1. You type.{" "}
+                {template.slashCommands
+                  ? "A crew member is summoned with /research, /analyze or /debate."
+                  : "Start with a crew member's name to ask them: “Artist, draw the mole.”"}
+              </li>
               <li>2. They go and work. You keep talking — they never interrupt.</li>
               <li>3. They hail you with one line of what they've got.</li>
-              <li>4. You grant the floor, or you don't. Then Scribe updates plan.md.</li>
+              <li>4. You grant the floor, or you don't. Then the Scribe updates {template.doc.file}.</li>
             </ol>
           </div>
         </section>
@@ -160,6 +182,30 @@ function Lobby() {
           ) : (
             <>
               <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+                <fieldset className="space-y-2">
+                  <legend className="text-sm font-medium text-card-foreground">Kind of room</legend>
+                  {TEMPLATE_ORDER.map((key) => (
+                    <label
+                      key={key}
+                      className={`flex cursor-pointer gap-2 rounded-md border p-2 text-xs ${
+                        templateKey === key ? "border-ring" : "border-border"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="template"
+                        value={key}
+                        checked={templateKey === key}
+                        onChange={() => setTemplateKey(key)}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        <span className="block font-medium text-card-foreground">{TEMPLATES[key].name}</span>
+                        <span className="text-muted-foreground">{TEMPLATES[key].description}</span>
+                      </span>
+                    </label>
+                  ))}
+                </fieldset>
                 <div className="space-y-1">
                   <Label htmlFor="name">Your name in the room</Label>
                   <Input id="name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
@@ -176,6 +222,17 @@ function Lobby() {
                     />
                   ))}
                 </div>
+                {template.sharedSeat ? (
+                  <div className="space-y-1">
+                    <Label htmlFor="student">Student's nickname</Label>
+                    <Input
+                      id="student"
+                      value={studentName}
+                      placeholder="A nickname, not their real name"
+                      onChange={(e) => setStudentName(e.target.value)}
+                    />
+                  </div>
+                ) : null}
                 <div className="space-y-1">
                   <Label htmlFor="title">Session title</Label>
                   <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -187,14 +244,16 @@ function Lobby() {
                 >
                   Open a room
                 </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  disabled={createMutation.isPending}
-                  onClick={() => createMutation.mutate(true)}
-                >
-                  Open a demo room
-                </Button>
+                {templateKey === "deliberation" ? (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    disabled={createMutation.isPending}
+                    onClick={() => createMutation.mutate(true)}
+                  >
+                    Open a demo room
+                  </Button>
+                ) : null}
               </div>
 
               <div className="space-y-3 rounded-lg border border-border bg-card p-4">
@@ -231,6 +290,9 @@ function Lobby() {
                           className="text-sm text-foreground hover:underline"
                         >
                           {s.title} <span className="text-muted-foreground">· {s.code}</span>
+                          {s.template === "game-studio" ? (
+                            <span className="text-muted-foreground"> · Game Studio</span>
+                          ) : null}
                         </Link>
                       </li>
                     ))}

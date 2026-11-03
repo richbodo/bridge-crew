@@ -67,6 +67,8 @@ function renderContribution(c: ContributionNote): string {
 export interface AssembleInput {
   docs: ContextDoc[];
   plan?: string;
+  /** What the shared document is called: plan.md, game.md. */
+  planTitle?: string;
   /** The crew's earlier work, oldest first. */
   contributions?: ContributionNote[];
   transcript: string[];
@@ -89,6 +91,7 @@ export interface AssembledContext {
 export function assembleContext({
   docs,
   plan = "",
+  planTitle,
   contributions = [],
   transcript,
   budget = CONTEXT_BUDGET,
@@ -96,7 +99,8 @@ export function assembleContext({
   const ordered = sortDocs(docs);
   const dropped: string[] = [];
 
-  const planBlock = plan.trim() ? `## Living plan\n\n${plan.trim()}` : "";
+  const heading = planTitle ? `Living document: ${planTitle}` : "Living plan";
+  const planBlock = plan.trim() ? `## ${heading}\n\n${plan.trim()}` : "";
   const overhead = planBlock.length + 400;
 
   // Packs get everything except a reserve for the plan, the crew's work and the transcript.
