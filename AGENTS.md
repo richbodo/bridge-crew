@@ -33,6 +33,7 @@ just test                    # Vitest unit tests (src/**/__tests__)
 just e2e                     # Playwright, own servers on :8181 and :8182 (demo), canned replies
 just e2e-live                # Playwright with real Claude calls (costs credits)
 just check                   # tsc + unit tests; `just lint` has a Prettier backlog
+just flows                   # the explorer: every 9-event path through docs/state_machines.md
 just build && just start     # production Node server from .output/
 ```
 
