@@ -8,7 +8,10 @@ test.describe("the Game Studio", () => {
     await openStudio(page, { title: `E2E studio ${Date.now()}` });
 
     await expect(page.getByText("These are AI characters, and they can be wrong.")).toBeVisible();
-    for (const job of STUDIO_JOBS) await expect(stationCard(page, job)).toBeVisible();
+    for (const job of STUDIO_JOBS) {
+      await expect(stationCard(page, job)).toBeVisible();
+      await expect(stationCard(page, job).locator("[data-avatar]")).toHaveAttribute("data-pose", "idle");
+    }
     await expect(stationCard(page, "Scribe")).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "game.md" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sam" })).toHaveAttribute("aria-pressed", "true");
@@ -25,6 +28,21 @@ test.describe("the Game Studio", () => {
     await page.getByRole("button", { name: "Grant the floor" }).click();
     await expect(page.getByText("Storyteller has the floor")).toBeVisible();
     await expect(page.getByText(/Fixture game notes/)).toBeVisible({ timeout: 30_000 });
+  });
+
+  test("a crew member's avatar works, hails, and stands by again", async ({ page }) => {
+    await openStudio(page, { title: `E2E studio avatar ${Date.now()}` });
+    const avatar = stationCard(page, "Storyteller").locator("[data-avatar]");
+    await expect(avatar).toHaveAttribute("data-pose", "idle");
+
+    // A task that says "slowly" keeps the fixture working for four seconds.
+    await say(page, "Storyteller, slowly tell me why the mole needs gems.");
+    await expect(avatar).toHaveAttribute("data-pose", "working");
+    await expect(avatar).toHaveAttribute("data-pose", "hailing", { timeout: 30_000 });
+    await page.getByRole("button", { name: "Grant the floor" }).click();
+    await expect(avatar).toHaveAttribute("data-pose", "idle");
+    // The others stood by throughout.
+    await expect(stationCard(page, "Tester").locator("[data-avatar]")).toHaveAttribute("data-pose", "idle");
   });
 
   test("the speaker switch marks a line as the teacher's", async ({ page }) => {

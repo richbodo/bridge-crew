@@ -14,8 +14,9 @@ test.describe("the room", () => {
     for (const station of STATIONS) {
       await expect(stationCard(page, station)).toBeVisible();
     }
-    // Each station starts standing by.
+    // Each station starts standing by. Only the Game Studio's crew have avatars.
     await expect(stationCard(page, "Scout").getByText("standing by")).toBeVisible();
+    await expect(page.locator("[data-avatar]")).toHaveCount(0);
   });
 
   test("the human is labelled (you) in the participant strip", async ({ page }) => {

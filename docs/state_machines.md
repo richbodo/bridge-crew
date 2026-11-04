@@ -203,6 +203,9 @@ stateDiagram-v2
   every prompt and offers something unasked would need a new state, drawn when we add it.
 - **Speaking is short today.** Speaking means adding the spoken part to the transcript, which is
   instant. Once crew members talk aloud, Speaking will last as long as the voice does.
+- **The Game Studio's avatars show the state.** Each crew member's card has a pixel portrait
+  with a pose for each state: still when Idle, using its tool when Working, a hand up under a
+  "!" when Hailing, and talking when Speaking. Only Working, Hailing and Speaking move.
 
 ## 4. Run state
 
@@ -553,6 +556,7 @@ The code still uses some older names.
   and Remove, Put back and Rename.
 - `src/lib/summon.ts`: slash commands, and who a prompt names.
 - `src/lib/made.ts`: what a crew member hands back besides its contribution, and how it's read.
+- `src/lib/avatars.ts`: the crew's avatars, and the pose for each crew member state.
 - `src/lib/agents.server.ts`: the crew's prompts.
 - `src/lib/__tests__/`: `machines.test.ts` (the link table), `explorer.test.ts` (the rules),
   `machines-sql.test.ts` (the SQL and TypeScript tables match).

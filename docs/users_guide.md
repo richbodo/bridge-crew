@@ -188,6 +188,12 @@ goes into the game. `just game-studio` opens the lobby with it picked.
   **We've read it**. "These are AI characters, and they can be wrong" stays under the header.
 - **The crew** has six jobs: Storyteller, Game designer, Artist, Sound designer, Engineer and
   Tester. Every crew member reads the `game-studio` context pack.
+- **Avatars.** A small pixel portrait beside each crew member's name shows what it's doing.
+  Standing by, it's still. Working, it uses its tool: the Storyteller writes in a book, the Game
+  designer tries a joystick, the Artist (a friendly alien) paints, the Sound designer's notes
+  rise, the Engineer pulls its goggles down, and the Tester (a robot) looks through a magnifying
+  glass. Hailing, it puts a hand up under a yellow "!". Only a crew member that's working or
+  hailing moves, and nothing moves if the computer is set to reduce motion.
 - **Who's talking.** The switch above the message box says whether a prompt is the student's or
   the teacher's, and the crew sees which. It starts on the student.
 - **Asking a crew member.** Start with their name and a comma, like "Artist, draw the mole", or

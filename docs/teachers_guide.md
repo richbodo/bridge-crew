@@ -45,6 +45,10 @@ Next week, open the same room from **Recent rooms** in the lobby and carry on.
 - **Hails.** A crew member works quietly, then **hails** with one line. Nothing is said until the
   student presses **Grant the floor**. **Not now** declines it; the work stays readable under
   **Briefs not said**.
+- **The crew's portraits.** Each crew member has a small pixel portrait beside its name. It
+  moves only while that crew member is working or hailing, so a glance shows who's busy and who
+  wants the floor. If the movement distracts the student, turn on **Reduce motion** in the Mac's
+  System Settings (Accessibility, then Display), and the portraits hold still.
 - **Making the game.** The Engineer builds versions, the Artist draws pictures, and the Sound
   designer makes sounds. Nothing goes into the game until the student grants it. See §12 of the
   [users guide](users_guide.md).
