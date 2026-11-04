@@ -472,7 +472,8 @@ export async function handlePrompt(
         answering?.agent === agent
           ? `Replying to what you said: “${answering.spoken}”\n\n${text}`
           : text;
-      await summon(agent, task, `${nameOf(agent)} ${verb}: ${text}`);
+      // The prompt is the line just above, so the note says only who.
+      await summon(agent, task, `${nameOf(agent)} ${verb}.`);
     }
   }
   return { ok: true as const };
