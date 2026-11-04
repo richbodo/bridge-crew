@@ -399,11 +399,25 @@ crew member state. The words are defined in Section 1 of `docs/state_machines.md
 | Flow | What the student does | What happens |
 | --- | --- | --- |
 | **Direct** | Types an instruction and presses **Send**. | A summon in direct mode: the crew member does it. |
-| **Ask for help** | Types a problem and presses **Ask for help**. | A summon in help mode. The crew member checks what the student wants first, and may answer with a question. Then it offers ideas or choices. It changes nothing in the game unless asked, and it may propose a huddle. If the prompt names no one, the room asks who to ask: a job, or the team. |
+| **Ask for help** | Types a problem and presses **Ask for help**. | A summon in help mode. The crew member teaches, as in "How the crew helps" below. If it isn't sure what the student wants, it asks one question first. It changes nothing in the game unless asked, and it may propose a huddle. If the prompt names no one, the room asks who to ask: a job, or the team. |
 | **Reply** | Presses **Reply** on any contribution, types, and sends. | A summon to that crew member, linked to the contribution it answers. |
-| **How did you do that?** | Presses it on any contribution. Nothing to type. | A summon in help mode. The crew member explains how it made that contribution, at the student's level, with the relevant part on screen (this needs F9). Explaining never changes the game. |
+| **How did you do that?** | Presses it on any contribution. Nothing to type. | A summon in help mode. The crew member teaches how that contribution was made, as below, ending with how it made it, and shows the part that matters most (this needs F9). Explaining never changes the game. |
 | **Proposal** | Says **Yes** or **No thanks** to a suggestion attached to a contribution. | Yes starts the suggested summon or huddle in the student's name. Crew members never start each other's work. |
 | **Huddle** | Names two or more crew members ("Artist and Engineer, …"), starts with "Team, …", or says Yes to a huddle proposal. | The lead runs one model call that speaks as each convened job in turn, for one round. It ends with a short summary, ideas and questions for the student. One hail, the lead's, carries the huddle, and the discussion is its brief. The lead is the first job named; for "Team", it's the Game designer. |
+
+**How the crew helps.** The project lead's first test set this. When the student asks for help,
+or asks how something works or how it was made, the crew member teaches, in this order:
+1. **The big picture:** the most general idea behind the thing that needs explaining.
+2. **The question, said back** so that it's on the right track.
+3. **Briefly, how a human would do it:** "This is how a human artist would make the image…",
+   "This is how you could make an image like that with tools you might have on your computer",
+   or "A human artist would use this kind of tool, while an AI artist like me uses this kind of
+   tool."
+
+The aim is to teach, or at least to start the teaching in the right direction, so that the
+teacher can jump in with what they know about the student. It's in the Game Studio's `setting`,
+so it already applies to questions sent with **Send** and to How did you do that?. Ask for help
+will use it too.
 
 - **Why the mode is recorded.** The captain's log shows when the student asked for help, and how.
   Pressing Ask for help is itself the help-seeking act, so it's visible to the student and the
@@ -577,8 +591,8 @@ The phases run in this order, with no dates. Sizes are relative, as in the maste
 | Gate | **Dress rehearsal and pre-launch discussion**: rehearse on the finished studio, choose a legal adviser, and work through Part 9 | — | The adviser has looked at it, and the notice and teacher's guide are ready |
 | 6 | The teacher's laptop and the first student session | S | The teacher is ready, and the student and their family have agreed |
 
-Status: Phases 0–3 are built on the `game-studio` branch, and the project lead's first test is
-under way. Its first notes brought two parts of Phase 4 forward: proposals from the crew (a crew
+Status: Phases 0–3 are built and merged to `main`, and the project lead's first test is under
+way. Its first notes brought two parts of Phase 4 forward: proposals from the crew (a crew
 member suggests asking another, and the student says Yes or No thanks), and **Manage** for made
 things (rename, remove and put back, and a crew member removing what it made when asked). The
 same round made Reply, How did you do that? and Show detail separate buttons, rendered briefs
@@ -586,7 +600,8 @@ and `game.md` as formatted text, and made the browser's Back button ask before l
 Studio room. A later note gave each crew member a pixel avatar on its card, posed for its state.
 For Phase 6, the Game Studio now installs on a Mac with one line pasted into Terminal, which
 asks for the teacher's API key and puts a **Game Studio** shortcut on the Desktop (users guide
-§1). Phase 4 still has Ask for help, huddles and the Tester's coaching.
+§1). The same testing set how the crew helps (Part 6), which is already in the Game Studio's
+`setting`. Phase 4 still has the Ask for help button, huddles and the Tester's coaching.
 
 ## Not in this plan
 
