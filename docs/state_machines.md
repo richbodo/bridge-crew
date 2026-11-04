@@ -205,7 +205,9 @@ stateDiagram-v2
   instant. Once crew members talk aloud, Speaking will last as long as the voice does.
 - **The Game Studio's avatars show the state.** Each crew member's card has a pixel portrait
   with a pose for each state: still when Idle, using its tool when Working, a hand up under a
-  "!" when Hailing, and talking when Speaking. Only Working, Hailing and Speaking move.
+  "!" when Hailing, and talking when Speaking. Only Working, Hailing and Speaking move. Each
+  open hail shows the same portrait in the Hailing pose, on its card and in the strip under the
+  big screen.
 
 ## 4. Run state
 

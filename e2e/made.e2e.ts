@@ -75,6 +75,8 @@ test.describe("making the game", () => {
     });
     await page.getByRole("button", { name: "Yes", exact: true }).click();
     await expect(page.getByText(/Engineer is hailing/)).toBeVisible({ timeout: 30_000 });
+    // The crew cards are off screen, so the strip's hail has the portrait.
+    await expect(page.locator('[data-avatar="engineer"]')).toHaveAttribute("data-pose", "hailing");
   });
 
   test("Not now leaves a picture unused, and Use this puts it in the game", async ({ page }) => {

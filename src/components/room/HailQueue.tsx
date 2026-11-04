@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { Job } from "@/lib/templates";
 
+import { CrewAvatar } from "./CrewAvatar";
+
 export interface Hail {
   id: string;
   agent: string;
@@ -31,33 +33,39 @@ export function HailQueue({ hails, onResolve, busy, jobOf, nameFor, madeFor }: P
 
   return (
     <ul className="space-y-2">
-      {hails.map((hail) => (
-        <li
-          key={hail.id}
-          className="rounded-lg border border-border bg-card p-3"
-          style={{ borderLeft: `3px solid ${jobOf(hail.agent).accent}` }}
-        >
-          <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: jobOf(hail.agent).accent }}>
-            {nameFor(hail.agent)} is hailing
-          </p>
-          <p className="mt-1 text-sm leading-snug text-card-foreground">{hail.summary}</p>
-          {hail.contribution_id && madeFor ? madeFor(hail.contribution_id) : null}
-          <div className="mt-2 flex gap-2">
-            <Button size="sm" className="h-7 px-3 text-xs" disabled={busy} onClick={() => onResolve(hail.id, true)}>
-              Grant the floor
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 px-3 text-xs"
-              disabled={busy}
-              onClick={() => onResolve(hail.id, false)}
-            >
-              Not now
-            </Button>
-          </div>
-        </li>
-      ))}
+      {hails.map((hail) => {
+        const job = jobOf(hail.agent);
+        return (
+          <li
+            key={hail.id}
+            className="rounded-lg border border-border bg-card p-3"
+            style={{ borderLeft: `3px solid ${job.accent}` }}
+          >
+            <div className="flex items-center gap-2">
+              <p className="text-[10px] uppercase tracking-[0.2em]" style={{ color: job.accent }}>
+                {nameFor(hail.agent)} is hailing
+              </p>
+              {job.avatar ? <CrewAvatar avatar={job.avatar} accent={job.accent} status="hand_raised" /> : null}
+            </div>
+            <p className="mt-1 text-sm leading-snug text-card-foreground">{hail.summary}</p>
+            {hail.contribution_id && madeFor ? madeFor(hail.contribution_id) : null}
+            <div className="mt-2 flex gap-2">
+              <Button size="sm" className="h-7 px-3 text-xs" disabled={busy} onClick={() => onResolve(hail.id, true)}>
+                Grant the floor
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-3 text-xs"
+                disabled={busy}
+                onClick={() => onResolve(hail.id, false)}
+              >
+                Not now
+              </Button>
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }

@@ -107,8 +107,9 @@ shortcut, it also answers to other computers on the network.
   Standing by, it's still. Working, it uses its tool: the Storyteller writes in a book, the Game
   designer tries a joystick, the Artist (a friendly alien) paints, the Sound designer's notes
   rise, the Engineer pulls its goggles down, and the Tester (a robot) looks through a magnifying
-  glass. Hailing, it puts a hand up under a yellow "!". Only a crew member that's working or
-  hailing moves, and nothing moves if the computer is set to reduce motion.
+  glass. Hailing, it puts a hand up under a yellow "!", on its card, on its hail, and in the
+  strip under the big screen. Only a crew member that's working or hailing moves, and nothing
+  moves if the computer is set to reduce motion.
 - **Who's talking.** The switch above the message box says whether a prompt is the student's or
   the teacher's, and the crew sees which. It starts on the student.
 - **Asking a crew member.** Start with their name and a comma, like "Artist, draw the mole", or

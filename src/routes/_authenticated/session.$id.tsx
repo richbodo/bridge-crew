@@ -14,6 +14,7 @@ import {
 } from "@/components/room/ChatPane";
 import { Composer, type Speaker } from "@/components/room/Composer";
 import { ContextPanel } from "@/components/room/ContextPanel";
+import { CrewAvatar } from "@/components/room/CrewAvatar";
 import { HailQueue } from "@/components/room/HailQueue";
 import { InvitePanel } from "@/components/room/InvitePanel";
 import { labelOf, MadeThing, svgSource, type MadeRow } from "@/components/room/MadeThing";
@@ -444,6 +445,7 @@ function RoomPage() {
   ) : null;
 
   const newestHail = room.hails.at(-1);
+  const hailer = newestHail ? jobOf(newestHail.agent) : null;
 
   return (
     <div className="flex h-screen flex-col bg-background">
@@ -587,11 +589,16 @@ function RoomPage() {
               {composer(1)}
               <div className="space-y-2">
                 {suggestions}
-                {newestHail ? (
+                {newestHail && hailer ? (
                   <div className="rounded-lg border border-border bg-card p-2 text-xs">
-                    <p className="text-muted-foreground">
-                      {room.hails.length} hail{room.hails.length === 1 ? "" : "s"} · {nameFor(newestHail.agent)} is hailing
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-muted-foreground">
+                        {room.hails.length} hail{room.hails.length === 1 ? "" : "s"} · {nameFor(newestHail.agent)} is hailing
+                      </p>
+                      {hailer.avatar ? (
+                        <CrewAvatar avatar={hailer.avatar} accent={hailer.accent} status="hand_raised" />
+                      ) : null}
+                    </div>
                     <p className="mt-1 text-card-foreground">{newestHail.summary}</p>
                     <div className="mt-2 flex gap-2">
                       <Button
