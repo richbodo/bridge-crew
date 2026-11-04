@@ -36,6 +36,7 @@ export const gameStudio: Template = {
   roster: [
     {
       key: "storyteller",
+      avatar: "storyteller",
       name: "Storyteller",
       station: "Story",
       accent: "var(--crew-storyteller)",
@@ -46,6 +47,7 @@ export const gameStudio: Template = {
     },
     {
       key: "game-designer",
+      avatar: "game-designer",
       name: "Game designer",
       station: "Design",
       accent: "var(--crew-game-designer)",
@@ -56,6 +58,7 @@ export const gameStudio: Template = {
     },
     {
       key: "artist",
+      avatar: "artist",
       name: "Artist",
       station: "Art",
       accent: "var(--crew-artist)",
@@ -66,6 +69,7 @@ export const gameStudio: Template = {
     },
     {
       key: "sound-designer",
+      avatar: "sound-designer",
       name: "Sound designer",
       station: "Sound",
       accent: "var(--crew-sound-designer)",
@@ -76,6 +80,7 @@ export const gameStudio: Template = {
     },
     {
       key: "engineer",
+      avatar: "engineer",
       name: "Engineer",
       station: "Build",
       accent: "var(--crew-engineer)",
@@ -87,6 +92,7 @@ export const gameStudio: Template = {
     },
     {
       key: "tester",
+      avatar: "tester",
       name: "Tester",
       station: "Test",
       accent: "var(--crew-tester)",

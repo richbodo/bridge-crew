@@ -165,3 +165,43 @@
     color: var(--color-foreground);
   }
 }
+
+/* Crew avatars (src/components/room/CrewAvatar.tsx): a pose's two frames take turns. */
+@keyframes crew-avatar-a {
+  0% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes crew-avatar-b {
+  0% {
+    opacity: 0;
+  }
+  50%,
+  100% {
+    opacity: 1;
+  }
+}
+
+.crew-avatar-a {
+  animation: crew-avatar-a var(--avatar-beat) step-end infinite;
+}
+
+.crew-avatar-b {
+  animation: crew-avatar-b var(--avatar-beat) step-end infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crew-avatar-a {
+    animation: none;
+  }
+
+  .crew-avatar-b {
+    animation: none;
+    opacity: 0;
+  }
+}

@@ -1,3 +1,4 @@
+import type { AvatarKey } from "../avatars";
 import { deliberation } from "./deliberation";
 import { gameStudio } from "./game-studio";
 
@@ -34,6 +35,8 @@ export interface Job {
   /** Other names a prompt can call it by. */
   aliases?: string[];
   model?: JobModel;
+  /** A pixel portrait beside the name on its card, posed for its state (src/lib/avatars.ts). */
+  avatar?: AvatarKey;
 }
 
 export interface SharedDoc {

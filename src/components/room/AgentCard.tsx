@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+import { CrewAvatar } from "./CrewAvatar";
+
 interface Props {
   job: Job;
   status: AgentStatus;
@@ -76,12 +78,17 @@ export function AgentCard({
       style={{ borderLeft: `3px solid ${member.accent}` }}
     >
       <header className="flex items-baseline justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-semibold tracking-wide text-card-foreground">{label}</h3>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            {member.station}
-            {label !== member.name ? ` · was ${member.name}` : ""}
-          </p>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold tracking-wide text-card-foreground">{label}</h3>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              {member.station}
+              {label !== member.name ? ` · was ${member.name}` : ""}
+            </p>
+          </div>
+          {member.avatar ? (
+            <CrewAvatar avatar={member.avatar} accent={member.accent} status={status} />
+          ) : null}
         </div>
         <span
           className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.15em]"

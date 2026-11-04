@@ -583,7 +583,8 @@ member suggests asking another, and the student says Yes or No thanks), and **Ma
 things (rename, remove and put back, and a crew member removing what it made when asked). The
 same round made Reply, How did you do that? and Show detail separate buttons, rendered briefs
 and `game.md` as formatted text, and made the browser's Back button ask before leaving a Game
-Studio room. Phase 4 still has Ask for help, huddles and the Tester's coaching.
+Studio room. A later note gave each crew member a pixel avatar on its card, posed for its state.
+Phase 4 still has Ask for help, huddles and the Tester's coaching.
 
 ## Not in this plan
 
