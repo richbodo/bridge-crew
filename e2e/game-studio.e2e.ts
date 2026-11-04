@@ -45,8 +45,12 @@ test.describe("the Game Studio", () => {
     await say(page, "Storyteller, slowly tell me why the mole needs gems.");
     await expect(avatar).toHaveAttribute("data-pose", "working");
     await expect(avatar).toHaveAttribute("data-pose", "hailing", { timeout: 30_000 });
+    // The hail card has the portrait too, hand up.
+    const hail = page.locator("li").filter({ hasText: "Storyteller is hailing" });
+    await expect(hail.locator('[data-avatar="storyteller"]')).toHaveAttribute("data-pose", "hailing");
     await page.getByRole("button", { name: "Grant the floor" }).click();
     await expect(avatar).toHaveAttribute("data-pose", "idle");
+    await expect(hail).toHaveCount(0);
     // The others stood by throughout.
     await expect(stationCard(page, "Tester").locator("[data-avatar]")).toHaveAttribute("data-pose", "idle");
   });
