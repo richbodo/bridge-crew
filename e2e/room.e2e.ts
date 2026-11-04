@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { openRoom, say, stationCard, STATIONS } from "./helpers";
 
-// Users guide §2, §4, §5 (buttons), §7, §10.
+// Users guide §7, §9, §10 (buttons), §12, §15.
 test.describe("the room", () => {
   test("opening a room gives a join code, all five stations, and plan.md", async ({ page }) => {
     const { code } = await openRoom(page, { title: `E2E room ${Date.now()}` });
@@ -94,11 +94,11 @@ test.describe("the room", () => {
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
   });
 
-  test("the room header links to the guide on GitHub", async ({ page }) => {
+  test("the room header links to its part of the guide on GitHub", async ({ page }) => {
     await openRoom(page, { title: `E2E guide link ${Date.now()}` });
     await expect(page.getByRole("link", { name: "Guide" })).toHaveAttribute(
       "href",
-      "https://github.com/richbodo/bridge-crew/blob/main/docs/users_guide.md",
+      "https://github.com/richbodo/bridge-crew/blob/main/docs/users_guide.md#part-2-deliberation-rooms",
     );
   });
 });

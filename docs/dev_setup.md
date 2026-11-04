@@ -62,7 +62,31 @@ Demo mode is the `VITE_BRIDGE_CREW_DEMO=1` setting (`src/lib/demo.ts`). It is
 meant for the local stack only; the demo accounts exist only where
 `scripts/test-infra.sh` created them. Not to be confused with **Open a demo
 room** in the lobby, which seeds a scripted conversation into a new room
-([users guide §9](users_guide.md#9-demo-room)) and works in any mode.
+([users guide §14](users_guide.md#14-demo-room)) and works in any mode.
+
+---
+
+## A teacher's Mac
+
+Teachers install the Game Studio without the command line: [users guide
+§1](users_guide.md#1-install-it-on-a-mac) has them paste one line into Terminal, which runs
+`scripts/install-mac.sh` straight from `main` on GitHub. A change to it reaches teachers as soon
+as it's merged.
+
+- **`scripts/install-mac.sh`** installs Homebrew and the tools above, clones the repo into
+  `~/bridge-crew` (or updates it with `git pull --ff-only`), and runs `bun install
+  --frozen-lockfile`. It asks for the API key, checks it with one tiny Haiku request (the key
+  reaches curl on standard input, never the command line), and saves it in `.env.local` with
+  mode 600. Then it runs `just infra`, and puts **Game Studio** (a `.command` file) and **Bridge
+  Crew Games** (a link to the games folder) on the Desktop. Running it again skips what's done,
+  so it's also how a teacher updates or changes the key. Run from a checkout, it sets up that
+  checkout and leaves git alone. `BRIDGE_CREW_DIR`, `BRIDGE_CREW_DESKTOP` and
+  `BRIDGE_CREW_START=no` are for testing it.
+- **`scripts/game-studio-mac.sh`** is what **Game Studio** on the Desktop runs: `just infra`,
+  then the dev server as `just game-studio` runs it, but on 127.0.0.1 only. `vite.config.ts`
+  listens on every interface, and demo mode's one-click sign-in would let anyone on the same
+  Wi-Fi into the student's rooms. It opens the browser once the app answers. Control-C stops the
+  app, then Supabase and Colima if it started them. `BRIDGE_CREW_PORT` moves it off 8080.
 
 ---
 
@@ -75,7 +99,7 @@ room** in the lobby, which seeds a scripted conversation into a new room
 | `just setup` | `bun install` and Playwright's Chromium (first time) |
 | `just doctor` | Checks tools, Docker, the local stack, the key, port 8080 |
 | `just demo` / `just demo-fixture` | Demo mode (above), with Claude / with canned replies |
-| `just game-studio` / `just game-studio-fixture` | Demo mode with the Game Studio picked in the lobby (users guide §11) |
+| `just game-studio` / `just game-studio-fixture` | Demo mode with the Game Studio picked in the lobby (users guide Part 1) |
 | `just games` | Opens the folder Game Studio games are saved in |
 | `just run` / `just run-fixture` | The app with ordinary sign-in, with Claude / with canned replies |
 | `just open` | Opens <http://localhost:8080> in a new browser tab |

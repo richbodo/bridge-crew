@@ -54,6 +54,9 @@ Setup, demo mode and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md).
   Game Studio's rules for young people live in its `setting`; keep them there.
 - `docs/users_guide.md` is the single source of truth for the users guide; the app links to it
   on GitHub. Keep it current when user-facing behavior changes.
+- Teachers don't use the command line. `scripts/install-mac.sh` (the one-line installer, run
+  from `main` on GitHub) and `scripts/game-studio-mac.sh` (the Desktop shortcut) are their way
+  in; keep them in step with the users guide's §1 and §5, and with the `just` recipes they call.
 - Two humans are first-class, and floor control is the novel part — see
   [docs/floor_state_control.md](docs/floor_state_control.md). Every state in a room is drawn in
   [docs/state_machines.md](docs/state_machines.md): keep it in step with the code, in the same

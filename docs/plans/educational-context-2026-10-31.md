@@ -584,7 +584,9 @@ things (rename, remove and put back, and a crew member removing what it made whe
 same round made Reply, How did you do that? and Show detail separate buttons, rendered briefs
 and `game.md` as formatted text, and made the browser's Back button ask before leaving a Game
 Studio room. A later note gave each crew member a pixel avatar on its card, posed for its state.
-Phase 4 still has Ask for help, huddles and the Tester's coaching.
+For Phase 6, the Game Studio now installs on a Mac with one line pasted into Terminal, which
+asks for the teacher's API key and puts a **Game Studio** shortcut on the Desktop (users guide
+§1). Phase 4 still has Ask for help, huddles and the Tester's coaching.
 
 ## Not in this plan
 

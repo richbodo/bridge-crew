@@ -6,6 +6,12 @@ Bridge Crew is an open-source, browser-based collaboration room where two humans
 
 **Status:** early build. The typed version of the room works — rooms, the five-station crew, summoning, hand-raises and floor grants, context packs, and invites (plan Phase 0, in progress). It runs entirely on your own machine (local Supabase, Claude via the Anthropic API); a self-hosted deployment on an Ubuntu / DigitalOcean droplet is the next target.
 
+## The Game Studio
+
+Bridge Crew also has a **Game Studio**: a room where a teacher and one student, aged 13 or over, make a small browser game together on the teacher's laptop, with a crew who play the jobs of a game studio (Storyteller, Game designer, Artist, Sound designer, Engineer and Tester). The student is the producer and decides what goes into the game; nothing goes in until they say yes. It's being tested now, before its first lessons ([the plan](docs/plans/educational-context-2026-10-31.md)).
+
+**Teachers:** it installs on a Mac with one line pasted into Terminal, with no other command line needed, and you'll need an Anthropic API key. Start with [the users guide, Part 1](docs/users_guide.md#part-1-the-game-studio), then the [teacher's guide](docs/teachers_guide.md).
+
 ## Terminology
 
 - **Bridge Crew** — the name of the application.
@@ -18,8 +24,11 @@ Bridge Crew is an open-source, browser-based collaboration room where two humans
 
 ## Documents
 
-- [Users guide](docs/users_guide.md) — step-by-step instructions for running a session. This file is
-  the single source of truth; the app's "Users guide" link points straight at it on GitHub.
+- [Users guide](docs/users_guide.md) — installing the Game Studio on a Mac, and step-by-step instructions for both kinds of room. This file is
+  the single source of truth; the app's "Users guide" and "Guide" links point straight at it on GitHub.
+- [Teacher's guide](docs/teachers_guide.md) — running Game Studio sessions with a student
+- [State machines](docs/state_machines.md) — every state in a room, drawn and defined, for developers and teachers
+- [Education plan](docs/plans/educational-context-2026-10-31.md) and [New Zealand legal notes](docs/legal/new-zealand.md) — the Game Studio's design, build phases, and the law it has to meet
 - [The Bridge Crew Plan](docs/plans/BRIDGE_CREW_PLAN.md) — architecture, crew roster, build phases, and exit gates
 
 - [The Research Brief](docs/research/BRIDGE_CREW_RESEARCH_BRIEF.md) — the field-scan protocol and falsifiable predictions this tool exists to test
@@ -72,6 +81,8 @@ mac% just demo      # then open two tabs at http://localhost:8080, one demo user
 | `just setup` | First-time install: dependencies and Playwright's Chromium |
 | `just doctor` | Checks tools, Docker, the local stack, the model key and port 8080 |
 | `just demo` / `just demo-fixture` | Demo mode: one-click **Log me on as demo user 1 / 2**, one sign-in per tab. Crew calls Claude / answers with canned replies |
+| `just game-studio` / `just game-studio-fixture` | Demo mode with the Game Studio picked in the lobby. Claude / canned replies |
+| `just games` | Opens the folder Game Studio games are saved in |
 | `just run` / `just run-fixture` | The app with ordinary sign-in, at http://localhost:8080. Claude / canned replies |
 | `just open` | Opens the app in a new browser tab |
 | `just stop` | Stops whatever is serving port 8080 |
@@ -81,11 +92,12 @@ mac% just demo      # then open two tabs at http://localhost:8080, one demo user
 | `just studio` / `just mail` / `just psql` | Supabase Studio, Mailpit, a database shell |
 | `just db-types` | Regenerates the database types after a migration |
 | `just test` / `just check` | Unit tests / typecheck + unit tests |
+| `just flows` | The explorer: every 9-event path through the room's state machines |
 | `just e2e` / `just e2e-live` | Playwright end-to-end tests, canned replies / real Claude calls (costs credits) |
 | `just lint` | ESLint + Prettier (older code still has a formatting backlog) |
 | `just build` / `just start` | Production build / serve it on http://localhost:3000 |
 
-Setup, demo mode, model options, and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md).
+Setup, demo mode, model options, and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md). The teacher's installer and Desktop shortcut are `scripts/install-mac.sh` and `scripts/game-studio-mac.sh`.
 
 ## License
 

@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const listInvites = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string }) => data)
+  .validator((data: { sessionId: string }) => data)
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("invites")
@@ -17,7 +17,7 @@ export const listInvites = createServerFn({ method: "POST" })
 
 export const sendInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string; email: string; note?: string }) => data)
+  .validator((data: { sessionId: string; email: string; note?: string }) => data)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const email = data.email.trim().toLowerCase();
@@ -59,7 +59,7 @@ export const sendInvite = createServerFn({ method: "POST" })
 
 export const revokeInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string; inviteId: string }) => data)
+  .validator((data: { sessionId: string; inviteId: string }) => data)
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("invites")
@@ -72,7 +72,7 @@ export const revokeInvite = createServerFn({ method: "POST" })
 
 export const peekSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { code: string }) => data)
+  .validator((data: { code: string }) => data)
   .handler(async ({ data, context }) => {
     const code = data.code.trim().toUpperCase();
     const { data: session, error } = await context.supabase
@@ -97,7 +97,7 @@ export const peekSession = createServerFn({ method: "POST" })
 
 export const acceptInvites = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string }) => data)
+  .validator((data: { sessionId: string }) => data)
   .handler(async ({ data, context }) => {
     const email = (context.claims as { email?: string } | null)?.email?.toLowerCase();
     if (!email) return { ok: true };
