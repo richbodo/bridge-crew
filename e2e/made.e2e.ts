@@ -118,6 +118,9 @@ test.describe("making the game", () => {
     await say(page, "Engineer, make the mole dig.");
     await grantNext(page, "Engineer");
     await say(page, "on screen");
+    // Both views have a Manage button. Pressed before the big screen opens, the bridge's dialog
+    // would open, then close as the bridge leaves.
+    await expect(page.getByRole("button", { name: "Off screen" })).toBeVisible();
 
     await page.getByRole("button", { name: "Manage" }).click();
     const dialog = page.getByRole("dialog", { name: "Made in this room" });
