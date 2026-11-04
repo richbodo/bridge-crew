@@ -27,6 +27,8 @@ test.describe("the Game Studio", () => {
     await openStudio(page, { title: `E2E studio ask ${Date.now()}` });
     await say(page, "Storyteller, why does the mole need gems?");
     await expect(page.getByText("Sam", { exact: true }).first()).toBeVisible();
+    // The prompt is right above, so the note doesn't repeat it.
+    await expect(page.getByText("Storyteller was called on.", { exact: true })).toBeVisible();
 
     await expect(page.getByText("Storyteller is hailing")).toBeVisible({ timeout: 30_000 });
     await page.getByRole("button", { name: "Grant the floor" }).click();
