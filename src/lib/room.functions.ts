@@ -12,7 +12,7 @@ import type { Mode } from "./machines";
 
 export const postPrompt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
+  .validator(
     (data: {
       sessionId: string;
       body: string;
@@ -28,7 +28,7 @@ export const postPrompt = createServerFn({ method: "POST" })
 
 export const answerHail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string; hailId: string; grant: boolean }) => data)
+  .validator((data: { sessionId: string; hailId: string; grant: boolean }) => data)
   .handler(async ({ data, context }) => {
     const { answerHail: answer } = await import("./room.server");
     return answer(context.supabase, data.sessionId, data.hailId, data.grant);
@@ -36,7 +36,7 @@ export const answerHail = createServerFn({ method: "POST" })
 
 export const stopCrewMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string; agent: string }) => data)
+  .validator((data: { sessionId: string; agent: string }) => data)
   .handler(async ({ data, context }) => {
     const { stopCrewMember: stop } = await import("./room.server");
     await stop(context.supabase, data.sessionId, data.agent);
@@ -46,7 +46,7 @@ export const stopCrewMember = createServerFn({ method: "POST" })
 /** On screen and Off screen (docs/state_machines.md §10). */
 export const setScreen = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
+  .validator(
     (data: {
       sessionId: string;
       view: "on" | "off";
@@ -65,7 +65,7 @@ export const setScreen = createServerFn({ method: "POST" })
 /** Use this: a made thing that wasn't used goes into the game. */
 export const useThing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string; thingId: string }) => data)
+  .validator((data: { sessionId: string; thingId: string }) => data)
   .handler(async ({ data, context }) => {
     const { useThing: use } = await import("./room.server");
     await use(context.supabase, data.sessionId, data.thingId);
@@ -75,7 +75,7 @@ export const useThing = createServerFn({ method: "POST" })
 /** Manage: rename, remove or put back a made thing (docs/state_machines.md §8). */
 export const manageThing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
+  .validator(
     (data: {
       sessionId: string;
       thingId: string;
@@ -90,7 +90,7 @@ export const manageThing = createServerFn({ method: "POST" })
 /** The big screen's frame caught a crash in a version of the game. */
 export const reportCrash = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string; thingId: string; message: string }) => data)
+  .validator((data: { sessionId: string; thingId: string; message: string }) => data)
   .handler(async ({ data, context }) => {
     const { reportCrash: report } = await import("./room.server");
     return report(context.supabase, data.sessionId, data.thingId, data.message);
@@ -98,7 +98,7 @@ export const reportCrash = createServerFn({ method: "POST" })
 
 export const answerProposal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string; proposalId: string; yes: boolean }) => data)
+  .validator((data: { sessionId: string; proposalId: string; yes: boolean }) => data)
   .handler(async ({ data, context }) => {
     const { answerProposal: answer } = await import("./room.server");
     return answer(context.supabase, data.sessionId, data.proposalId, data.yes, context.userId);
@@ -107,7 +107,7 @@ export const answerProposal = createServerFn({ method: "POST" })
 /** How did you do that? */
 export const explain = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
+  .validator(
     (data: { sessionId: string; contributionId: string; speaker?: "teacher" | "student" }) => data,
   )
   .handler(async ({ data, context }) => {
@@ -118,7 +118,7 @@ export const explain = createServerFn({ method: "POST" })
 
 export const seedDemo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string }) => data)
+  .validator((data: { sessionId: string }) => data)
   .handler(async ({ data, context }) => {
     const { supabase } = context;
     const script = [
@@ -159,7 +159,7 @@ export const seedDemo = createServerFn({ method: "POST" })
 
 export const updateAgentProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
+  .validator(
     (data: {
       sessionId: string;
       agent: string;

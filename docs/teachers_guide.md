@@ -9,11 +9,14 @@ aren't built yet; they're listed at the end.
 
 ## Before the first session
 
-- **The laptop.** Someone sets up Bridge Crew once, following [dev_setup.md](dev_setup.md). Turn
-  on FileVault, and use a separate macOS account for sessions.
-- **A key for the crew.** The crew's replies come from Anthropic's Claude. Your copy needs an
-  Anthropic API key, in a file called `.env.local` in the Bridge Crew folder:
-  `ANTHROPIC_API_KEY=sk-ant-...`. Never paste the key anywhere else.
+- **Install it.** You paste one line into Terminal, and the installer does the rest:
+  [users guide §1](users_guide.md#1-install-it-on-a-mac). You don't need to know the command
+  line. Turn on FileVault, and use a separate macOS account for sessions. If that account isn't
+  an administrator, paste the line in an administrator account first (it installs the tools),
+  then again in the session account.
+- **A key for the crew.** The crew's replies come from Anthropic's Claude, so your copy needs an
+  Anthropic API key. The installer explains how to get one, checks it, and saves it on the
+  laptop only. Never paste the key anywhere else.
 - **The law and the family.** Read Part 9 of the
   [education plan](plans/educational-context-2026-10-31.md): who is responsible for the
   student's information, the written notice and agreement families need, and the classroom
@@ -26,13 +29,16 @@ aren't built yet; they're listed at the end.
 
 ## Starting a session
 
-1. Run `just game-studio`, and open <http://localhost:8080>.
-2. Sign in. You're the teacher; the student doesn't get an account.
+1. Double-click **Game Studio** on the Desktop. A Terminal window starts everything, and the
+   Game Studio opens in your browser.
+2. Click **Log me on as demo user 1**. You're the teacher; the student doesn't get an account.
 3. **Game Studio** is already picked. Type your name, the student's **nickname** (never their
    real name) and a title for the game, then press **Open a room**.
 4. Read the **classroom notice** together, then press **We've read it**.
 
-Next week, open the same room from **Recent rooms** in the lobby and carry on.
+At the end, press **Control-C** in the Terminal window to stop. Next week, open the same room
+from **Recent rooms** in the lobby and carry on. Stopping, updating and fixing problems are in
+[users guide §5](users_guide.md#5-stopping-updating-and-fixing).
 
 ## During the session
 
@@ -50,8 +56,8 @@ Next week, open the same room from **Recent rooms** in the lobby and carry on.
   wants the floor. If the movement distracts the student, turn on **Reduce motion** in the Mac's
   System Settings (Accessibility, then Display), and the portraits hold still.
 - **Making the game.** The Engineer builds versions, the Artist draws pictures, and the Sound
-  designer makes sounds. Nothing goes into the game until the student grants it. See §12 of the
-  [users guide](users_guide.md).
+  designer makes sounds. Nothing goes into the game until the student grants it. See §4 of the
+  [users guide](users_guide.md#4-making-the-game).
 - **The big screen.** Type "on screen" (or press **On screen**) to play the game, see a picture
   or hear the sounds. "Off screen" comes back. The screen only changes when someone asks.
 - **When something breaks.** If a version crashes on screen, the room suggests asking the
@@ -87,8 +93,8 @@ chooses when to listen, can ask how something was done, and can ask a different 
 
 ## Saving and sharing the game
 
-Every version is saved on the laptop as it's made, in the games folder (`just games` opens it):
-`v1.html`, `v2.html`, and `index.html` for the current version. **Download**, on any version,
+Every version is saved on the laptop as it's made, in the games folder, **Bridge Crew Games** on
+the Desktop: `v1.html`, `v2.html`, and `index.html` for the current version. **Download**, on any version,
 saves a copy wherever you like. Each file opens in any browser, even offline, so you can email
 the game to the family.
 
@@ -97,11 +103,13 @@ good.
 
 ## If something goes wrong
 
-- **"The crew could not reach the model"** or **"rejected the crew's API key"**: check the key
-  in `.env.local`, and that the laptop is online.
+- **"The crew could not reach the model"**: check that the laptop is online, then ask again.
+- **"Rejected the crew's API key"** or **"AI credits are exhausted"**: check the account's
+  billing, then paste the install line again; it checks the key.
 - **A crew member stays working for a long time**: after five minutes it stops by itself. You
   can also press **Stand down** on its card.
-- **Anything else**: the troubleshooting section of [dev_setup.md](dev_setup.md).
+- **Anything else**: [users guide §5](users_guide.md#5-stopping-updating-and-fixing), and for a
+  developer, the troubleshooting section of [dev_setup.md](dev_setup.md).
 
 ## Not built yet
 

@@ -9,7 +9,7 @@ const REPO_PACKS = [
   "social-epidemiology",
 ];
 
-// Users guide §8 — context packs.
+// Users guide §13 — context packs.
 test.describe("context packs", () => {
   test("the Context panel lists every repo pack with a doc count", async ({ page }) => {
     await openRoom(page, { title: `E2E packs ${Date.now()}` });

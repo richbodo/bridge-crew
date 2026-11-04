@@ -15,6 +15,10 @@ test.describe("the Game Studio", () => {
     await expect(stationCard(page, "Scribe")).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "game.md" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Sam" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("link", { name: "Guide" })).toHaveAttribute(
+      "href",
+      /users_guide\.md#part-1-the-game-studio$/,
+    );
     // One seat: there's nobody to invite.
     await expect(page.getByRole("button", { name: "Invite" })).toHaveCount(0);
   });

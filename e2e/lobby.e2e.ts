@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { STATIONS } from "./helpers";
 
-// Users guide §1 — sign in and the lobby.
+// Users guide §6 — sign in and the lobby.
 test.describe("lobby", () => {
   test("shows the whole crew roster and how a turn works", async ({ page }) => {
     await page.goto("/");

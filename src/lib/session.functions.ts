@@ -16,7 +16,7 @@ function makeCode() {
 
 export const createSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
+  .validator(
     (data: {
       title: string;
       displayName: string;
@@ -76,7 +76,7 @@ export const createSession = createServerFn({ method: "POST" })
 
 export const joinSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { code: string; displayName: string; color: string }) => data)
+  .validator((data: { code: string; displayName: string; color: string }) => data)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: session, error } = await supabase
@@ -104,7 +104,7 @@ export const joinSession = createServerFn({ method: "POST" })
 
 export const getRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string }) => data)
+  .validator((data: { sessionId: string }) => data)
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const sessionId = data.sessionId;
@@ -188,7 +188,7 @@ export const getRoom = createServerFn({ method: "POST" })
 /** Delete room: removes the room and everything in it, for good. Only its owner can. */
 export const deleteRoom = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string }) => data)
+  .validator((data: { sessionId: string }) => data)
   .handler(async ({ data, context }) => {
     const { data: gone, error } = await context.supabase
       .from("sessions")

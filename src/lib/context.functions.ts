@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const listContextPacks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string }) => data)
+  .validator((data: { sessionId: string }) => data)
   .handler(async ({ data, context }) => {
     const { listPackSummaries } = await import("./context.server");
     return listPackSummaries(context.supabase, data.sessionId);
@@ -12,7 +12,7 @@ export const listContextPacks = createServerFn({ method: "POST" })
 
 export const listSessionPacks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string }) => data)
+  .validator((data: { sessionId: string }) => data)
   .handler(async ({ data, context }) => {
     const { data: packs, error } = await context.supabase
       .from("context_packs")
@@ -25,7 +25,7 @@ export const listSessionPacks = createServerFn({ method: "POST" })
 
 export const createContextPack = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string; name: string; description: string }) => data)
+  .validator((data: { sessionId: string; name: string; description: string }) => data)
   .handler(async ({ data, context }) => {
     const name = data.name.trim().toLowerCase().replace(/\s+/g, "-");
     if (!name) throw new Error("Give the pack a name.");
@@ -38,7 +38,7 @@ export const createContextPack = createServerFn({ method: "POST" })
 
 export const addContextDoc = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { packId: string; path: string; body: string }) => data)
+  .validator((data: { packId: string; path: string; body: string }) => data)
   .handler(async ({ data, context }) => {
     const path = data.path.trim() || "note.md";
     if (!data.body.trim()) throw new Error("The document is empty.");
@@ -51,7 +51,7 @@ export const addContextDoc = createServerFn({ method: "POST" })
 
 export const deleteContextDoc = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { docId: string }) => data)
+  .validator((data: { docId: string }) => data)
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("context_docs").delete().eq("id", data.docId);
     if (error) throw new Error(error.message);
@@ -60,7 +60,7 @@ export const deleteContextDoc = createServerFn({ method: "POST" })
 
 export const deleteContextPack = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { packId: string }) => data)
+  .validator((data: { packId: string }) => data)
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("context_packs").delete().eq("id", data.packId);
     if (error) throw new Error(error.message);

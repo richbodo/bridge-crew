@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { openRoom } from "./helpers";
 
-// Users guide §3 — invite the second human.
+// Users guide §8 — invite the second human.
 test.describe("inviting the second human", () => {
   test("the invite panel shows the code and a copyable /join link", async ({ page, context }) => {
     const { code } = await openRoom(page, { title: `E2E invite ${Date.now()}` });

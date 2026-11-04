@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { listContextPacks } from "@/lib/context.functions";
 import type { AgentStatus } from "@/lib/crew";
-import { USERS_GUIDE_URL } from "@/lib/links";
+import { GUIDE_PART, USERS_GUIDE_URL } from "@/lib/links";
 import {
   answerHail,
   answerProposal,
@@ -479,7 +479,7 @@ function RoomPage() {
           <ContextPanel sessionId={id} />
           {template.seats > 1 ? <InvitePanel sessionId={id} code={room.session.code} /> : null}
           <a
-            href={USERS_GUIDE_URL}
+            href={USERS_GUIDE_URL + GUIDE_PART[template.key]}
             target="_blank"
             rel="noreferrer"
             className="text-xs text-muted-foreground hover:text-foreground"
