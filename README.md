@@ -101,4 +101,4 @@ Setup, demo mode, model options, and troubleshooting: [docs/dev_setup.md](docs/d
 
 ## License
 
-GPL-3.0
+GPL-3.0. The full text is in [LICENSE](LICENSE).
