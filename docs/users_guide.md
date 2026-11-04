@@ -119,6 +119,10 @@ shortcut, it also answers to other computers on the network.
   the floor**; **Not now** declines. Spoken parts are at most three sentences; the full detail
   is in the brief. Under each line, **Reply**, **How did you do that?** and **Show detail** are
   separate buttons. Show detail opens the brief, formatted.
+- **Asking for help.** When the student asks for help, or asks how something works or how it was
+  made, the crew member teaches, in this order: the big picture, then the question said back so
+  it's on the right track, then briefly how a human would do it, and how an AI does it
+  differently. It keeps it short, so the teacher can take it from there.
 - **Asking a crew member to ask another.** Crew members can't start each other's work, but they
   can suggest it: "Game designer, get the sounds for catching a ladybug from the Sound
   designer." Once the student grants the hail, the suggestion appears under **Suggestions**:
@@ -161,7 +165,7 @@ shortcut, it also answers to other computers on the network.
   it?" **Yes** starts the Engineer on it; **No thanks** leaves it.
 - **Reply**, under a crew member's line, starts a prompt to them about what they said, with the
   cursor in the message box. **How did you do that?** asks them to explain how they made it,
-  step by step, without changing anything.
+  in the same order as any help, without changing anything.
 - **Briefs not said**, under the hails, keeps every brief that was declined, replaced, stopped
   or superseded, with Reply and How did you do that? on each.
 - **Saving and sharing.** Every version is saved on the laptop the moment it's made, in the

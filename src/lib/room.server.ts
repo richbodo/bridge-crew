@@ -685,7 +685,7 @@ export async function explain(
     sb,
     sessionId,
     contribution.agent,
-    `The ${who} pressed “How did you do that?” on what you said: “${contribution.spoken}”\n\nExplain how you made it, step by step, at the ${who}'s level. Show the one small piece that matters most (a few lines of code, a part of the picture, or a sound's numbers) in the brief, and say what each part does. Don't change anything: just explain. Don't hand back a FILE, PICTURE or SOUNDS block this time.`,
+    `The ${who} pressed “How did you do that?” on what you said: “${contribution.spoken}”\n\nTeach how it's done, at the ${who}'s level: the big picture first, then their question said back so it's on the right track, then briefly how a human would make it, and how you, an AI, made it. Show the one small piece that matters most (a few lines of code, a part of the picture, or a sound's numbers) in the brief, and say what each part does. Don't change anything: just explain. Don't hand back a FILE, PICTURE or SOUNDS block this time.`,
     "help",
     `${nameOf(contribution.agent)} is working out how to explain it.`,
   );
