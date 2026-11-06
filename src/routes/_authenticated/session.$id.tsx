@@ -17,7 +17,14 @@ import { ContextPanel } from "@/components/room/ContextPanel";
 import { CrewAvatar } from "@/components/room/CrewAvatar";
 import { HailQueue } from "@/components/room/HailQueue";
 import { InvitePanel } from "@/components/room/InvitePanel";
-import { labelOf, MadeThing, svgSource, type MadeRow } from "@/components/room/MadeThing";
+import {
+  labelOf,
+  MadeThing,
+  stopMusic,
+  svgSource,
+  usePlayingMusic,
+  type MadeRow,
+} from "@/components/room/MadeThing";
 import { ManageMade, type ManageAction } from "@/components/room/ManageMade";
 import { Markdown } from "@/components/room/Markdown";
 import {
@@ -263,6 +270,16 @@ function RoomPage() {
   );
 
   const room = roomQuery.data;
+
+  // Music plays until Stop, until its song is removed, or until the room is left.
+  const playing = usePlayingMusic();
+  const madeRows = room?.made as MadeRow[] | undefined;
+  useEffect(() => {
+    if (playing && madeRows && !madeRows.some((t) => t.id === playing && t.state !== "removed")) {
+      stopMusic();
+    }
+  }, [playing, madeRows]);
+  useEffect(() => stopMusic, []);
 
   if (roomQuery.isLoading) {
     return <p className="p-8 text-sm text-muted-foreground">Opening the room…</p>;
@@ -757,7 +774,7 @@ function RoomPage() {
                   </div>
                 ) : (
                   <p className="mt-3 text-xs text-muted-foreground">
-                    Versions, pictures and sounds the crew makes appear here.
+                    Versions, pictures, sounds and music the crew makes appear here.
                   </p>
                 )}
               </>

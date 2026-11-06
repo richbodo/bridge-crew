@@ -1,24 +1,46 @@
-import ZZFX_LICENSE from "./vendor/zzfx/LICENSE?raw";
-import ZZFX_MICRO from "./vendor/zzfx/ZzFXMicro.min.js?raw";
+import MUSIC from "./music.js?raw";
+import ZZFX from "./vendor/zzfx/ZzFX.js?raw";
 
 /**
  * A version of the game is one self-contained HTML file (docs/plans/educational-context-
  * 2026-10-31.md Part 5). Before it runs, in the room or from a file, it gets:
  *   - a content security policy that blocks the network;
- *   - ZzFX (MIT), so the game can call zzfx(...) with the Sound designer's sounds;
+ *   - ZzFX (MIT), so the game can call zzfx(...) with the Sound designer's sounds, and
+ *     playMusic(song) and stopMusic() for its music;
  *   - in the room only, a crash reporter that tells the room when the game throws.
  */
 
 const CSP =
   "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:";
 
-const ZZFX_SCRIPT = `<script>
-/* ZzFX ${"\n"}${ZZFX_LICENSE.trim()}${"\n"}*/
-${ZZFX_MICRO.trim()}
-zzfxV = 0.25;
+/** A module's code as a plain script's: the same, without its exports. */
+const unexported = (code: string) => code.replace(/^export /gm, "");
+
+// Wrapped in a function, so only the names put on globalThis below are the game's to call.
+const SOUND_SCRIPT = `<script>
+(function () {
+${unexported(ZZFX).trim()}
+
+${unexported(MUSIC).trim()}
+
+ZZFX.volume = 0.25;
+let music;
+/** Plays a song from the Sound designer over and over, until stopMusic() or the next song. */
+function playMusic(song, loop = true) {
+  stopMusic();
+  music = ZZFX.playSamples([musicSamples(song, ZZFX)], 0.6, 1, 0, loop);
+  return music;
+}
+function stopMusic() {
+  if (music) music.stop();
+  music = undefined;
+}
+// zzfxX is ZzFXMicro's name for the audio, which versions built before music had.
+Object.assign(globalThis, { zzfx, ZZFX, playMusic, stopMusic, zzfxX: ZZFX.audioContext });
 // Browsers start audio suspended until the player does something.
-addEventListener("pointerdown", () => zzfxX.resume());
-addEventListener("keydown", () => zzfxX.resume());
+addEventListener("pointerdown", () => ZZFX.audioContext.resume());
+addEventListener("keydown", () => ZZFX.audioContext.resume());
+})();
 </script>`;
 
 export const CRASH_MESSAGE = "bridge-crew-crash";
@@ -38,7 +60,7 @@ export function prepareGame(html: string, { inRoom }: { inRoom: boolean }): stri
   const head = [
     `<meta http-equiv="Content-Security-Policy" content="${CSP}">`,
     inRoom ? CRASH_REPORTER : "",
-    ZZFX_SCRIPT,
+    SOUND_SCRIPT,
   ]
     .filter(Boolean)
     .join("\n");

@@ -55,7 +55,8 @@ room (today's crew, for two adults) keeps working, and its research brief is unc
   Anthropic API. It doesn't use Claude Code or the Agent SDK, which would put a shell on the
   teacher's laptop within reach of a typed request. Art is SVG, so no new provider sees the
   student's words, and sound is [ZzFX](https://github.com/KilledByAPixel/ZzFX), an MIT-licensed
-  synth under 1 KB. That's enough for now, although games will outgrow one file one day.
+  synth of about 10 KB, which plays the music too. That's enough for now, although games will
+  outgrow one file one day.
 - **Huddles** are one model call that speaks as each convened job in turn. Every crew member sees
   the same room (F9), so the jobs differ only in their duty prompts, and one call can hold them
   all.
@@ -230,7 +231,7 @@ and `game-studio.ts` is new. A template sets:
 | Storyteller | writes the story and characters | story ideas, characters, dialogue | "Why does the mole need gems?" |
 | Game designer | decides what you do and how you win; leads "Team" huddles | rules, levels, challenge | "How do I make it harder?" |
 | Artist | decides the look, then draws it | SVG characters, items and backgrounds; a style guide | "Draw the mole." |
-| Sound designer | makes every sound | named sound effects with play buttons | "Make a digging sound." |
+| Sound designer | makes every sound, and composes the music | named sound effects, and music written as notes, with play buttons | "Make a digging sound." "Make music for the title screen." |
 | Engineer | builds the game | a new playable version | "Make the mole dig with the arrow keys." |
 | Tester | plays it to find what breaks | things to try, bug notes | "Check version 3." |
 
@@ -250,8 +251,8 @@ with the student.
 
 ### `game.md` and the Scribe
 
-- **Sections:** The idea · Story · Characters · How to play · Look · Sounds · Levels · Bugs ·
-  Next · Session notes.
+- **Sections:** The idea · Story · Characters · How to play · Look · Sounds and music · Levels ·
+  Bugs · Next · Session notes.
 - **When it updates.** The Scribe updates `game.md` after each grant, after every fourth prompt,
   and at wrap-up, one update at a time (Section 9 of `docs/state_machines.md`).
 - **What it uses.** It writes from the people's prompts and from granted contributions only, so
@@ -279,7 +280,7 @@ whoever the switch shows. The student has no account and no email.
 - **Hail states:** `hand_raises.state` gains `replaced` and `withdrawn`.
 - **`proposals` (new):** what it suggests (a summon or a huddle), the job and task, where it came
   from (a contribution, or the room), and its state.
-- **`made_things` (new):** versions, pictures and sounds in one table, each with its state
+- **`made_things` (new):** versions, pictures, sounds and music in one table, each with its state
   (`waiting`, `used`, `not_used` or `removed`).
 - **`contributions.ask` and `contributions.removes`:** a crew member's suggestion and the things
   it removes, which take effect only if its hail is granted.
@@ -325,7 +326,7 @@ Rules (Section 10 of `docs/state_machines.md`):
 - The bridge-and-big-screen idea is generic, and the look stays original, per the master plan's
   naming rule.
 
-## Part 5: Making the game: versions, pictures, sounds and tests
+## Part 5: Making the game: versions, pictures, sounds, music and tests
 
 **Nothing goes into the game until the student says yes.** Every made thing is saved the moment
 its run finishes, but it's only used once its hail is granted, or when the student picks it later
@@ -334,9 +335,10 @@ with **Use this** (Section 8 of `docs/state_machines.md`).
 **Engineer**
 
 - Each version is one self-contained HTML file: inline script and style, canvas or DOM, and no
-  network access. The only outside code is ZzFX, inlined into the file.
-- The Engineer starts from the current version, `game.md`, and the used pictures and sounds by
-  name. It returns a complete new file, plus a few spoken sentences on what changed.
+  network access. The only outside code is ZzFX, inlined into the file with the room's small
+  music player.
+- The Engineer starts from the current version, `game.md`, and the used pictures, sounds and
+  music by name. It returns a complete new file, plus a few spoken sentences on what changed.
 - Versions are stored in the `made_things` table and written to
   `$BRIDGE_CREW_GAMES_DIR/<code>-<title>/v<N>.html`, with `index.html` as the current version.
   The folder defaults to `~/Bridge Crew Games` and can be changed in `.env.local`. Nothing is
@@ -362,8 +364,13 @@ with **Use this** (Section 8 of `docs/state_machines.md`).
 **Sound designer**
 
 - Each sound effect is a named ZzFX parameter list, stored as a made thing with a play button.
+- The Sound designer is the composer too. A piece of music is a named song: a tempo, up to four
+  instruments (each a ZzFX parameter list), and a track of notes for each, written like
+  `C4 E4 G4 -`, so a student can read it. In the room, Play loops it until Stop, and on screen
+  it shows its notes. In the game, `playMusic(song)` loops it, `playMusic(song, false)` plays it once, and
+  `stopMusic()` stops it.
 - Nothing autoplays, and volume is capped.
-- The Engineer inlines ZzFX and the sounds into the game.
+- The Engineer inlines ZzFX and the sounds into the game, and pastes in the music it uses.
 
 **Tester**
 
@@ -601,7 +608,8 @@ Studio room. A later note gave each crew member a pixel avatar on its card, pose
 For Phase 6, the Game Studio now installs on a Mac with one line pasted into Terminal, which
 asks for the teacher's API key and puts a **Game Studio** shortcut on the Desktop (users guide
 §1). The same testing set how the crew helps (Part 6), which is already in the Game Studio's
-`setting`. Phase 4 still has the Ask for help button, huddles and the Tester's coaching.
+`setting`. The first teacher's testing asked for music, so the Sound designer is now the
+composer too. Phase 4 still has the Ask for help button, huddles and the Tester's coaching.
 
 ## Not in this plan
 

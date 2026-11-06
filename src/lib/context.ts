@@ -69,7 +69,7 @@ export interface AssembleInput {
   plan?: string;
   /** What the shared document is called: plan.md, game.md. */
   planTitle?: string;
-  /** In a Game Studio: the current version, and the pictures and sounds in use. */
+  /** In a Game Studio: the current version, and the pictures, sounds and music in use. */
   game?: string;
   /** The crew's earlier work, oldest first. */
   contributions?: ContributionNote[];
