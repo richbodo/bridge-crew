@@ -15,6 +15,7 @@ import {
   type MadeRow,
 } from "./MadeThing";
 import { Markdown } from "./Markdown";
+import { TestSheet } from "./TestLooks";
 
 export interface Showing {
   kind: "made" | "contribution";
@@ -89,6 +90,8 @@ export function BigScreen({
           <SoundBoard sounds={made.filter((t) => t.kind === "sound")} />
         ) : thing?.kind === "music" ? (
           <MusicSheet thing={thing} />
+        ) : thing?.kind === "test" ? (
+          <TestSheet thing={thing} />
         ) : contribution ? (
           <article className="mx-auto h-full max-w-3xl overflow-y-auto text-white">
             <p className="text-xs uppercase tracking-[0.2em] text-white/60">{nameFor(contribution.agent)}</p>

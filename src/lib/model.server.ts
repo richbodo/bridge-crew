@@ -1,4 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
+import type {
+  BetaContentBlockParam,
+  BetaMessage,
+  BetaMessageParam,
+  BetaToolResultBlockParam,
+} from "@anthropic-ai/sdk/resources/beta/messages";
 
 /**
  * Where the crew's model calls go:
@@ -52,6 +58,43 @@ export async function callModel(
   return callAnthropic(messages, role, options);
 }
 
+/** A tool a crew member uses while it works: the Tester's play (src/lib/playtest.server.ts). */
+export interface CrewTool {
+  name: string;
+  description: string;
+  inputSchema: { type: "object"; properties: Record<string, unknown>; required?: string[] };
+  /** One use. What it returns goes back to the model. */
+  use: (input: unknown) => Promise<ToolResult>;
+  /** The most uses in one run. The turn after the last one writes the reply. */
+  uses: number;
+  /** The fixture provider uses the tool once, with this. */
+  fixtureInput: unknown;
+}
+
+export interface ToolResult {
+  /** Words and pictures (JPEG, base64), in order. */
+  parts: Array<{ text: string } | { jpeg: string }>;
+  /** It didn't work; the words say why. */
+  failed?: boolean;
+}
+
+/** As callModel, with a tool the crew member can use before it replies. */
+export async function callModelWithTool(
+  messages: ChatMessage[],
+  tool: CrewTool,
+  role: ModelRole = "crew",
+  options: CallOptions = {},
+): Promise<string> {
+  const provider = pickProvider();
+  if (provider === "fixture") {
+    // It plays first, so a slow run shows what it saw while it waits.
+    await tool.use(tool.fixtureInput);
+    await fixtureDelay(messages);
+    return fixtureReply(messages, role);
+  }
+  return callAnthropicWithTool(messages, tool, role, options);
+}
+
 // ---------- Anthropic ----------
 
 const ANTHROPIC_DEFAULTS: Record<ModelRole, { model: string; effort: "low" | "medium" }> = {
@@ -69,68 +112,132 @@ const FALLBACK_MODELS = new Set([
 
 let anthropic: Anthropic | undefined;
 
-async function callAnthropic(
-  messages: ChatMessage[],
-  role: ModelRole,
-  options: CallOptions,
-): Promise<string> {
-  anthropic ??= new Anthropic();
+/** Everything in a request but its messages: the model, limits and system prompt. */
+function requestFor(messages: ChatMessage[], role: ModelRole, options: CallOptions) {
   const override =
     role === "scribe" ? process.env["BRIDGE_CREW_SCRIBE_MODEL"] : process.env["BRIDGE_CREW_MODEL"];
   const model = override?.trim() || options.model || ANTHROPIC_DEFAULTS[role].model;
-  const maxTokens = options.maxTokens ?? 16000;
   // BRIDGE_CREW_INFERENCE_GEO=us keeps inference in the US (Part 9 of the education plan).
   const geo = process.env["BRIDGE_CREW_INFERENCE_GEO"]?.trim();
   const system = messages
     .filter((m) => m.role === "system")
     .map((m) => m.content)
     .join("\n\n");
-  const turns = messages
+  return {
+    model,
+    max_tokens: options.maxTokens ?? 16000,
+    output_config: { effort: options.effort ?? ANTHROPIC_DEFAULTS[role].effort },
+    ...(options.fallback !== false && FALLBACK_MODELS.has(model)
+      ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }
+      : {}),
+    ...(geo ? { inference_geo: geo } : {}),
+    ...(system ? { system } : {}),
+  };
+}
+
+function turnsOf(messages: ChatMessage[]): BetaMessageParam[] {
+  return messages
     .filter((m) => m.role === "user")
     .map((m) => ({ role: "user" as const, content: m.content }));
+}
 
+function textOf(response: BetaMessage): string {
+  if (response.stop_reason === "refusal") throw new Error("The model declined this one.");
+  return response.content
+    .flatMap((block) => (block.type === "text" ? [block.text] : []))
+    .join("")
+    .trim();
+}
+
+/** What the room says when a call fails. */
+function failure(error: unknown): unknown {
+  if (error instanceof Anthropic.AuthenticationError) {
+    return new Error("The model provider rejected the crew's API key.");
+  }
+  if (error instanceof Anthropic.RateLimitError) {
+    return new Error("The crew is rate limited, try again in a moment.");
+  }
+  if (error instanceof Anthropic.APIConnectionError) {
+    console.error("anthropic connection error", error.message);
+    return new Error("The crew could not reach the model.");
+  }
+  if (error instanceof Anthropic.APIError) {
+    console.error("anthropic api error", error.status, error.type, error.message);
+    if (error.type === "overloaded_error")
+      return new Error("The model is overloaded, try again in a moment.");
+    if (error.type === "billing_error") return new Error("AI credits are exhausted for this account.");
+    return new Error("The crew could not reach the model.");
+  }
+  return error;
+}
+
+async function callAnthropic(
+  messages: ChatMessage[],
+  role: ModelRole,
+  options: CallOptions,
+): Promise<string> {
+  anthropic ??= new Anthropic();
+  const request = { ...requestFor(messages, role, options), messages: turnsOf(messages) };
   try {
-    const request = {
-      model,
-      max_tokens: maxTokens,
-      output_config: { effort: options.effort ?? ANTHROPIC_DEFAULTS[role].effort },
-      ...(options.fallback !== false && FALLBACK_MODELS.has(model)
-        ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }
-        : {}),
-      ...(geo ? { inference_geo: geo } : {}),
-      ...(system ? { system } : {}),
-      messages: turns,
-    };
     // Long outputs (a whole game) stream, so the request doesn't time out.
     const response =
-      maxTokens > 16000
+      request.max_tokens > 16000
         ? await anthropic.beta.messages.stream(request).finalMessage()
         : await anthropic.beta.messages.create(request);
-    if (response.stop_reason === "refusal") throw new Error("The model declined this one.");
-    return response.content
-      .flatMap((block) => (block.type === "text" ? [block.text] : []))
-      .join("")
-      .trim();
+    return textOf(response);
   } catch (error) {
-    if (error instanceof Anthropic.AuthenticationError) {
-      throw new Error("The model provider rejected the crew's API key.");
+    throw failure(error);
+  }
+}
+
+async function callAnthropicWithTool(
+  messages: ChatMessage[],
+  tool: CrewTool,
+  role: ModelRole,
+  options: CallOptions,
+): Promise<string> {
+  anthropic ??= new Anthropic();
+  const request = {
+    ...requestFor(messages, role, options),
+    tools: [{ name: tool.name, description: tool.description, input_schema: tool.inputSchema }],
+    // Every turn sends the room and the game again; the cache reads them back cheaply.
+    cache_control: { type: "ephemeral" as const },
+  };
+  const turns = turnsOf(messages);
+  try {
+    for (let used = 0; ; ) {
+      const response = await anthropic.beta.messages.create({
+        ...request,
+        messages: turns,
+        // After the last use, the turn writes the reply.
+        ...(used >= tool.uses ? { tool_choice: { type: "none" as const } } : {}),
+      });
+      const uses = response.content.flatMap((block) => (block.type === "tool_use" ? [block] : []));
+      if (response.stop_reason !== "tool_use" || !uses.length) return textOf(response);
+      turns.push({ role: "assistant", content: response.content as BetaContentBlockParam[] });
+      const results: BetaToolResultBlockParam[] = [];
+      for (const ask of uses) {
+        used++;
+        const result =
+          ask.name === tool.name
+            ? await tool.use(ask.input)
+            : { parts: [{ text: `There's no tool called ${ask.name}.` }], failed: true };
+        const last = used >= tool.uses ? [{ text: "That was your last turn. Now write your reply." }] : [];
+        results.push({
+          type: "tool_result",
+          tool_use_id: ask.id,
+          ...(result.failed ? { is_error: true } : {}),
+          content: [...result.parts, ...last].map((part) =>
+            "jpeg" in part
+              ? { type: "image", source: { type: "base64", media_type: "image/jpeg", data: part.jpeg } }
+              : { type: "text", text: part.text },
+          ),
+        });
+      }
+      turns.push({ role: "user", content: results });
     }
-    if (error instanceof Anthropic.RateLimitError) {
-      throw new Error("The crew is rate limited, try again in a moment.");
-    }
-    if (error instanceof Anthropic.APIConnectionError) {
-      console.error("anthropic connection error", error.message);
-      throw new Error("The crew could not reach the model.");
-    }
-    if (error instanceof Anthropic.APIError) {
-      console.error("anthropic api error", error.status, error.type, error.message);
-      if (error.type === "overloaded_error")
-        throw new Error("The model is overloaded, try again in a moment.");
-      if (error.type === "billing_error")
-        throw new Error("AI credits are exhausted for this account.");
-      throw new Error("The crew could not reach the model.");
-    }
-    throw error;
+  } catch (error) {
+    throw failure(error);
   }
 }
 

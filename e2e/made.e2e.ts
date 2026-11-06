@@ -180,6 +180,31 @@ test.describe("making the game", () => {
     await expect(sheet.getByRole("button", { name: "Stop" })).toBeVisible();
   });
 
+  test("the Tester plays the current version, and what it saw comes with its hail", async ({ page }) => {
+    await openStudio(page, { title: `E2E tester ${Date.now()}` });
+    await say(page, "Engineer, make the mole dig.");
+    await grantNext(page, "Engineer");
+
+    // The fixture Tester holds → in a real headless browser, and looks before and after. While
+    // it works, its card shows what it's doing, and what it sees.
+    await say(page, "Tester, slowly check version 1.");
+    await expect(page.getByText("Playing Version 1: Held → for 0.5 s")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("img", { name: "What the Tester sees in the game now" })).toBeVisible();
+    await expect(page.getByText("Tester is hailing")).toBeVisible({ timeout: 60_000 });
+    const looks = page.getByRole("list", { name: "What the Tester saw: arrows" });
+    await expect(looks.getByRole("img")).toHaveCount(2);
+    await expect(looks.getByText("Held → for 0.5 s")).toBeVisible();
+    await expect(looks.getByText("Should: The mole moved right")).toBeVisible();
+
+    await page.getByRole("button", { name: "Grant the floor" }).click();
+    await expect(made(page).getByText("Test: arrows")).toBeVisible();
+    await expect(made(page).getByText("kept", { exact: true })).toBeVisible();
+
+    await made(page).getByRole("button", { name: "On screen" }).first().click();
+    await expect(page.getByText("Test: arrows, on Version 1")).toBeVisible();
+    await expect(page.getByRole("img", { name: "Look 2: Held → for 0.5 s" })).toBeVisible();
+  });
+
   test("Reply sends the next prompt to the same crew member, about what it said", async ({ page }) => {
     await openStudio(page, { title: `E2E reply ${Date.now()}` });
     await say(page, "Storyteller, why does the mole need gems?");

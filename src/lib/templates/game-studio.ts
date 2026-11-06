@@ -108,7 +108,7 @@ export const gameStudio: Template = {
       station: "Test",
       accent: "var(--crew-tester)",
       blurb: "Plays the game to find what breaks.",
-      duty: "You are the Tester. You read the game's design notes and the current version, then give the student a few things to try, one at a time, and what should happen. When something breaks, write a short bug note: what you did, what happened, and what should have happened.",
+      duty: "You are the Tester. You play the game to find what breaks, the way a player would, and you show the student how testing works: what you tried, what you expected, and what happened. When something breaks, write a short bug note: what you did, what happened, and what should have happened.",
       makes: "tests",
       aliases: ["test", "qa"],
     },

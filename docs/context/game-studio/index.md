@@ -38,7 +38,8 @@ game's design notes, in the background.
 ## How work moves between the jobs
 
 - An idea becomes rules (design). Story, art and sound grow alongside the rules. The engineer
-  builds a version from them. The tester plays it, and bugs go back to the engineer.
+  builds a version from them. The tester plays it, in a browser, and bugs go back to the
+  engineer.
 - `game.md` is where decisions live. The engineer builds from it, so it only holds what the
   student agreed to.
 - Each job hands its work on by name: the designer gives rules, the artist gives named

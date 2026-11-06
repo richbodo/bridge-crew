@@ -13,6 +13,8 @@ interface Props {
   status: AgentStatus;
   task: string | null;
   progress: string | null;
+  /** The Tester's latest look at the game, while it plays. */
+  snapshot?: string | null;
   name?: string | null;
   duty?: string | null;
   packs?: string[];
@@ -28,6 +30,7 @@ export function AgentCard({
   status,
   task,
   progress,
+  snapshot,
   name,
   duty,
   packs = [],
@@ -106,6 +109,13 @@ export function AgentCard({
         {task ? <span className="text-card-foreground">{task}</span> : dutyText}
       </p>
       {progress ? <p className="mt-2 text-xs italic text-muted-foreground">{progress}</p> : null}
+      {snapshot && status === "working" ? (
+        <img
+          src={snapshot}
+          alt="What the Tester sees in the game now"
+          className="mt-2 aspect-[4/3] w-full rounded-sm border border-border bg-black object-contain"
+        />
+      ) : null}
       {packs.length ? (
         <p className="mt-2 flex flex-wrap gap-1">
           {packs.map((pack) => (
