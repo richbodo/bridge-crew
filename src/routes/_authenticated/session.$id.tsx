@@ -167,7 +167,11 @@ function RoomPage() {
       { event: "*", schema: "public", table: "sessions", filter: `id=eq.${id}` },
       () => void refresh(),
     );
-    channel.subscribe();
+    // Anything that changed while the subscription was connecting arrived before it could
+    // hear it, such as a quick run finishing, so look again once it's live.
+    channel.subscribe((status) => {
+      if (status === "SUBSCRIBED") void refresh();
+    });
     return () => {
       void supabase.removeChannel(channel);
     };
