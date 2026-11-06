@@ -1,5 +1,5 @@
 import { formatFor, splitExtras, splitMade, type AskDraft, type MadeDraft } from "./made";
-import { callModel } from "./model.server";
+import { callModel, callModelWithTool, type CrewTool } from "./model.server";
 import type { Job, Template } from "./templates";
 
 function houseStyle(template: Template): string {
@@ -63,24 +63,26 @@ export function systemPromptFor(template: Template, job: Job, profile?: AgentPro
   return [role, houseStyle(template), ...extras.filter(Boolean)].join("\n\n");
 }
 
+/** One run's work: the brief, read with its context, and a tool if the job has one (the Tester's play). */
 export async function runAgentBrief(
   template: Template,
   job: Job,
   brief: string,
   context: string,
   profile?: AgentProfile,
+  tool?: CrewTool,
 ): Promise<AgentResult> {
-  const raw = await callModel(
-    [
-      { role: "system", content: systemPromptFor(template, job, profile) },
-      {
-        role: "user",
-        content: `${context || "## Session transcript\n\n(nothing yet)"}\n\n## Your task\n\n${brief}`,
-      },
-    ],
-    "crew",
-    { fallback: template.refusalFallback, ...job.model },
-  );
+  const messages = [
+    { role: "system" as const, content: systemPromptFor(template, job, profile) },
+    {
+      role: "user" as const,
+      content: `${context || "## Session transcript\n\n(nothing yet)"}\n\n## Your task\n\n${brief}`,
+    },
+  ];
+  const options = { fallback: template.refusalFallback, ...job.model };
+  const raw = tool
+    ? await callModelWithTool(messages, tool, "crew", options)
+    : await callModel(messages, "crew", options);
   return parseAgentOutput(raw);
 }
 

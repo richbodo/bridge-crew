@@ -27,6 +27,7 @@ import {
 } from "@/components/room/MadeThing";
 import { ManageMade, type ManageAction } from "@/components/room/ManageMade";
 import { Markdown } from "@/components/room/Markdown";
+import { TestStrip } from "@/components/room/TestLooks";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -350,15 +351,17 @@ function RoomPage() {
     return (
       <div className="mt-2 space-y-1">
         {things.map((thing) => (
-          <MadeThing
-            key={thing.id}
-            thing={thing}
-            current={thing.id === currentVersion}
-            title={room.session.title}
-            compact={compact}
-            onScreen={(t) => show({ kind: "made", id: t.id })}
-            onUse={(t) => useThingMutation.mutate(t.id)}
-          />
+          <div key={thing.id} className="space-y-1">
+            <MadeThing
+              thing={thing}
+              current={thing.id === currentVersion}
+              title={room.session.title}
+              compact={compact}
+              onScreen={(t) => show({ kind: "made", id: t.id })}
+              onUse={(t) => useThingMutation.mutate(t.id)}
+            />
+            {thing.kind === "test" ? <TestStrip thing={thing} /> : null}
+          </div>
         ))}
         {removing.length ? (
           <div className="rounded-md border border-dashed border-border p-2">
@@ -721,6 +724,7 @@ function RoomPage() {
                   status={statusOf(agent)}
                   task={state?.current_task ?? null}
                   progress={state?.progress ?? null}
+                  snapshot={state?.snapshot ?? null}
                   name={state?.display_name ?? null}
                   duty={state?.duty ?? null}
                   packs={(state?.context_packs as string[] | null) ?? []}

@@ -6,7 +6,10 @@ import { makeNameLookup, runAgentBrief, writeSharedDoc, type NameLookup } from "
 import { assembleContext, type ContributionNote } from "./context";
 import { loadPackDocs } from "./context.server";
 import type { Mode } from "./machines";
-import { labelOf, type AskDraft } from "./made";
+import { cleanName, labelOf, testSteps, type AskDraft, type MadeDraft } from "./made";
+import type { CrewTool } from "./model.server";
+import { FIXTURE_PLAY, PLAY_TOOL, playFrom } from "./playtest";
+import { Playtest, resultOf } from "./playtest.server";
 import { enforceSpeechCap } from "./speech";
 import { saveCurrent, saveVersion, type RoomName } from "./games.server";
 import { findAddressees, parseSummon, type Addressable } from "./summon";
@@ -104,12 +107,17 @@ async function gameSoFar(
     .map((thing, i) => ({ thing, number: i + 1 }))
     .filter(({ thing }) => thing.state !== "removed" && thing.state !== "waiting")
     .map(({ thing, number }) => {
+      const test = thing.kind === "test";
       const state =
         thing.id === settings.currentVersion
           ? "the current version"
           : thing.state === "used"
-            ? "in the game"
-            : "not used";
+            ? test
+              ? "kept"
+              : "in the game"
+            : test
+              ? "not kept"
+              : "not used";
       return `- #${number} ${labelOf(thing)}, by ${called(template, nameOf, thing.agent)} (${state})`;
     });
   const parts = [
@@ -130,6 +138,12 @@ async function gameSoFar(
   if (music.length) {
     parts.push(
       `### Music (call playMusic(song))\n\n${music.map((t) => `- ${t.name}: ${t.body}`).join("\n")}`,
+    );
+  }
+  const tests = used.filter((t) => t.kind === "test");
+  if (tests.length) {
+    parts.push(
+      `### Tests the student kept (to play again on a new version)\n\n${tests.map((t) => `- ${t.name}: ${testSteps(t.body)}`).join("\n")}`,
     );
   }
   if (listed.length) parts.push(`### Made in this room\n\n${listed.join("\n")}`);
@@ -275,6 +289,82 @@ async function gatherContext(
   });
 }
 
+/** How many turns of play the Tester gets in one run. */
+const PLAY_TURNS = 5;
+
+/**
+ * The Tester's play tool for one run (src/lib/playtest.server.ts): the current version, opened
+ * in a headless browser the first time the Tester plays. Its card shows each look as it plays,
+ * and what it saw becomes a test, which comes with its hail.
+ */
+async function playtestFor(sb: Client, sessionId: string, runId: string, settings: RoomSettings) {
+  const things = await madeInOrder(sb, sessionId);
+  const current = things.find((t) => t.id === settings.currentVersion);
+  if (!current) return null;
+  const names = new Map(
+    things
+      .filter((t) => t.state === "used" && (t.kind === "sound" || t.kind === "music"))
+      .map((t) => [t.body, `the ${t.kind} “${t.name}”`]),
+  );
+  const version = labelOf(current);
+  const show = async (progress: string, snapshot?: string) => {
+    await sb
+      .from("agents_state")
+      .update({ progress, ...(snapshot ? { snapshot } : {}) })
+      .eq("session_id", sessionId)
+      .eq("current_run_id", runId);
+  };
+  let test: Playtest | null = null;
+  let name = "";
+
+  const tool: CrewTool = {
+    ...PLAY_TOOL,
+    uses: PLAY_TURNS,
+    fixtureInput: FIXTURE_PLAY,
+    use: async (input) => {
+      const play = playFrom(input);
+      if (!play.steps.length) return { parts: [{ text: "There were no steps to play." }], failed: true };
+      name ||= play.name;
+      try {
+        test ??= await Playtest.open(current.body, names);
+      } catch (error) {
+        console.error("the playtest browser didn't open", error);
+        return {
+          parts: [
+            {
+              text: "The browser for playing games didn't open on this computer, so you can't play this time. Tell the student, and say that the teacher can paste the install line into Terminal again to fix it.",
+            },
+          ],
+          failed: true,
+        };
+      }
+      await show(`Playing ${version}…`);
+      const played = await test.play(play.steps, (look) => {
+        void show(`Playing ${version}: ${look.did}`, look.image);
+      });
+      return resultOf(played);
+    },
+  };
+
+  return {
+    tool,
+    /** What the Tester saw, as a test, if it played. */
+    made: (): MadeDraft[] =>
+      test?.looks.length
+        ? [
+            {
+              kind: "test",
+              name: cleanName(name, "test"),
+              body: JSON.stringify({ version: current.version, looks: test.looks }),
+            },
+          ]
+        : [],
+    close: async () => {
+      await test?.close();
+    },
+  };
+}
+
 /** Runs one crew member's task to its end: a hail, a superseded reply, or a failure. */
 export async function executeRun(sb: Client, runId: string) {
   const { data: run } = await sb.from("runs").select("*").eq("id", runId).maybeSingle();
@@ -283,22 +373,30 @@ export async function executeRun(sb: Client, runId: string) {
   const agent = run.agent;
   const { template, settings, name, crew, nameOf } = await roomOf(sb, sessionId);
   const me = crew.find((row) => row.agent === agent);
+  const job = jobOf(template, agent);
+  let playtest: Awaited<ReturnType<typeof playtestFor>> = null;
 
   try {
+    // The Tester plays the current version (Part 5 of the education plan).
+    if (job.makes === "tests") playtest = await playtestFor(sb, sessionId, runId, settings);
     const packs = (me?.context_packs as string[] | null) ?? [];
     const context = await gatherContext(sb, sessionId, template, settings, packs, nameOf);
     await sb
       .from("agents_state")
-      .update({ progress: "gathering and drafting…" })
+      .update({ progress: "gathering and drafting…", snapshot: null })
       .eq("session_id", sessionId)
       .eq("current_run_id", runId);
 
     const minutes = Math.round(RUN_TIME_LIMIT_MS / 60_000);
     const result = await withTimeout(
-      runAgentBrief(template, jobOf(template, agent), run.task, context.text, {
-        name: me?.display_name ?? null,
-        duty: me?.duty ?? null,
-      }),
+      runAgentBrief(
+        template,
+        job,
+        run.task,
+        context.text,
+        { name: me?.display_name ?? null, duty: me?.duty ?? null },
+        playtest?.tool,
+      ),
       RUN_TIME_LIMIT_MS,
       `it took longer than ${minutes} minutes`,
     );
@@ -309,7 +407,7 @@ export async function executeRun(sb: Client, runId: string) {
     const summary = spoken.split(/(?<=[.!?])\s+/)[0] || spoken.slice(0, 140);
     // Help changes nothing in the game unless asked (Part 6), so a help run makes and removes nothing.
     const help = run.mode === "help";
-    const made = help ? [] : result.made;
+    const made = help ? [] : [...result.made, ...(playtest?.made() ?? [])];
     const removes =
       help || !result.removes.length
         ? []
@@ -333,6 +431,8 @@ export async function executeRun(sb: Client, runId: string) {
     const message = (error as Error).message;
     const { data: failed } = await sb.rpc("fail_run", { _run: runId, _reason: message });
     if (failed) await note(sb, sessionId, `${nameOf(agent)} couldn't finish: ${message}`);
+  } finally {
+    await playtest?.close();
   }
 }
 

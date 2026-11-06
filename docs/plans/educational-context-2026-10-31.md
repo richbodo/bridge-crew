@@ -233,7 +233,7 @@ and `game-studio.ts` is new. A template sets:
 | Artist | decides the look, then draws it | SVG characters, items and backgrounds; a style guide | "Draw the mole." |
 | Sound designer | makes every sound, and composes the music | named sound effects, and music written as notes, with play buttons | "Make a digging sound." "Make music for the title screen." |
 | Engineer | builds the game | a new playable version | "Make the mole dig with the arrow keys." |
-| Tester | plays it to find what breaks | things to try, bug notes | "Check version 3." |
+| Tester | plays it to find what breaks | tests it plays itself, bug notes, things to try | "Check version 3." |
 
 Every Game Studio duty prompt also says:
 - the student runs the studio: build on their idea, and ask before changing it;
@@ -374,11 +374,22 @@ with **Use this** (Section 8 of `docs/state_machines.md`).
 
 **Tester**
 
-- Reads `game.md` and the current version, writes a list of things to try, and coaches the
-  student through playing them.
+- Plays the current version itself, in a headless browser on the laptop
+  (`src/lib/playtest.server.ts`; the installer downloads the browser). Its play tool presses
+  and holds keys, clicks, moves the mouse, types, waits and looks. The game's clock is paused
+  between the Tester's turns, so the game only moves during its steps, however long the Tester
+  thinks. Each look is a picture of the screen, with the sounds and music the game played and
+  any errors it threw. A run gets up to five turns of play and twelve looks.
+- Its card shows each step and the latest picture as it plays. What it saw becomes a **test**,
+  a made thing that comes with its hail: its looks, each with what the Tester did and what
+  should be on the screen. A test the student keeps is listed for the Tester, which can play
+  it again on a later version.
+- The pictures go to Anthropic with the Tester's calls, as the game's code does. They show only
+  the game.
+- It still coaches: when it helps the student learn, it gives them one thing to try, and what
+  should happen.
 - Anything that breaks goes into the Bugs section, with a proposal to hand it to the Engineer
   (Part 6).
-- An automated headless smoke test is a later option.
 
 **Storyteller and Game designer** produce text, as today's crew does.
 
@@ -609,7 +620,8 @@ For Phase 6, the Game Studio now installs on a Mac with one line pasted into Ter
 asks for the teacher's API key and puts a **Game Studio** shortcut on the Desktop (users guide
 §1). The same testing set how the crew helps (Part 6), which is already in the Game Studio's
 `setting`. The first teacher's testing asked for music, so the Sound designer is now the
-composer too. Phase 4 still has the Ask for help button, huddles and the Tester's coaching.
+composer too, and to have the Tester play the game itself, which it now does in a headless
+browser on the laptop. Phase 4 still has the Ask for help button and huddles.
 
 ## Not in this plan
 

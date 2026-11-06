@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { parseAgentOutput } from "../agents.server";
-import { fixtureReply, pickProvider } from "../model.server";
+import { callModelWithTool, fixtureReply, pickProvider, type CrewTool } from "../model.server";
 
 describe("pickProvider", () => {
   it("prefers an explicit BRIDGE_CREW_MODEL_PROVIDER", () => {
@@ -55,5 +55,34 @@ describe("fixtureReply", () => {
       expect(plan).toContain(heading);
     }
     expect(plan).toContain("2 lines of session material");
+  });
+});
+
+describe("callModelWithTool", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("on fixture replies, uses the tool once with its canned input, then replies", async () => {
+    vi.stubEnv("BRIDGE_CREW_MODEL_PROVIDER", "fixture");
+    const inputs: unknown[] = [];
+    const tool: CrewTool = {
+      name: "play",
+      description: "Play the game.",
+      inputSchema: { type: "object", properties: {} },
+      uses: 5,
+      fixtureInput: { name: "arrows", steps: [] },
+      use: async (input) => {
+        inputs.push(input);
+        return { parts: [{ text: "Look 1" }] };
+      },
+    };
+    const raw = await callModelWithTool(
+      [
+        { role: "system", content: "You are the Tester." },
+        { role: "user", content: "## Your task\n\ncheck version 1" },
+      ],
+      tool,
+    );
+    expect(inputs).toEqual([{ name: "arrows", steps: [] }]);
+    expect(parseAgentOutput(raw).spokenRaw).toContain("the Tester here, on fixture replies");
   });
 });

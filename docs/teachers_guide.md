@@ -56,7 +56,10 @@ from **Recent rooms** in the lobby and carry on. Stopping, updating and fixing p
   wants the floor. If the movement distracts the student, turn on **Reduce motion** in the Mac's
   System Settings (Accessibility, then Display), and the portraits hold still.
 - **Making the game.** The Engineer builds versions, the Artist draws pictures, and the Sound
-  designer makes sounds and music. Nothing goes into the game until the student grants it. See §4 of the
+  designer makes sounds and music. The Tester plays each version itself, in a browser on the
+  laptop, and shows a row of pictures of what it saw, then explains what broke. The pictures
+  go to Anthropic with the Tester's request, as the game's code does, and show only the game.
+  Nothing goes into the game until the student grants it. See §4 of the
   [users guide](users_guide.md#4-making-the-game).
 - **The big screen.** Type "on screen" (or press **On screen**) to play the game, see a picture,
   hear the sounds, or read a tune's notes and play it. "Off screen" comes back. The screen only changes when someone asks.
