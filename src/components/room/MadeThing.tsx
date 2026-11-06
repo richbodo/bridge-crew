@@ -1,16 +1,16 @@
-import { useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
 import { prepareGame, slugify } from "@/lib/game-file";
-import { labelOf } from "@/lib/made";
+import { labelOf, testOf } from "@/lib/made";
 import { musicSamples, type Song } from "@/lib/music";
 
 export { labelOf };
 
-/** A version, picture, sound or piece of music a crew member made (docs/state_machines.md §8). */
+/** A version, picture, sound, piece of music or test a crew member made (docs/state_machines.md §8). */
 export interface MadeRow {
   id: string;
-  kind: "version" | "picture" | "sound" | "music";
+  kind: "version" | "picture" | "sound" | "music" | "test";
   name: string;
   version: number | null;
   body: string;
@@ -24,6 +24,12 @@ const STATE_LABEL: Record<MadeRow["state"], string> = {
   used: "in the game",
   not_used: "not used",
   removed: "removed",
+};
+
+/** A test the student said yes to is kept, so the Tester can play it again on a new version. */
+const TEST_STATE_LABEL: Partial<Record<MadeRow["state"], string>> = {
+  used: "kept",
+  not_used: "not kept",
 };
 
 export function svgSource(svg: string): string {
@@ -97,6 +103,11 @@ interface Props {
 
 export function MadeThing({ thing, current, title, compact, onScreen, onUse }: Props) {
   const playingThis = usePlayingMusic() === thing.id;
+  const test = thing.kind === "test";
+  const firstLook = useMemo(
+    () => (test ? testOf(thing.body).looks[0] : undefined),
+    [test, thing.body],
+  );
   // Use this: something not used, or an older version that isn't the current one.
   const canUse =
     thing.state === "not_used" || (thing.kind === "version" && thing.state === "used" && !current);
@@ -114,11 +125,19 @@ export function MadeThing({ thing, current, title, compact, onScreen, onUse }: P
           alt={thing.name}
           className={`${compact ? "size-10" : "size-14"} shrink-0 rounded-sm bg-card object-contain`}
         />
+      ) : firstLook ? (
+        <img
+          src={firstLook.image}
+          alt=""
+          className={`${compact ? "h-10" : "h-14"} aspect-[4/3] shrink-0 rounded-sm bg-black object-contain`}
+        />
       ) : null}
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-medium text-foreground">{labelOf(thing)}</p>
         <p className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-          {current ? "current version" : STATE_LABEL[thing.state]}
+          {current
+            ? "current version"
+            : ((test ? TEST_STATE_LABEL[thing.state] : undefined) ?? STATE_LABEL[thing.state])}
         </p>
       </div>
       {thing.state === "removed" ? null : (
@@ -168,7 +187,7 @@ export function MadeThing({ thing, current, title, compact, onScreen, onUse }: P
               className="h-6 px-2 text-[11px]"
               onClick={() => onUse(thing)}
             >
-              Use this
+              {test ? "Keep this" : "Use this"}
             </Button>
           ) : null}
         </div>

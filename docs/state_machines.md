@@ -89,7 +89,9 @@ machines.
   - a **picture**, drawn by the Artist;
   - a **sound**, made by the Sound designer;
   - a piece of **music**, also by the Sound designer: notes for up to four instruments, which
-    plays over and over.
+    plays over and over;
+  - a **test**, made by the Tester as it plays the current version: its looks at the game, each
+    a picture of the screen with what the Tester did and what should be on the screen.
 
   The **current version** is the version the Engineer builds from next.
 - **Manage** (Game Studio): a button beside the list of made things, on the bridge and on the
@@ -319,7 +321,8 @@ stateDiagram-v2
 - **Every made thing is saved** the moment its run finishes. Versions go to the games folder as
   `v<N>.html`, so nothing is lost.
 - **Used** means it's part of the game. The Engineer builds with the pictures, sounds and music
-  that are used, and the newest used version becomes the current version.
+  that are used, and the newest used version becomes the current version. A used test is
+  **kept**: the Tester can play it again on a later version.
 - **Not used** things stay in the room. The student can open one and press **Use this**, which
   makes it Used. For a version, that also makes it the current version.
 - **Removed** things are out of the room's lists, off the big screen, and out of what the crew

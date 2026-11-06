@@ -7,7 +7,8 @@ import ZZFX from "./vendor/zzfx/ZzFX.js?raw";
  *   - a content security policy that blocks the network;
  *   - ZzFX (MIT), so the game can call zzfx(...) with the Sound designer's sounds, and
  *     playMusic(song) and stopMusic() for its music;
- *   - in the room only, a crash reporter that tells the room when the game throws.
+ *   - in the room only, a crash reporter that tells the room when the game throws;
+ *   - in the Tester's playtest only, ears: a record of every sound and song the game plays.
  */
 
 const CSP =
@@ -55,12 +56,37 @@ const CRASH_REPORTER = `<script>
 })();
 </script>`;
 
-/** The game, ready to run: in the room's sandboxed frame, or as a file to share. */
-export function prepareGame(html: string, { inRoom }: { inRoom: boolean }): string {
+/**
+ * What the game plays, for the Tester's playtest (src/lib/playtest.server.ts): each call of
+ * zzfx, playMusic or stopMusic goes into __heard, as its name and its arguments as JSON.
+ */
+const EARS = `<script>
+(function () {
+  var heard = (globalThis.__heard = []);
+  ["zzfx", "playMusic", "stopMusic"].forEach(function (name) {
+    var play = globalThis[name];
+    globalThis[name] = function () {
+      var args = Array.prototype.slice.call(arguments);
+      heard.push([name, JSON.stringify(name === "zzfx" ? args : args[0])]);
+      return play.apply(this, arguments);
+    };
+  });
+})();
+</script>`;
+
+/**
+ * The game, ready to run: in the room's sandboxed frame, as a file to share, or (listen) in
+ * the Tester's playtest.
+ */
+export function prepareGame(
+  html: string,
+  { inRoom, listen = false }: { inRoom: boolean; listen?: boolean },
+): string {
   const head = [
     `<meta http-equiv="Content-Security-Policy" content="${CSP}">`,
     inRoom ? CRASH_REPORTER : "",
     SOUND_SCRIPT,
+    listen ? EARS : "",
   ]
     .filter(Boolean)
     .join("\n");

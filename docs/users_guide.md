@@ -68,7 +68,8 @@ organization, and you make the key there.
 3. Follow what it says. It:
    - installs Homebrew, which asks for the password you use to log in to the Mac (nothing shows
      on screen as you type it), and then the tools Bridge Crew needs;
-   - downloads Bridge Crew into a folder called `bridge-crew` in your home folder;
+   - downloads Bridge Crew into a folder called `bridge-crew` in your home folder, and the
+     browser the Tester plays games in (about 90 MB), which runs out of sight;
    - asks for your API key. Paste it and press Return; it doesn't show on screen. The installer
      checks the key with Anthropic and saves it on the laptop only;
    - starts the local database once, which downloads about 2 GB;
@@ -164,6 +165,15 @@ shortcut, it also answers to other computers on the network.
   anything or in the header, or just type "on screen". "Off screen" comes back to the bridge.
   **Full screen** fills the laptop's display, and **Esc** comes back. A strip under the big screen keeps the message
   box, the newest hail and any suggestions to hand.
+- **The Tester plays the game.** Ask "Tester, check version 2", and it plays the current
+  version itself, in a browser on the laptop that runs out of sight. It presses and holds keys,
+  clicks, waits and looks, and the game is paused while it thinks, so the game only moves
+  during its steps. Its card shows each step and the screen as it plays. Then it hails with a
+  **test**: a row of pictures, each with what it did just before and what should be on the
+  screen, plus what the game played and any errors. It says what broke, and can suggest asking
+  the Engineer to fix it. Granting the hail keeps the test, so the Tester can play it again on
+  a later version; a test that wasn't kept has **Keep this**. **On screen** shows the pictures
+  large.
 - **When a version crashes** on screen, the room says so and suggests "Ask the Engineer to fix
   it?" **Yes** starts the Engineer on it; **No thanks** leaves it.
 - **Reply**, under a crew member's line, starts a prompt to them about what they said, with the
@@ -190,6 +200,8 @@ shortcut, it also answers to other computers on the network.
 - **"The model provider rejected the crew's API key"** or **"AI credits are exhausted for this
   account."** Check **Billing** at <https://platform.claude.com/settings/billing>, then paste
   the install line again: it checks the key.
+- **"The browser for playing games didn't open."** The Tester says this when the browser it
+  plays in is missing. Paste the install line into Terminal again; it downloads the browser.
 - **The browser can't connect to localhost.** The Game Studio isn't running. Double-click
   **Game Studio** on the Desktop; if it's already running, that opens it again.
 - **A crew member stays working for a long time.** After five minutes it stops by itself. You

@@ -21,6 +21,7 @@ export type Database = {
           id: string
           progress: string | null
           session_id: string
+          snapshot: string | null
           status: Database["public"]["Enums"]["agent_status"]
           updated_at: string
         }
@@ -35,6 +36,7 @@ export type Database = {
           id?: string
           progress?: string | null
           session_id: string
+          snapshot?: string | null
           status?: Database["public"]["Enums"]["agent_status"]
           updated_at?: string
         }
@@ -49,6 +51,7 @@ export type Database = {
           id?: string
           progress?: string | null
           session_id?: string
+          snapshot?: string | null
           status?: Database["public"]["Enums"]["agent_status"]
           updated_at?: string
         }

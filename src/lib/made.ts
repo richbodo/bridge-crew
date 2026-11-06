@@ -6,13 +6,15 @@ import type { Makes } from "./templates";
  * that ask for it, and the parser that finds it in the reply. Pure — no IO.
  */
 
-export type MadeKind = "version" | "picture" | "sound" | "music";
+export type MadeKind = "version" | "picture" | "sound" | "music" | "test";
 
 export interface MadeDraft {
   kind: MadeKind;
   name: string;
   body: string;
 }
+
+const KIND_LABEL: Record<string, string> = { picture: "Picture", music: "Music", test: "Test" };
 
 /** A made thing's name on screen: "Version 3", "Version 3: with gems", "Music: theme". */
 export function labelOf(thing: { kind: string; name: string; version: number | null }): string {
@@ -21,8 +23,46 @@ export function labelOf(thing: { kind: string; name: string; version: number | n
     const title = thing.name && !/^v\d+$/.test(thing.name) ? `: ${thing.name}` : "";
     return `Version ${number}${title}`;
   }
-  const kind = thing.kind === "picture" ? "Picture" : thing.kind === "music" ? "Music" : "Sound";
-  return `${kind}: ${thing.name}`;
+  return `${KIND_LABEL[thing.kind] ?? "Sound"}: ${thing.name}`;
+}
+
+/** One look in the Tester's playtest (src/lib/playtest.server.ts). */
+export interface TestLook {
+  /** What the Tester did before it looked: "Held → for 1 s, then pressed Space". */
+  did: string;
+  /** What should be on the screen, as the Tester wrote it. */
+  expect: string;
+  /** The screen, as a JPEG data URL. */
+  image: string;
+  /** The sounds and music the game played. */
+  heard: string[];
+  /** Errors the game threw, and messages it showed. */
+  errors: string[];
+}
+
+/** A test: the Tester's looks at one version of the game. It's a made thing's body, as JSON. */
+export interface TestRecord {
+  version: number | null;
+  looks: TestLook[];
+}
+
+/** A test's record, or an empty one if the body isn't one. */
+export function testOf(body: string): TestRecord {
+  try {
+    const test = JSON.parse(body) as Partial<TestRecord>;
+    return { version: test.version ?? null, looks: Array.isArray(test.looks) ? test.looks : [] };
+  } catch {
+    return { version: null, looks: [] };
+  }
+}
+
+/** A test's steps in words, for the crew: "At the start; should: …. Held → for 1 s; …". */
+export function testSteps(body: string): string {
+  const test = testOf(body);
+  const looks = test.looks.map((look) =>
+    look.expect ? `${look.did}; should: ${look.expect}` : look.did,
+  );
+  return `${test.version ? `(on Version ${test.version}) ` : ""}${looks.join(". ")}`;
 }
 
 /** ZzFX's parameters, in order, so the Sound designer and Engineer know what each number is. */
@@ -62,6 +102,19 @@ PICTURE: <a one-word name, like mole>
 
 Rules for the picture: one standalone SVG with a viewBox; simple flat shapes; no scripts, no
 links, no images or fonts from anywhere else, and no text unless asked; under 20 KB.`,
+  tests: `When there's a version of the game, you can play it yourself with the play tool, the way a
+player would. Test it like this:
+- Read the current version's code and game.md first, so you know the controls and what should
+  happen.
+- Play in small steps. Look after each thing you check, with what should be on the screen in
+  "expect". Name the test in one word, like arrows or jump.
+- Look closely at each picture, and say only what you saw in it.
+- Then report what you did, what happened, and what should have happened. Something that broke
+  is a bug: describe it so the Engineer can fix it, and suggest asking the Engineer.
+- When it would help the student learn, give them one thing to try themselves, and say what
+  should happen.
+The student sees your pictures with your answer. To play tests the student kept again, follow
+their steps under "The game so far".`,
   sound: `After the BRIEF, hand back up to three sound effects, one piece of music, or both. Sound
 effects are ZzFX parameter lists:
 
@@ -227,7 +280,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function cleanName(name: string, fallback: string): string {
+/** A made thing's name: lower case, letters, digits and spaces, at most 30 characters. */
+export function cleanName(name: string, fallback: string): string {
   const clean = name
     .toLowerCase()
     .replace(/[^\p{L}\p{N} _-]/gu, "")
