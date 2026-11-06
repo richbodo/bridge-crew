@@ -66,6 +66,11 @@ fi
 if [ "$RESET" = 1 ]; then
   info "Resetting database (drops all data, reapplies supabase/migrations)..."
   supabase db reset
+else
+  # An update can bring new migrations: apply just those, keeping the rooms. Does nothing when
+  # the database is up to date.
+  info "Applying any new migrations..."
+  supabase migration up --local >/dev/null || die "couldn't apply the new migrations in supabase/migrations."
 fi
 
 STATUS_ENV="$(supabase status -o env 2>/dev/null)" || die "supabase status failed — is this project's stack running?"

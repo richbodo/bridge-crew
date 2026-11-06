@@ -131,8 +131,10 @@ Everything runs as your normal macOS user — no `sudo`, nothing to shell into.
 | Crew model calls (`src/lib/model.server.ts`) | HTTPS from the app server | Anthropic API |
 
 The schema comes from `supabase/migrations/`, applied automatically by
-`supabase start` (and by `just infra-reset`). Local email auth auto-confirms
-sign-ups, so no mailbox is needed; any auth email that is sent lands in Mailpit
+`supabase start` (and by `just infra-reset`). Every `just infra` also applies
+any migrations the database doesn't have yet, keeping its data, so an update
+reaches a teacher's database. Local email auth auto-confirms sign-ups, so no
+mailbox is needed; any auth email that is sent lands in Mailpit
 at <http://127.0.0.1:55324>.
 
 **Ports.** `supabase/config.toml` puts this project on the 553xx range so it
@@ -229,7 +231,8 @@ mac% just psql           # database shell
 
 Studio (`just studio`, <http://127.0.0.1:55323>) is the easiest way to look at
 rows. To change the schema, add a new file under `supabase/migrations/`, run
-`just infra-reset` (or `supabase migration up`), then `just db-types`.
+`just infra` (which applies it and keeps your data) or `just infra-reset`, then
+`just db-types`.
 
 ---
 
