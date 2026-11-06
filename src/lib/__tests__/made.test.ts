@@ -1,3 +1,5 @@
+import { runInNewContext } from "node:vm";
+
 import { describe, expect, it } from "vitest";
 
 import { prepareGame, slugify } from "../game-file";
@@ -35,6 +37,35 @@ describe("splitMade", () => {
       { kind: "sound", name: "dig", body: "[1,0.05,220]" },
       { kind: "sound", name: "pop", body: "[0.5,null,900]" },
     ]);
+  });
+
+  it("finds music next to sounds: in range, and only tracks with an instrument and a note", () => {
+    const { text, made } = splitMade(
+      reply(
+        'SOUNDS:\n```json\n{"dig": [1, 0.05, 220]}\n```\n\nMUSIC: Title Theme\n```json\n' +
+          '{"tempo": 400, "instruments": {"lead": [3, 0.1, 440], "pad": [1]},' +
+          ' "tracks": {"lead": "C5  E5 | G5 -", "pad": ". . .", "bass": "C3"}}\n```',
+      ),
+    );
+    expect(text).not.toContain("SOUNDS:");
+    expect(text).not.toContain("MUSIC:");
+    expect(made).toEqual([
+      { kind: "sound", name: "dig", body: "[1,0.05,220]" },
+      {
+        kind: "music",
+        name: "title theme",
+        body: JSON.stringify({
+          tempo: 200,
+          instruments: { lead: [1, 0.1, 440] },
+          tracks: { lead: "C5 E5 | G5 -" },
+        }),
+      },
+    ]);
+  });
+
+  it("makes no music from a song without a note to play", () => {
+    const silent = '{"instruments": {"lead": [1]}, "tracks": {"lead": ". - |"}}';
+    expect(splitMade(reply(`MUSIC: quiet\n\`\`\`json\n${silent}\n\`\`\``)).made).toEqual([]);
   });
 
   it("makes nothing from a plain reply", () => {
@@ -96,6 +127,7 @@ describe("labelOf", () => {
     expect(labelOf({ kind: "version", name: "with gems", version: 3 })).toBe("Version 3: with gems");
     expect(labelOf({ kind: "picture", name: "mole", version: null })).toBe("Picture: mole");
     expect(labelOf({ kind: "sound", name: "dig", version: null })).toBe("Sound: dig");
+    expect(labelOf({ kind: "music", name: "theme", version: null })).toBe("Music: theme");
   });
 });
 
@@ -107,9 +139,52 @@ describe("prepareGame", () => {
     const head = game.slice(game.indexOf("<head>"), game.indexOf("<title>"));
     expect(head).toContain("Content-Security-Policy");
     expect(head).toContain("default-src 'none'");
-    expect(head).toContain("zzfxV");
+    expect(head).toContain("playMusic");
     expect(head).toContain("MIT License");
     expect(head).toContain("bridge-crew-crash");
+  });
+
+  it("gives the game zzfx, ZZFX, playMusic and stopMusic, from a plain script", () => {
+    const game = prepareGame("<canvas></canvas>", { inRoom: false });
+    const script = /<script>([\s\S]*?)<\/script>/.exec(game)?.[1] ?? "";
+    const sources: Array<{ loop: boolean; stopped?: boolean }> = [];
+    const node = { connect: (next: unknown) => next };
+    class AudioContext {
+      destination = {};
+      createBuffer = (_channels: number, length: number) => ({
+        getChannelData: () => new Float32Array(length),
+      });
+      createBufferSource = () => {
+        const source = { ...node, loop: false, playbackRate: { value: 1 }, start() {}, stop() {} };
+        source.stop = () => Object.assign(source, { stopped: true });
+        sources.push(source);
+        return source;
+      };
+      createGain = () => ({ ...node, gain: { value: 1 } });
+      resume() {}
+    }
+    const page: Record<string, unknown> = {
+      AudioContext,
+      StereoPannerNode: class {
+        connect = node.connect;
+      },
+      addEventListener() {},
+    };
+    page["globalThis"] = page;
+    runInNewContext(script, page);
+
+    expect(Object.keys(page)).toEqual(
+      expect.arrayContaining(["zzfx", "ZZFX", "playMusic", "stopMusic", "zzfxX"]),
+    );
+    const song = { tempo: 120, instruments: { lead: [1] }, tracks: { lead: "C4 E4" } };
+    const playMusic = page["playMusic"] as (song: unknown, loop?: boolean) => void;
+    playMusic(song, false);
+    expect(sources.at(-1)).toMatchObject({ loop: false });
+    playMusic(song);
+    expect(sources.at(-2)).toMatchObject({ stopped: true }); // one tune at a time
+    expect(sources.at(-1)).toMatchObject({ loop: true });
+    (page["stopMusic"] as () => void)();
+    expect(sources.at(-1)).toMatchObject({ stopped: true });
   });
 
   it("leaves the crash reporter out of a file to share, and wraps a bare fragment", () => {

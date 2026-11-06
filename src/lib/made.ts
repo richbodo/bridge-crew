@@ -1,3 +1,4 @@
+import { musicSteps, noteFrequency } from "./music";
 import type { Makes } from "./templates";
 
 /**
@@ -5,7 +6,7 @@ import type { Makes } from "./templates";
  * that ask for it, and the parser that finds it in the reply. Pure — no IO.
  */
 
-export type MadeKind = "version" | "picture" | "sound";
+export type MadeKind = "version" | "picture" | "sound" | "music";
 
 export interface MadeDraft {
   kind: MadeKind;
@@ -13,19 +14,20 @@ export interface MadeDraft {
   body: string;
 }
 
-/** A made thing's name on screen: "Version 3", "Version 3: with gems", "Picture: mole". */
+/** A made thing's name on screen: "Version 3", "Version 3: with gems", "Music: theme". */
 export function labelOf(thing: { kind: string; name: string; version: number | null }): string {
   if (thing.kind === "version") {
     const number = thing.version ?? thing.name.replace(/^v/, "");
     const title = thing.name && !/^v\d+$/.test(thing.name) ? `: ${thing.name}` : "";
     return `Version ${number}${title}`;
   }
-  return `${thing.kind === "picture" ? "Picture" : "Sound"}: ${thing.name}`;
+  const kind = thing.kind === "picture" ? "Picture" : thing.kind === "music" ? "Music" : "Sound";
+  return `${kind}: ${thing.name}`;
 }
 
 /** ZzFX's parameters, in order, so the Sound designer and Engineer know what each number is. */
 export const ZZFX_PARAMETERS =
-  "volume, randomness, frequency, attack, sustain, release, shape (0 sine, 1 triangle, 2 saw, 3 tan, 4 noise), shapeCurve, slide, deltaSlide, pitchJump, pitchJumpTime, repeatTime, noise, modulation, bitCrush, delay, sustainVolume, decay, tremolo, filter";
+  "volume, randomness, frequency, attack, sustain, release, shape (0 sine, 1 triangle, 2 saw, 3 tan, 4 noise, 5 square), shapeCurve, slide, deltaSlide, pitchJump, pitchJumpTime, repeatTime, noise, modulation, bitCrush, delay, sustainVolume, decay, tremolo, filter";
 
 const FORMATS: Partial<Record<Makes, string>> = {
   version: `After the BRIEF, hand back the whole game as one HTML file:
@@ -44,6 +46,9 @@ Rules for the file:
 - Pictures: inline the SVG of the pictures listed under "The game so far", or draw with canvas.
 - Sounds: call zzfx(...) with the parameter lists listed under "The game so far". zzfx is
   already defined on the page; don't define it.
+- Music: paste a song listed under "The game so far" into the script as an object, and call
+  playMusic(song). It plays over and over until stopMusic() or the next playMusic(...);
+  playMusic(song, false) plays it once. Both are already defined on the page; don't define them.
 - Controls: arrow keys and the space bar, and mouse clicks. Show the controls on screen, keep a
   score, and give a way to restart.
 - No sound before the player presses a key or clicks, and nothing that flashes.
@@ -57,7 +62,8 @@ PICTURE: <a one-word name, like mole>
 
 Rules for the picture: one standalone SVG with a viewBox; simple flat shapes; no scripts, no
 links, no images or fonts from anywhere else, and no text unless asked; under 20 KB.`,
-  sound: `After the BRIEF, hand back up to three sound effects as ZzFX parameter lists:
+  sound: `After the BRIEF, hand back up to three sound effects, one piece of music, or both. Sound
+effects are ZzFX parameter lists:
 
 SOUNDS:
 \`\`\`json
@@ -65,7 +71,36 @@ SOUNDS:
 \`\`\`
 
 Each name is one word, and each list is the arguments for zzfx(...), in this order:
-${ZZFX_PARAMETERS}. Keep the volume (the first number) at 1 or below.`,
+${ZZFX_PARAMETERS}. Keep the volume (the first number) at 1 or below.
+
+Music is notes, played on instruments that are ZzFX parameter lists too:
+
+MUSIC: <a one-word name, like theme>
+\`\`\`json
+{
+  "tempo": 120,
+  "instruments": {
+    "lead": [0.5, 0, 440, 0.01, 0.1, 0.1, 5],
+    "bass": [0.7, 0, 110, 0.01, 0.2, 0.1, 1],
+    "drum": [0.8, 0, 90, 0, 0.02, 0.1, 4]
+  },
+  "tracks": {
+    "lead": "C5 E5 G5 E5 | D5 F5 A5 -",
+    "bass": "C3 .  C3 .  | D3 .  D3 . ",
+    "drum": "x  .  x  .  | x  .  x  x "
+  }
+}
+\`\`\`
+
+Rules for music:
+- The tempo is beats a minute, from 60 to 200.
+- Each track plays on the instrument with the same name. A note's pitch replaces the
+  instrument's frequency (the third number).
+- In a track, each item is one step, half a beat long: a note, like C4, F#3 or Bb5; x, which
+  plays the instrument at its own frequency (for drums); - to hold the note before it for
+  another step; or . for a rest. A | marks a bar and takes no time.
+- Up to four tracks of up to 128 steps. A shorter track repeats. The music loops, so make its
+  end lead back to its start.`,
 };
 
 /** Removing what you made, when the student asks (§8). Only for jobs that make things. */
@@ -83,7 +118,7 @@ export function formatFor(makes: Makes): string | null {
   return format ? `${format}\n\n${TIDY}` : null;
 }
 
-const MARKER = /\n\s*(FILE|PICTURE|SOUNDS):/;
+const MARKER = /\n\s*(FILE|PICTURE|SOUNDS|MUSIC):/;
 
 function fenced(text: string, lang: string): string | null {
   const match = new RegExp("```(?:" + lang + ")?\\s*\\n([\\s\\S]*?)```", "i").exec(text);
@@ -109,22 +144,87 @@ export function splitMade(raw: string): { text: string; made: MadeDraft[] } {
     if (svg && /^<svg\b/i.test(svg) && svg.length < 100_000 && !/<script\b/i.test(svg)) {
       made.push({ kind: "picture", name: cleanName(name, "picture"), body: svg });
     }
-  } else if (tail.startsWith("SOUNDS:")) {
-    const json = fenced(tail, "json");
-    try {
-      const sounds = JSON.parse(json ?? "") as Record<string, unknown>;
-      for (const [name, params] of Object.entries(sounds).slice(0, 3)) {
-        if (!Array.isArray(params) || !params.every((p) => p === null || typeof p === "number")) {
-          continue;
+  } else {
+    // The Sound designer's: sound effects, music, or both, in either order.
+    const sounds = section(tail, "SOUNDS");
+    if (sounds) {
+      try {
+        const lists = JSON.parse(fenced(sounds, "json") ?? "") as Record<string, unknown>;
+        for (const [name, params] of Object.entries(lists).slice(0, 3)) {
+          if (!isParams(params)) continue;
+          made.push({
+            kind: "sound",
+            name: cleanName(name, "sound"),
+            body: JSON.stringify(capped(params)),
+          });
         }
-        const safe = params.map((p, i) => (i === 0 && typeof p === "number" ? Math.min(p, 1) : p));
-        made.push({ kind: "sound", name: cleanName(name, "sound"), body: JSON.stringify(safe) });
+      } catch {
+        // A malformed list makes nothing; the brief still has the description.
       }
-    } catch {
-      // A malformed list makes nothing; the brief still has the description.
+    }
+    const music = section(tail, "MUSIC");
+    const song = music ? songFrom(fenced(music, "json")) : null;
+    if (music && song) {
+      const name = /^MUSIC:\s*([^\n`]*)/.exec(music)?.[1]?.trim() ?? "";
+      made.push({ kind: "music", name: cleanName(name, "music"), body: JSON.stringify(song) });
     }
   }
   return { text, made };
+}
+
+/** One section of the tail, from its marker to the next marker or the end. */
+function section(tail: string, marker: "SOUNDS" | "MUSIC"): string | null {
+  const start = new RegExp(`(^|\\n)\\s*${marker}:`).exec(tail);
+  if (!start) return null;
+  const rest = tail.slice(start.index).trim();
+  const end = rest.slice(marker.length).search(MARKER);
+  return end < 0 ? rest : rest.slice(0, marker.length + end);
+}
+
+function isParams(params: unknown): params is Array<number | null> {
+  return Array.isArray(params) && params.every((p) => p === null || typeof p === "number");
+}
+
+/** A ZzFX parameter list with its volume (the first number) at 1 or below. */
+function capped(params: Array<number | null>): Array<number | null> {
+  return params.map((p, i) => (i === 0 && typeof p === "number" ? Math.min(p, 1) : p));
+}
+
+/**
+ * A song (src/lib/music.js), checked and tidied: the tempo in range, up to four tracks that
+ * each have an instrument and at least one note, up to 128 steps each. Null if nothing's left.
+ */
+function songFrom(json: string | null) {
+  try {
+    const song = JSON.parse(json ?? "") as {
+      tempo?: unknown;
+      instruments?: unknown;
+      tracks?: unknown;
+    };
+    if (!isRecord(song.instruments) || !isRecord(song.tracks)) return null;
+    const instruments: Record<string, Array<number | null>> = {};
+    const tracks: Record<string, string> = {};
+    for (const [name, track] of Object.entries(song.tracks).slice(0, 4)) {
+      const params = song.instruments[name];
+      if (typeof track !== "string" || !isParams(params)) continue;
+      const steps = musicSteps(track);
+      if (!steps.some((step) => /^x$/i.test(step) || noteFrequency(step) !== undefined)) continue;
+      const key = cleanName(name, "track");
+      instruments[key] = capped(params);
+      tracks[key] =
+        steps.length > 128 ? steps.slice(0, 128).join(" ") : track.trim().replace(/\s+/g, " ");
+    }
+    if (!Object.keys(tracks).length) return null;
+    const tempo =
+      typeof song.tempo === "number" ? Math.round(Math.min(Math.max(song.tempo, 60), 200)) : 120;
+    return { tempo, instruments, tracks };
+  } catch {
+    return null;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function cleanName(name: string, fallback: string): string {
@@ -144,7 +244,7 @@ export interface AskDraft {
   task: string;
 }
 
-const SECTION = /^\s*(FILE|PICTURE|SOUNDS|ASK|REMOVE):/;
+const SECTION = /^\s*(FILE|PICTURE|SOUNDS|MUSIC|ASK|REMOVE):/;
 const FENCE = /^\s*```/;
 
 /**

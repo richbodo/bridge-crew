@@ -56,10 +56,10 @@ from **Recent rooms** in the lobby and carry on. Stopping, updating and fixing p
   wants the floor. If the movement distracts the student, turn on **Reduce motion** in the Mac's
   System Settings (Accessibility, then Display), and the portraits hold still.
 - **Making the game.** The Engineer builds versions, the Artist draws pictures, and the Sound
-  designer makes sounds. Nothing goes into the game until the student grants it. See §4 of the
+  designer makes sounds and music. Nothing goes into the game until the student grants it. See §4 of the
   [users guide](users_guide.md#4-making-the-game).
-- **The big screen.** Type "on screen" (or press **On screen**) to play the game, see a picture
-  or hear the sounds. "Off screen" comes back. The screen only changes when someone asks.
+- **The big screen.** Type "on screen" (or press **On screen**) to play the game, see a picture,
+  hear the sounds, or read a tune's notes and play it. "Off screen" comes back. The screen only changes when someone asks.
 - **When something breaks.** If a version crashes on screen, the room suggests asking the
   Engineer to fix it. The student says **Yes** or **No thanks**.
 - **Learning how.** **How did you do that?** under any crew member's line asks them to explain,

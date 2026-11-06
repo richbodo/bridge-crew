@@ -2,8 +2,18 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { CRASH_MESSAGE, prepareGame } from "@/lib/game-file";
+import type { Song } from "@/lib/music";
 
-import { downloadVersion, labelOf, playSound, svgSource, type MadeRow } from "./MadeThing";
+import {
+  downloadVersion,
+  labelOf,
+  playMusic,
+  playSound,
+  stopMusic,
+  svgSource,
+  usePlayingMusic,
+  type MadeRow,
+} from "./MadeThing";
 import { Markdown } from "./Markdown";
 
 export interface Showing {
@@ -77,6 +87,8 @@ export function BigScreen({
           </figure>
         ) : thing?.kind === "sound" ? (
           <SoundBoard sounds={made.filter((t) => t.kind === "sound")} />
+        ) : thing?.kind === "music" ? (
+          <MusicSheet thing={thing} />
         ) : contribution ? (
           <article className="mx-auto h-full max-w-3xl overflow-y-auto text-white">
             <p className="text-xs uppercase tracking-[0.2em] text-white/60">{nameFor(contribution.agent)}</p>
@@ -181,6 +193,41 @@ function GameFrame({ thing, onCrash }: { thing: MadeRow; onCrash: (id: string, m
       srcDoc={doc}
       className="h-full w-full rounded-md border-0 bg-white"
     />
+  );
+}
+
+/** A song on screen: its notes, one track to a row with the bars lined up, and Play. */
+function MusicSheet({ thing }: { thing: MadeRow }) {
+  const playing = usePlayingMusic() === thing.id;
+  const song = useMemo(() => JSON.parse(thing.body) as Song, [thing.body]);
+  return (
+    <figure className="flex h-full flex-col items-center justify-center gap-5 text-white">
+      <div className="max-w-full overflow-x-auto font-mono text-lg">
+        {Object.entries(song.tracks).map(([name, track]) => (
+          <p key={name} className="flex items-center whitespace-nowrap py-1">
+            <span className="w-20 shrink-0 text-sm text-white/60">{name}</span>
+            {track
+              .split(/\s*(\|)\s*|\s+/)
+              .filter(Boolean)
+              .map((step, i) =>
+                step === "|" ? (
+                  <span key={i} className="mx-1 h-6 border-l border-white/30" aria-hidden />
+                ) : (
+                  <span key={i} className="w-10 text-center">
+                    {step}
+                  </span>
+                ),
+              )}
+          </p>
+        ))}
+      </div>
+      <figcaption className="text-sm text-white/80">
+        {labelOf(thing)}, {song.tempo} beats a minute
+      </figcaption>
+      <Button size="lg" onClick={() => (playing ? stopMusic() : void playMusic(thing))}>
+        {playing ? "Stop" : "Play"}
+      </Button>
+    </figure>
   );
 }
 

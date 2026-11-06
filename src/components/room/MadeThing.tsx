@@ -1,13 +1,16 @@
+import { useSyncExternalStore } from "react";
+
 import { Button } from "@/components/ui/button";
 import { prepareGame, slugify } from "@/lib/game-file";
 import { labelOf } from "@/lib/made";
+import { musicSamples, type Song } from "@/lib/music";
 
 export { labelOf };
 
-/** A version, picture or sound a crew member made (docs/state_machines.md §8). */
+/** A version, picture, sound or piece of music a crew member made (docs/state_machines.md §8). */
 export interface MadeRow {
   id: string;
-  kind: "version" | "picture" | "sound";
+  kind: "version" | "picture" | "sound" | "music";
   name: string;
   version: number | null;
   body: string;
@@ -35,6 +38,44 @@ export async function playSound(body: string) {
   zzfx(...params.map((p) => (p === null ? undefined : p)));
 }
 
+/** The music playing in the room: one song at a time, over and over, until Stop. */
+let playing: { id: string; source: AudioBufferSourceNode } | null = null;
+const listeners = new Set<() => void>();
+
+function setPlaying(next: typeof playing) {
+  playing?.source.stop();
+  playing = next;
+  for (const listener of listeners) listener();
+}
+
+/** Plays a song from the Sound designer, as the game would. Only when someone presses Play. */
+export async function playMusic(thing: MadeRow) {
+  const { ZZFX } = await import("zzfx");
+  ZZFX.volume = 0.25;
+  const samples = musicSamples(JSON.parse(thing.body) as Song, ZZFX);
+  setPlaying({ id: thing.id, source: ZZFX.playSamples([samples], 0.6, 1, 0, true) });
+}
+
+export function stopMusic() {
+  if (playing) setPlaying(null);
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/** The id of the made thing whose music is playing, if any. */
+export function usePlayingMusic(): string | null {
+  return useSyncExternalStore(
+    subscribe,
+    () => playing?.id ?? null,
+    () => null,
+  );
+}
+
 /** Saves a version as an HTML file that opens in any browser, ready to email to the family. */
 export function downloadVersion(thing: MadeRow, title: string) {
   const file = new Blob([prepareGame(thing.body, { inRoom: false })], { type: "text/html" });
@@ -55,6 +96,7 @@ interface Props {
 }
 
 export function MadeThing({ thing, current, title, compact, onScreen, onUse }: Props) {
+  const playingThis = usePlayingMusic() === thing.id;
   // Use this: something not used, or an older version that isn't the current one.
   const canUse =
     thing.state === "not_used" || (thing.kind === "version" && thing.state === "used" && !current);
@@ -89,6 +131,16 @@ export function MadeThing({ thing, current, title, compact, onScreen, onUse }: P
               onClick={() => void playSound(thing.body)}
             >
               Play
+            </Button>
+          ) : null}
+          {thing.kind === "music" ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-6 px-2 text-[11px]"
+              onClick={() => (playingThis ? stopMusic() : void playMusic(thing))}
+            >
+              {playingThis ? "Stop" : "Play"}
             </Button>
           ) : null}
           <Button

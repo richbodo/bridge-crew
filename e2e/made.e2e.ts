@@ -159,6 +159,27 @@ test.describe("making the game", () => {
     await made(page).getByRole("button", { name: "Play" }).first().click();
   });
 
+  test("the Sound designer makes music too: it loops until Stop, and its notes go on screen", async ({
+    page,
+  }) => {
+    await openStudio(page, { title: `E2E music ${Date.now()}` });
+    await say(page, "Sound designer, make some music for the title screen.");
+    await grantNext(page, "Sound designer");
+    await expect(made(page).getByText("Music: theme")).toBeVisible();
+
+    await made(page).getByRole("button", { name: "Play" }).click();
+    await made(page).getByRole("button", { name: "Stop" }).click();
+    await expect(made(page).getByRole("button", { name: "Play" })).toBeVisible();
+
+    await made(page).getByRole("button", { name: "On screen" }).click();
+    const sheet = page.getByRole("figure");
+    await expect(sheet.getByText("Music: theme, 120 beats a minute")).toBeVisible();
+    await expect(sheet.getByText("lead")).toBeVisible();
+    await expect(sheet.getByText("G5")).toBeVisible();
+    await sheet.getByRole("button", { name: "Play" }).click();
+    await expect(sheet.getByRole("button", { name: "Stop" })).toBeVisible();
+  });
+
   test("Reply sends the next prompt to the same crew member, about what it said", async ({ page }) => {
     await openStudio(page, { title: `E2E reply ${Date.now()}` });
     await say(page, "Storyteller, why does the mole need gems?");

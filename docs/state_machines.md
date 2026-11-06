@@ -87,12 +87,15 @@ machines.
 - **Made thing** (Game Studio): something a run makes along with its contribution:
   - a **version**: one playable copy of the game, made by the Engineer as one HTML file;
   - a **picture**, drawn by the Artist;
-  - a **sound**, made by the Sound designer.
+  - a **sound**, made by the Sound designer;
+  - a piece of **music**, also by the Sound designer: notes for up to four instruments, which
+    plays over and over.
 
   The **current version** is the version the Engineer builds from next.
 - **Manage** (Game Studio): a button beside the list of made things, on the bridge and on the
   big screen. In it, a person can:
-  - **rename** a picture or a sound, or give a version a title, as in "Version 3: with gems";
+  - **rename** a picture, a sound or a piece of music, or give a version a title, as in
+    "Version 3: with gems";
   - **remove** a made thing that isn't needed. It leaves the room's lists and what the crew
     builds with, but nothing is deleted, and a version stays in the games folder;
   - **put back** a removed thing. It comes back as not used.
@@ -315,13 +318,14 @@ stateDiagram-v2
 
 - **Every made thing is saved** the moment its run finishes. Versions go to the games folder as
   `v<N>.html`, so nothing is lost.
-- **Used** means it's part of the game. The Engineer builds with the pictures and sounds that are
-  used, and the newest used version becomes the current version.
+- **Used** means it's part of the game. The Engineer builds with the pictures, sounds and music
+  that are used, and the newest used version becomes the current version.
 - **Not used** things stay in the room. The student can open one and press **Use this**, which
   makes it Used. For a version, that also makes it the current version.
 - **Removed** things are out of the room's lists, off the big screen, and out of what the crew
-  builds with. They're still saved, and a version stays in the games folder. A removed picture
-  or sound stays in the versions already built, until the Engineer builds one without it.
+  builds with. They're still saved, and a version stays in the games folder. A removed picture,
+  sound or piece of music stays in the versions already built, until the Engineer builds one
+  without it.
 - **Who removes:** a person, with Manage; or a crew member, when the student asks, and only
   things it made itself. A crew member's removals come with its hail, as a made thing does, and
   happen only if the student grants it.

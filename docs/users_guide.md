@@ -140,14 +140,17 @@ shortcut, it also answers to other computers on the network.
 ### 4. Making the game
 
 - **What the crew makes.** The Engineer makes **versions** of the game, each one a single HTML
-  file. The Artist makes **pictures**, and the Sound designer makes **sounds**. Whatever a crew
-  member makes comes with its hail.
+  file. The Artist makes **pictures**, and the Sound designer makes **sounds** and **music**.
+  Music is written as notes, like `C4 E4 G4`, with a row of notes for each instrument, so the
+  student can read the tune. Whatever a crew member makes comes with its hail.
 - **Nothing goes into the game until the student says yes.** Granting the hail puts it in the
   game, and a version becomes the **current version**: the one the Engineer builds from next.
   **Not now** leaves it **not used**, but it isn't lost.
 - **Made in this room**, in the right column under `game.md`, lists everything, newest first,
   with what happened to it. **Use this** puts something that wasn't used into the game, or makes
-  an older version current again. **Play** plays a sound; nothing plays on its own.
+  an older version current again. **Play** plays a sound once. On music, **Play** plays the
+  tune over and over until **Stop**, one tune at a time, and it stops if the tune is removed or
+  you leave the room. Nothing plays on its own.
 - **Manage**, beside that list and on the big screen, renames things and removes the ones you
   don't need. A version can get a title, as in "Version 3: with gems". **Remove** takes a thing
   out of the lists and out of what the crew builds with, but deletes nothing: **Removed** at the
@@ -157,9 +160,9 @@ shortcut, it also answers to other computers on the network.
   lists what it would remove with its hail ("Removes, if you grant it"), and only removes it if
   the student grants it. A crew member only removes things it made.
 - **On screen and Off screen.** **On screen** shows one thing, large: the game (playable), a
-  picture, the sounds, or what a crew member said. Press **On screen** on anything or in the
-  header, or just type "on screen". "Off screen" comes back to the bridge. **Full screen** fills
-  the laptop's display, and **Esc** comes back. A strip under the big screen keeps the message
+  picture, the sounds, a tune's notes, or what a crew member said. Press **On screen** on
+  anything or in the header, or just type "on screen". "Off screen" comes back to the bridge.
+  **Full screen** fills the laptop's display, and **Esc** comes back. A strip under the big screen keeps the message
   box, the newest hail and any suggestions to hand.
 - **When a version crashes** on screen, the room says so and suggests "Ask the Engineer to fix
   it?" **Yes** starts the Engineer on it; **No thanks** leaves it.

@@ -84,10 +84,10 @@ export const gameStudio: Template = {
       name: "Sound designer",
       station: "Sound",
       accent: "var(--crew-sound-designer)",
-      blurb: "Makes every sound in the game.",
-      duty: "You are the Sound designer. You make the game's sound effects. Describe each sound in a few words before you make it.",
+      blurb: "Makes every sound in the game, and its music.",
+      duty: "You are the Sound designer, and the composer too. You make the game's sound effects and its music. Describe each sound or tune in a few words before you make it. Keep music short and simple: a tune that loops, for a title screen or a level, or a short one for a win.",
       makes: "sound",
-      aliases: ["sound"],
+      aliases: ["sound", "music", "composer"],
     },
     {
       key: "engineer",
@@ -118,7 +118,7 @@ export const gameStudio: Template = {
     file: "game.md",
     empty: "The Scribe starts game.md once the student says yes to something.",
     scribe:
-      "You are the Scribe for a game studio. You keep game.md, the game's design notes, which the Engineer builds the game from. Write down only what the student agreed to: the people's own words, and what the crew said after the student granted it. Leave out ideas the student didn't take. Keep each section short and concrete. Output markdown only, no preamble, with these sections in this order: ## The idea, ## Story, ## Characters, ## How to play, ## Look, ## Sounds, ## Levels, ## Bugs, ## Next, ## Session notes. Write \"Nothing yet.\" under a section with nothing in it. Never describe or judge the student as a person.",
+      "You are the Scribe for a game studio. You keep game.md, the game's design notes, which the Engineer builds the game from. Write down only what the student agreed to: the people's own words, and what the crew said after the student granted it. Leave out ideas the student didn't take. Keep each section short and concrete. Output markdown only, no preamble, with these sections in this order: ## The idea, ## Story, ## Characters, ## How to play, ## Look, ## Sounds and music, ## Levels, ## Bugs, ## Next, ## Session notes. Write \"Nothing yet.\" under a section with nothing in it. Never describe or judge the student as a person.",
   },
   setting: SETTING,
   spokenCap: 3,

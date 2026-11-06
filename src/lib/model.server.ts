@@ -163,7 +163,7 @@ export function fixtureReply(messages: ChatMessage[], role: ModelRole): string {
         "",
         `Fixture game notes — no model was called. ${lines} lines of session material so far.`,
         "",
-        ...["Story", "Characters", "How to play", "Look", "Sounds", "Levels", "Bugs", "Next", "Session notes"].flatMap(
+        ...["Story", "Characters", "How to play", "Look", "Sounds and music", "Levels", "Bugs", "Next", "Session notes"].flatMap(
           (section) => [`## ${section}`, "", "Nothing yet.", ""],
         ),
       ].join("\n");
@@ -222,7 +222,10 @@ function fixtureExtras(system: string, user: string, task: string): string {
   return `${fixtureMade(system, task)}${ask}`;
 }
 
-/** A made thing for the jobs that make one (src/lib/made.ts). "crash" in the task makes a game that throws. */
+/**
+ * A made thing for the jobs that make one (src/lib/made.ts). "crash" in the task makes a game
+ * that throws; "music" makes the Sound designer write a tune instead of sounds.
+ */
 function fixtureMade(system: string, task: string): string {
   if (system.includes("\nFILE:")) {
     const crash = /\bcrash/i.test(task) ? 'throw new Error("the mole fell off the map");' : "";
@@ -254,6 +257,13 @@ ${crash}
 PICTURE: mole
 \`\`\`svg
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="100" cy="110" r="70" fill="#9a8270"/><circle cx="75" cy="95" r="8" fill="#1c1410"/><circle cx="125" cy="95" r="8" fill="#1c1410"/><ellipse cx="100" cy="125" rx="16" ry="11" fill="#e8a0a0"/></svg>
+\`\`\``;
+  }
+  if (system.includes("\nSOUNDS:") && /\bmusic\b/i.test(task)) {
+    return `
+MUSIC: theme
+\`\`\`json
+{ "tempo": 120, "instruments": { "lead": [0.5, 0, 440, 0.01, 0.1, 0.1, 5], "bass": [0.7, 0, 110, 0.01, 0.2, 0.1, 1] }, "tracks": { "lead": "C5 E5 G5 E5 | D5 F5 A5 -", "bass": "C3 . C3 . | D3 . D3 ." } }
 \`\`\``;
   }
   if (system.includes("\nSOUNDS:")) {
