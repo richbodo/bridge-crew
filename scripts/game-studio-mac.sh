@@ -24,10 +24,24 @@ COLIMA_SOCKET="unix://$HOME/.colima/default/docker.sock"
 say() { printf '\033[1m%s\033[0m\n' "$*"; }
 printf '\033]0;Game Studio\007'
 
-if lsof -ti:"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then
-  say "The Game Studio is already running. Opening it in your browser."
-  open "$URL"
-  exit 0
+# Something already answers on the port: the Game Studio (open it), another copy of this app,
+# say from a developer's `just run` (stop it, so the Game Studio starts), or another program.
+pid=$(lsof -ti:"$PORT" -sTCP:LISTEN 2>/dev/null | head -1)
+if [ -n "$pid" ]; then
+  cwd=$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p')
+  if [ "$cwd" != "$(pwd -P)" ] || ! ps -o command= -p "$pid" | grep -q vite; then
+    say "Another program is using port $PORT, so the Game Studio can't start."
+    say "Restart the Mac, then double-click Game Studio again."
+    exit 1
+  fi
+  if ps eww -p "$pid" 2>/dev/null | grep -q 'VITE_BRIDGE_CREW_TEMPLATE=game-studio'; then
+    say "The Game Studio is already running. Opening it in your browser."
+    open "$URL"
+    exit 0
+  fi
+  say "Stopping an earlier copy of Bridge Crew that isn't the Game Studio."
+  lsof -ti:"$PORT" -sTCP:LISTEN 2>/dev/null | xargs kill 2>/dev/null
+  sleep 1
 fi
 
 # What's already running stays running when the session stops.

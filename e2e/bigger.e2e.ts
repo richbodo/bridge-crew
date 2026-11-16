@@ -22,7 +22,9 @@ test.describe("bigger games", () => {
     await expect(page.getByText(`${job} has the floor`).last()).toBeVisible();
   }
 
-  test("a Bigger room's game is a folder of files, and its saves last until Start fresh", async ({ page }) => {
+  test("a Bigger room's game is a folder of files, and its saves last until Start fresh", async ({
+    page,
+  }) => {
     const title = `E2E bigger ${Date.now()}`;
     await openStudio(page, { title, games: "bigger" });
     await expect(page.getByText("Game Studio · Bigger games")).toBeVisible();
@@ -32,7 +34,9 @@ test.describe("bigger games", () => {
 
     // The game folder and its bundle are in the room's games folder.
     const games = resolve("test-results/games");
-    const folder = readdirSync(games).find((name) => name.endsWith(title.toLowerCase().replaceAll(" ", "-")));
+    const folder = readdirSync(games).find((name) =>
+      name.endsWith(title.toLowerCase().replaceAll(" ", "-")),
+    );
     expect(folder).toBeDefined();
     expect(existsSync(join(games, folder!, "v1.html"))).toBe(true);
     expect(existsSync(join(games, folder!, "v1", "js", "game.js"))).toBe(true);
@@ -65,24 +69,34 @@ test.describe("bigger games", () => {
     const game = page.frameLocator('iframe[title="Version 1: cube"]');
     await expect(game.getByText("Three.js r180")).toBeVisible();
     await expect(
-      page.getByText(/Version 1: cube was written for an older Three.js \(r128\)\. Ask the Engineer to update it/),
+      page.getByText(
+        /Version 1: cube was written for an older Three.js \(r128\)\. Ask the Engineer to update it/,
+      ),
     ).toBeVisible();
     await page.getByRole("button", { name: "Off screen" }).click();
-    await expect(page.getByText(/Version 1: cube was brought in: 3 files, \d+ KB\. It loaded Three\.js r128/)).toBeVisible();
+    await expect(
+      page.getByText(/Version 1: cube was brought in: 3 files, \d+ KB\. It loaded Three\.js r128/),
+    ).toBeVisible();
     await expect(page.getByText(/Its fonts now come from the studio: VT323\./)).toBeVisible();
 
     // The Tester plays the folder's bundle, Three.js and all.
     await say(page, "Tester, check version 1.");
     await expect(page.getByText("Tester is hailing")).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByRole("list", { name: "What the Tester saw: arrows" }).getByRole("img")).toHaveCount(2);
+    await expect(
+      page.getByRole("list", { name: "What the Tester saw: arrows" }).getByRole("img"),
+    ).toHaveCount(2);
   });
 
-  test("a one-file game comes into a Simple room as it is, and downloads as one file", async ({ page }) => {
+  test("a one-file game comes into a Simple room as it is, and downloads as one file", async ({
+    page,
+  }) => {
     await openStudio(page, { title: `E2E one file ${Date.now()}` });
     await say(page, "on screen");
     await page.getByRole("button", { name: "Bring in a game" }).click();
     await page.getByLabel("Game file").setInputFiles(join(fixtures, "one-file.html"));
-    await expect(page.frameLocator('iframe[title="Version 1: one file"]').getByText("Plays: 1")).toBeVisible();
+    await expect(
+      page.frameLocator('iframe[title="Version 1: one file"]').getByText("Plays: 1"),
+    ).toBeVisible();
     await expect(page.getByText("Game Studio · Simple games")).toBeVisible();
     await page.getByRole("button", { name: "Off screen" }).click();
     await expect(made(page).getByText("Version 1: one file")).toBeVisible();

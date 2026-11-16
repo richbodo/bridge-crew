@@ -8,7 +8,7 @@
     "dev:fixture": "BRIDGE_CREW_MODEL_PROVIDER=fixture vite dev",
     "build": "vite build",
     "start": "node --env-file-if-exists=.env --env-file-if-exists=.env.local .output/server/index.mjs",
-    "db:types": "supabase gen types typescript --local --schema public > src/integrations/supabase/types.ts",
+    "db:types": "supabase gen types typescript --local --schema public > src/integrations/supabase/types.ts.new && mv src/integrations/supabase/types.ts.new src/integrations/supabase/types.ts || { rm -f src/integrations/supabase/types.ts.new; exit 1; }",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",

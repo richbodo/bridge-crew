@@ -75,17 +75,17 @@ it all (`brew install just`); `just` with no arguments lists every recipe.
 
 ```
 mac% just setup     # first time: dependencies and Playwright's browser
-mac% just demo      # then open two tabs at http://localhost:8080, one demo user each
+mac% just demo      # opens a tab at http://localhost:8080; open a second, one demo user each
 ```
 
 | Recipe | Does |
 | --- | --- |
 | `just setup` | First-time install: dependencies and Playwright's Chromium |
 | `just doctor` | Checks tools, Docker, the local stack, the model key and port 8080 |
-| `just demo` / `just demo-fixture` | Demo mode: one-click **Log me on as demo user 1 / 2**, one sign-in per tab. Crew calls Claude / answers with canned replies |
-| `just game-studio` / `just game-studio-fixture` | Demo mode with the Game Studio picked in the lobby. Claude / canned replies |
+| `just demo` / `just demo-fixture` | Demo mode: opens a tab with one-click **Log me on as demo user 1 / 2**, one sign-in per tab. Crew calls Claude / answers with canned replies |
+| `just game-studio` / `just game-studio-fixture` | Demo mode with the Game Studio picked in the lobby, in a tab it opens. Claude / canned replies |
 | `just games` | Opens the folder Game Studio games are saved in |
-| `just run` / `just run-fixture` | The app with ordinary sign-in, at http://localhost:8080. Claude / canned replies |
+| `just run` / `just run-fixture` | The app with ordinary sign-in, at http://localhost:8080. Claude / canned replies. Like the demo recipes, they first stop an earlier copy of the app still running on port 8080, and say so |
 | `just open` | Opens the app in a new browser tab |
 | `just stop` | Stops whatever is serving port 8080 |
 | `just infra` | Starts the local stack (Colima, Supabase), seeds users, writes `.env`. The run, demo and e2e recipes do this first |
@@ -93,6 +93,7 @@ mac% just demo      # then open two tabs at http://localhost:8080, one demo user
 | `just infra-stop` / `just infra-clean` | Stops local Supabase, keeping / wiping its data |
 | `just studio` / `just mail` / `just psql` | Supabase Studio, Mailpit, a database shell |
 | `just db-types` | Regenerates the database types after a migration |
+| `just shelf` | Rebuilds the Game Studio's shelf (Three.js and fonts) after changing a version |
 | `just test` / `just check` | Unit tests / typecheck + unit tests |
 | `just flows` | The explorer: every 9-event path through the room's state machines |
 | `just e2e` / `just e2e-live` | Playwright end-to-end tests, canned replies / real Claude calls (costs credits) |

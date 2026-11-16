@@ -47,8 +47,9 @@ doctor:
     else
         echo "  WARN no ANTHROPIC_API_KEY in .env.local; only the -fixture recipes will have a crew"
     fi
-    if lsof -ti:{{port}} -sTCP:LISTEN >/dev/null 2>&1; then
-        echo "  WARN port {{port}} in use (just stop)"
+    if pid=$(lsof -ti:{{port}} -sTCP:LISTEN 2>/dev/null | head -1) && [ -n "$pid" ]; then
+        echo "  WARN port {{port}} in use by $(ps -o command= -p "$pid" | cut -c1-70)"
+        echo "       (the run and demo recipes stop an earlier copy of the app; just stop frees the port)"
     else
         echo "  OK   port {{port}} free"
     fi
@@ -101,6 +102,10 @@ shelf:
 # Regenerate src/integrations/supabase/types.ts after adding a migration.
 [group('infra')]
 db-types:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # The Supabase CLI reads the schema through Docker; under Colima, that's Colima's socket.
+    docker info >/dev/null 2>&1 || export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"
     bun run db:types
 
 # Docker for the Supabase CLI: start Colima unless something already answers.
@@ -118,33 +123,29 @@ _docker:
 
 # The app at http://localhost:8080; the crew calls Claude. Ctrl-C to stop.
 [group('run')]
-run: (infra "--quiet")
+run: _free-port (infra "--quiet")
     bun run dev
 
 # The app with canned crew replies: no key, no credits.
 [group('run')]
-run-fixture: (infra "--quiet")
+run-fixture: _free-port (infra "--quiet")
     bun run dev:fixture
 
-# Demo mode: one-click "Log me on as demo user 1 / 2", one sign-in per tab. Crew calls Claude.
+# Demo mode: opens a tab with "Log me on as demo user 1 / 2", one sign-in per tab. Crew calls Claude.
 [group('run')]
-demo: (infra "--quiet") (_demo-banner "Claude")
-    VITE_BRIDGE_CREW_DEMO=1 bun run dev
+demo: _free-port (infra "--quiet") (_demo-banner "Claude") (_serve-demo "dev")
 
 # Demo mode with canned crew replies: no key, no credits.
 [group('run')]
-demo-fixture: (infra "--quiet") (_demo-banner "canned fixture replies")
-    VITE_BRIDGE_CREW_DEMO=1 bun run dev:fixture
+demo-fixture: _free-port (infra "--quiet") (_demo-banner "canned fixture replies") (_serve-demo "dev:fixture")
 
-# The Game Studio: demo mode with Game Studio picked in the lobby. Crew calls Claude.
+# The Game Studio: demo mode with Game Studio picked in the lobby, in a tab it opens. Crew calls Claude.
 [group('run')]
-game-studio: (infra "--quiet") (_studio-banner "Claude")
-    VITE_BRIDGE_CREW_DEMO=1 VITE_BRIDGE_CREW_TEMPLATE=game-studio bun run dev
+game-studio: _free-port (infra "--quiet") (_studio-banner "Claude") (_serve-demo "dev" "game-studio")
 
 # The Game Studio with canned crew replies: no key, no credits.
 [group('run')]
-game-studio-fixture: (infra "--quiet") (_studio-banner "canned fixture replies")
-    VITE_BRIDGE_CREW_DEMO=1 VITE_BRIDGE_CREW_TEMPLATE=game-studio bun run dev:fixture
+game-studio-fixture: _free-port (infra "--quiet") (_studio-banner "canned fixture replies") (_serve-demo "dev:fixture" "game-studio")
 
 # Open the folder where Game Studio games are saved (BRIDGE_CREW_GAMES_DIR in .env.local to move it).
 [group('run')]
@@ -177,6 +178,45 @@ stop:
     kill -9 $(lsof -ti:{{port}} -sTCP:LISTEN 2>/dev/null) 2>/dev/null || true
     echo "Stopped the server on port {{port}} (forced)."
 
+# Port 8080 for the app. An earlier copy of this app, in any mode, is stopped and named, so the
+# browser never shows the old one; anything else holding the port is reported, and left alone.
+_free-port:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    pids=$(lsof -ti:{{port}} -sTCP:LISTEN 2>/dev/null || true)
+    [ -z "$pids" ] && exit 0
+    here=$(pwd -P)
+    for pid in $pids; do
+        # This app's dev server: Vite, run from this folder.
+        cwd=$(lsof -a -p "$pid" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p')
+        if [ "$cwd" != "$here" ] || ! ps -o command= -p "$pid" | grep -q 'vite'; then
+            echo "Port {{port}} is in use by another program: $(ps -o command= -p "$pid" | cut -c1-100)" >&2
+            echo "Stop it, then run this again. If it's safe to stop, just stop does it." >&2
+            exit 1
+        fi
+    done
+    pid=$(echo "$pids" | head -1)
+    mode="not in demo mode"
+    ps eww -p "$pid" 2>/dev/null | grep -q 'VITE_BRIDGE_CREW_DEMO=1' && mode="in demo mode"
+    echo "==> An earlier copy of the app was still running on port {{port}} ($mode, since $(ps -o lstart= -p "$pid" | xargs))."
+    echo "    Stopping it, so this one can start."
+    just stop >/dev/null
+
+# The dev server in demo mode, opening a tab once it answers, so the demo buttons are the first
+# thing you see. template picks a room template in the lobby.
+_serve-demo script template="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ( for _ in $(seq 1 120); do
+        if curl -so /dev/null {{url}}; then {{opener}} {{url}}; exit 0; fi
+        sleep 1
+      done ) &
+    opening=$!
+    trap 'kill $opening 2>/dev/null || true' EXIT
+    export VITE_BRIDGE_CREW_DEMO=1
+    if [ -n "{{template}}" ]; then export VITE_BRIDGE_CREW_TEMPLATE="{{template}}"; fi
+    bun run {{script}}
+
 _demo-banner crew:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -187,8 +227,8 @@ _demo-banner crew:
 
     Demo mode on {{url}}  (crew: {{crew}})
 
-      1. Open two tabs at {{url}}  (just open, twice)
-      2. In one, click "Log me on as demo user 1"; in the other, "demo user 2".
+      1. A tab opens at {{url}} once the app is up. Click "Log me on as demo user 1".
+      2. Open a second tab (just open, or ⌘T and the same address) and click "demo user 2".
          Each tab keeps its own sign-in.
       3. Demo user 1 opens a room; demo user 2 joins with its code or invite link.
 
@@ -208,7 +248,7 @@ _studio-banner crew:
 
     Game Studio on {{url}}  (crew: {{crew}})
 
-      1. Open {{url}} and click "Log me on as demo user 1". You're the teacher.
+      1. A tab opens at {{url}} once the app is up. Click "Log me on as demo user 1": you're the teacher.
       2. Game Studio is already picked. Give the student a nickname and open a room.
       3. Read the classroom notice, then let the student start: "Storyteller, what's the story?"
 

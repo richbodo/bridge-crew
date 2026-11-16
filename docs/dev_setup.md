@@ -12,7 +12,7 @@ of it — run `just` on its own for the menu.
 ```
 mac% brew install just colima docker supabase/tap/supabase
 mac% npm install -g bun
-mac% cd ~/src/bridge-crew && just setup                    # bun install + Playwright's Chromium
+mac% cd bridge-crew && just setup                          # your clone; bun install + Playwright's Chromium
 mac% echo 'ANTHROPIC_API_KEY=sk-ant-...' >> .env.local     # your key; gitignored
 ```
 
@@ -23,9 +23,11 @@ mac% just demo        # http://localhost:8080 with one-click demo logins
 ```
 
 `just demo` starts Colima if it's stopped, brings up local Supabase, seeds the
-users, writes `.env`, and runs the app. Open two tabs at
-<http://localhost:8080> and click **Log me on as demo user 1** in one and
-**Log me on as demo user 2** in the other — see [Demo mode](#demo-mode).
+users, writes `.env`, runs the app, and opens a tab at <http://localhost:8080>
+once it answers. Click **Log me on as demo user 1** there, open a second tab
+(`just open`) and click **Log me on as demo user 2** — see [Demo mode](#demo-mode).
+If an earlier copy of the app is still running on port 8080, in any mode, it
+stops that first and says so, so the browser never shows the old one.
 
 `just run` is the same app without the demo buttons: sign in as
 `crew-a@example.com` / `bridge-crew-local`, and as `crew-b@example.com` in
@@ -86,7 +88,10 @@ as it's merged.
   then the dev server as `just game-studio` runs it, but on 127.0.0.1 only. `vite.config.ts`
   listens on every interface, and demo mode's one-click sign-in would let anyone on the same
   Wi-Fi into the student's rooms. It opens the browser once the app answers. Control-C stops the
-  app, then Supabase and Colima if it started them. `BRIDGE_CREW_PORT` moves it off 8080.
+  app, then Supabase and Colima if it started them. `BRIDGE_CREW_PORT` moves it off 8080. If the
+  port is taken: by the Game Studio, it just opens the browser; by another copy of the app (say
+  a developer's `just run`), it stops that copy and starts the Game Studio; by another program,
+  it says so and stops.
 
 ---
 
@@ -98,17 +103,19 @@ as it's merged.
 | --- | --- |
 | `just setup` | `bun install` and Playwright's Chromium (first time) |
 | `just doctor` | Checks tools, Docker, the local stack, the key, port 8080 |
-| `just demo` / `just demo-fixture` | Demo mode (above), with Claude / with canned replies |
-| `just game-studio` / `just game-studio-fixture` | Demo mode with the Game Studio picked in the lobby (users guide Part 1) |
+| `just demo` / `just demo-fixture` | Demo mode (above), with Claude / with canned replies, in a tab it opens |
+| `just game-studio` / `just game-studio-fixture` | Demo mode with the Game Studio picked in the lobby (users guide Part 1), in a tab it opens |
 | `just games` | Opens the folder Game Studio games are saved in |
 | `just run` / `just run-fixture` | The app with ordinary sign-in, with Claude / with canned replies |
+|  | All the run and demo recipes first stop an earlier copy of the app on port 8080, and say so |
 | `just open` | Opens <http://localhost:8080> in a new browser tab |
 | `just stop` | Stops whatever is serving port 8080 |
 | `just infra` | Starts the local stack, seeds users, writes `.env` (the `run`/`demo`/`e2e` recipes do this first) |
 | `just infra-reset` | Wipes local data, reapplies migrations, reseeds |
 | `just infra-stop` / `just infra-clean` | Stops local Supabase, keeping / wiping its data |
 | `just studio` / `just mail` / `just psql` | Supabase Studio, Mailpit, a database shell |
-| `just db-types` | Regenerates the database types after a migration |
+| `just db-types` | Regenerates the database types after a migration (finds Colima's Docker by itself; a failure leaves the old types in place) |
+| `just shelf` | Rebuilds the Game Studio's shelf (Three.js and fonts) into `src/lib/vendor/` after changing a version |
 | `just test` / `just check` | Unit tests / typecheck + unit tests |
 | `just flows` | The explorer: every 9-event path through the state machines ([state_machines.md](state_machines.md)) |
 | `just e2e` / `just e2e-live` | Playwright, canned replies / real Claude calls (costs credits) |
@@ -269,8 +276,10 @@ this in `~/.zshrc`:
 export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"
 ```
 
-**`Port 8080 is already in use`.** Another dev server is still running, maybe
-`just run` in a different terminal. `just stop` frees the port.
+**`Port 8080 is in use by another program`.** The run and demo recipes stop an
+earlier copy of this app on port 8080 themselves, but leave any other program
+alone. Stop it, or run `just stop` if that's safe; `just doctor` names what's
+there.
 
 **`Bind for 0.0.0.0:553xx failed: port is already allocated`.** Something else
 holds a 553xx port — `docker ps` will show which project.
@@ -282,6 +291,11 @@ seeds them.
 **Two tabs show the same demo user.** One tab was duplicated from the other, or
 the app isn't in demo mode (no demo buttons on the lobby). Open a fresh tab
 under `just demo`.
+
+**No demo buttons on the lobby.** The tab is already signed in (the header
+names the demo user; **Sign out** brings the buttons back), or the app on port
+8080 isn't the demo one. `just demo` replaces an earlier copy of the app, so run
+it again and use the tab it opens.
 
 **Crew lines end with "could not finish: No model is configured for the crew."**
 No `ANTHROPIC_API_KEY` reached the server. Add it to `.env.local` and restart
