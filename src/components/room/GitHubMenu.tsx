@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ConnectGitHubPanel } from "@/components/ConnectGitHub";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,9 +17,9 @@ import { describeSource, shortCommit, sourceUrl, type GitHubSource } from "@/lib
 import { bringInGitHubNewest, gitHubStatus } from "@/lib/github.functions";
 
 /**
- * The room's GitHub menu (docs/plans/games-on-github-2026-11-16.md Part 2): where the room's game
- * came from, and GitHub's newest, as a new version, when GitHub has moved on. It asks GitHub
- * when it opens, which takes one request.
+ * The room's GitHub menu (docs/plans/games-on-github-2026-11-16.md Parts 2 and 3): where the
+ * room's game came from, and GitHub's newest, as a new version, when GitHub has moved on; and
+ * Connect GitHub. It asks GitHub when it opens, which takes one request.
  */
 export function GitHubMenu({
   sessionId,
@@ -26,7 +27,8 @@ export function GitHubMenu({
   onDone,
 }: {
   sessionId: string;
-  source: GitHubSource;
+  /** Where the room's game came from, if it came from GitHub. */
+  source: GitHubSource | null;
   onDone: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -37,9 +39,9 @@ export function GitHubMenu({
   const [needsBigger, setNeedsBigger] = useState<string | null>(null);
 
   const check = useQuery({
-    queryKey: ["github-status", sessionId, source.commit],
+    queryKey: ["github-status", sessionId, source?.commit],
     queryFn: () => status({ data: { sessionId } }),
-    enabled: open,
+    enabled: open && Boolean(source),
     staleTime: 60_000,
   });
   const linked = check.data?.linked ? check.data : null;
@@ -82,11 +84,17 @@ export function GitHubMenu({
         <DialogHeader>
           <DialogTitle>GitHub</DialogTitle>
           <DialogDescription>
-            This room's game came from{" "}
-            <a href={sourceUrl(source)} target="_blank" rel="noreferrer" className="underline">
-              {describeSource(source)}
-            </a>
-            , commit {shortCommit(source.commit)} on {source.branch}.
+            {source ? (
+              <>
+                This room's game came from{" "}
+                <a href={sourceUrl(source)} target="_blank" rel="noreferrer" className="underline">
+                  {describeSource(source)}
+                </a>
+                , commit {shortCommit(source.commit)} on {source.branch}.
+              </>
+            ) : (
+              "This room's game didn't come from GitHub. Bring in a game takes a GitHub link."
+            )}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 text-sm">
@@ -116,6 +124,9 @@ export function GitHubMenu({
             )
           ) : null}
           {busy ? <p className="text-xs text-muted-foreground">Bringing it in…</p> : null}
+          <div className="border-t border-border pt-3">
+            <ConnectGitHubPanel />
+          </div>
         </div>
       </DialogContent>
     </Dialog>

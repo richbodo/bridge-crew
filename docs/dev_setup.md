@@ -163,12 +163,15 @@ can run alongside another local Supabase project (e.g. FundFlow) on the default
 
 | File | Written by | Holds |
 | --- | --- | --- |
-| `.env` | `just infra` (`scripts/test-infra.sh`), on every run | Local Supabase URL and publishable key, Playwright test login |
+| `.env` | `just infra` (`scripts/test-infra.sh`), on every run | Local Supabase URL and publishable key, the secret key (server only), Playwright test login |
 | `.env.local` | you | `ANTHROPIC_API_KEY`, model overrides, anything personal |
 
 Both are gitignored. Vite loads `.env` then `.env.local` (later wins; variables
 already set in your shell win over both), and TanStack Start copies the same
 values into `process.env`, so the browser and the server functions always agree.
+Only `VITE_` values go into the page's code. `SUPABASE_SECRET_KEY` has no prefix,
+so it stays on the server, where one module uses it: `src/lib/github-connect.server.ts`,
+for the GitHub tokens in `github_accounts`, which no sign-in can read.
 
 ---
 

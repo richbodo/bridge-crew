@@ -289,6 +289,30 @@ export type Database = {
           },
         ]
       }
+      github_accounts: {
+        Row: {
+          connected_at: string
+          login: string
+          scope: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string
+          login: string
+          scope?: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          connected_at?: string
+          login?: string
+          scope?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       hand_raises: {
         Row: {
           agent: string

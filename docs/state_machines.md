@@ -164,6 +164,8 @@ machines.
   keep saves. The teacher picks one when making the room.
 - **GitHub link** (Game Studio): where a room's game came from on GitHub, when it came from
   there: the repository, the branch the room follows, and the commit. The room is **linked**.
+- **GitHub connection:** a Bridge Crew user's key to their GitHub account, made with **Connect
+  GitHub**. It belongs to the user, not a room; on a shared seat, it's the teacher's.
 
 ## 2. Things that have state
 
@@ -180,6 +182,7 @@ machines.
 | Room        | Open, Wrapped up                               | 11      | Planned: today a room is always open                |
 | Game size   | Simple, Bigger                                 | 11      | Yes                                                 |
 | GitHub link | Not linked, Linked, GitHub has newer           | 11      | Yes. Versions to save comes with saving (G4)        |
+| GitHub connection | Not connected, Waiting for approval, Connected | 11 | Yes. One per Bridge Crew user, not per room   |
 
 ## 3. Crew member state
 
@@ -464,6 +467,34 @@ stateDiagram-v2
 - **GitHub's newest brought in** makes the next version, and the room's commit moves to it.
 - A game from somewhere else, such as a folder, leaves the link as it is.
 - Saving to GitHub (G4) adds **Versions to save**, when the room has versions GitHub doesn't.
+
+### GitHub connection
+
+**Connect GitHub**, in the lobby and the room's **GitHub** menu
+([Games on GitHub](plans/games-on-github-2026-11-16.md) Part 3), uses GitHub's device flow.
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  state "Not connected" as None
+  state "Waiting for approval" as Waiting
+  [*] --> None
+  None --> Waiting: Get a code
+  Waiting --> Connected: approved on GitHub
+  Waiting --> None: Cancel, refused, or the code runs out
+  Connected --> None: Disconnect
+```
+
+- **Get a code** asks GitHub for a code, which the teacher types at github.com/login/device.
+  The server asks GitHub whether it's approved at GitHub's pace, every five seconds or slower.
+  A code lasts 15 minutes. Waiting lives on the server only, so restarting the app ends it.
+- **Connected** keeps the key in `github_accounts`, which no sign-in can read. The server
+  uses it for every request to GitHub that user makes: private repositories open, and the limit
+  is 5,000 requests an hour instead of 60.
+- **Disconnect** deletes the key from the laptop. Cancelling it on GitHub too is for the
+  teacher, at github.com/settings/applications: only an app's owner can, with its secret.
+- If GitHub stops accepting the key, a request says so and asks to disconnect and connect
+  again.
 
 ## 12. How a prompt is read
 

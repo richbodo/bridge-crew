@@ -922,9 +922,12 @@ function linkOf(link: string | GitHubLink): GitHubLink {
 }
 
 /** Opens a game on GitHub without a room, to say what it is. */
-export async function lookAtGitHubGame(link: string | GitHubLink): Promise<GitHubLook> {
+export async function lookAtGitHubGame(
+  link: string | GitHubLink,
+  token: string | null = null,
+): Promise<GitHubLook> {
   try {
-    const repo = await fetchRepoGame(linkOf(link));
+    const repo = await fetchRepoGame(linkOf(link), { token });
     const game = bringIn(repo.files, "", repo.left);
     return {
       ok: true,
@@ -948,11 +951,20 @@ export async function lookAtGitHubGame(link: string | GitHubLink): Promise<GitHu
 export async function bringInFromGitHub(
   sb: Client,
   sessionId: string,
-  input: { link: string | GitHubLink; makeBigger?: boolean; fresh?: boolean },
+  input: {
+    link: string | GitHubLink;
+    makeBigger?: boolean;
+    fresh?: boolean;
+    /** The signed-in user's GitHub token, if they've connected (Part 3). */
+    token?: string | null;
+  },
 ): Promise<BringInResult> {
   let repo: Awaited<ReturnType<typeof fetchRepoGame>>;
   try {
-    repo = await fetchRepoGame(linkOf(input.link), { fresh: input.fresh ?? false });
+    repo = await fetchRepoGame(linkOf(input.link), {
+      fresh: input.fresh ?? false,
+      token: input.token ?? null,
+    });
   } catch (error) {
     if (error instanceof TypeError) throw error;
     return { ok: false, needsBigger: false, message: (error as Error).message };
@@ -978,12 +990,16 @@ export type GitHubStatus =
     };
 
 /** The room's GitHub link, and whether GitHub has moved on since: one request. */
-export async function gitHubStatus(sb: Client, sessionId: string): Promise<GitHubStatus> {
+export async function gitHubStatus(
+  sb: Client,
+  sessionId: string,
+  token: string | null = null,
+): Promise<GitHubStatus> {
   const { settings } = await roomOf(sb, sessionId);
   const source = settings.github;
   if (!source) return { linked: false };
   try {
-    const newest = await newestCommit(source);
+    const newest = await newestCommit(source, token);
     return { linked: true, source, newest, newer: newest !== source.commit, problem: null };
   } catch (error) {
     return { linked: true, source, newest: null, newer: false, problem: (error as Error).message };
@@ -991,7 +1007,12 @@ export async function gitHubStatus(sb: Client, sessionId: string): Promise<GitHu
 }
 
 /** GitHub's newest, on the branch the room follows, as the room's next version. */
-export async function bringInGitHubNewest(sb: Client, sessionId: string, makeBigger = false) {
+export async function bringInGitHubNewest(
+  sb: Client,
+  sessionId: string,
+  makeBigger = false,
+  token: string | null = null,
+) {
   const { settings } = await roomOf(sb, sessionId);
   const source = settings.github;
   if (!source)
@@ -1004,6 +1025,7 @@ export async function bringInGitHubNewest(sb: Client, sessionId: string, makeBig
     link: { owner: source.owner, repo: source.repo, ref: source.branch, path: source.path },
     makeBigger,
     fresh: true,
+    token,
   });
 }
 

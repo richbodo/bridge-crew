@@ -214,9 +214,20 @@ shortcut, it also answers to other computers on the network.
     games do, work too: their Three.js is switched for the studio's, and the crew keeps them as
     modules. A project that has to be built first, such as one made with Vite, says "This game
     needs building first, which the studio can't do yet."
-  - **Only public repositories** open for now. Opening one needs no GitHub account, but GitHub
-    only answers 60 requests an hour from one network without one, and opening a game takes
-    two.
+  - **Public repositories** open without a GitHub account, but GitHub only answers 60 requests
+    an hour from one network without one, and opening a game takes two.
+  - **Connect GitHub** opens private repositories too, and lifts the limit to 5,000 an hour.
+    It's in the lobby, under **Open a game**, and in the room's **GitHub** menu. **Get a code**
+    shows a code; **Copy the code and open GitHub** opens github.com/login/device, where you
+    paste it and approve Bridge Crew. Then the studio says "Connected to GitHub as …".
+    - GitHub asks you to let Bridge Crew **read and change every repository your account has**,
+      public and private, because saving a game to a private one will need that. A GitHub
+      account just for the studio's games keeps the rest out of its reach.
+    - The key GitHub gives stays in the laptop's database, where even the app's own page can't
+      read it. It goes only to GitHub: never to the crew, never to Anthropic.
+    - The connection is the signed-in teacher's, in every room.
+    - **Disconnect** deletes the key from the laptop. To cancel it on GitHub too, revoke Bridge
+      Crew at github.com/settings/applications.
   - **The room remembers where its game came from.** The header says "from github.com/…", and
     the **GitHub** button on the big screen shows the commit and asks GitHub whether it has
     anything newer. If it has, **Bring in GitHub's newest** makes it the room's next version;
@@ -256,6 +267,11 @@ shortcut, it also answers to other computers on the network.
   place. Restart the Mac, then double-click **Game Studio** again.
 - **A crew member stays working for a long time.** After five minutes it stops by itself. You
   can also press **Stand down** on its card.
+- **"This laptop isn't set up for GitHub yet."** The Game Studio was started before an update
+  that it needs for **Connect GitHub**. Press **Control-C** in its Terminal window, then
+  double-click **Game Studio** again.
+- **"GitHub doesn't accept this laptop's connection any more."** The key was cancelled on
+  GitHub, or it ran out. In the **GitHub** menu, **Disconnect**, then **Connect GitHub** again.
 - **Anything else.** The last lines in the Terminal window usually say what went wrong.
   Restarting the Mac and double-clicking **Game Studio** fixes most things. A developer can use
   the troubleshooting section of [dev_setup.md](dev_setup.md).

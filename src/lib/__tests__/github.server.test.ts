@@ -189,7 +189,7 @@ describe("opening a repository's game", () => {
       expect(game.files["img/hero.png"]).toBe("data:image/png;base64,iVBORw==");
       expect(game.left).toEqual(["trailer.mp4"]);
       await expect(fetchRepoGame(parseGameLink("someone/nothing"))).rejects.toThrow(
-        "There's no public repository at github.com/someone/nothing. If it's private, the studio can't open it yet.",
+        "There's no public repository at github.com/someone/nothing. If it's private, Connect GitHub first.",
       );
     } finally {
       delete process.env["BRIDGE_CREW_GITHUB_FIXTURES"];

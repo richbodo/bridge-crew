@@ -85,4 +85,53 @@ test.describe("games on GitHub", () => {
         .getByText("Space cube 2 · Three.js r180"),
     ).toBeVisible();
   });
+
+  test("connecting GitHub shows a code, connects, and disconnects, and the key never reaches the page", async ({
+    page,
+  }) => {
+    // Everything the app's server sends this page, to look for the key in.
+    const bodies: Promise<string>[] = [];
+    page.on("response", (response) => {
+      if (response.url().includes("/_serverFn/")) bodies.push(response.text().catch(() => ""));
+    });
+
+    await page.goto("/");
+    await page.getByLabel("Game Studio").check();
+    await page.getByLabel("Open a game").check();
+    await page.getByRole("button", { name: "Connect GitHub" }).click();
+    const dialog = page.getByRole("dialog", { name: "GitHub" });
+    await dialog.getByRole("button", { name: "Connect GitHub" }).click();
+    await expect(
+      dialog.getByText(/read and change every repository your account has/),
+    ).toBeVisible();
+    await dialog.getByRole("button", { name: "Get a code" }).click();
+    await expect(dialog.getByLabel("GitHub code")).toHaveText("BRDG-CREW");
+    await expect(dialog.getByText("Connected to GitHub as studio-tester.")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: "Connected as studio-tester" })).toBeVisible();
+
+    // The page's own sign-in can't read the table the key is in.
+    const session = await page.evaluate(
+      () => Object.entries(localStorage).find(([key]) => key.endsWith("-auth-token"))?.[1] ?? "",
+    );
+    const access = (JSON.parse(session) as { access_token: string }).access_token;
+    const read = await page.request.get(
+      `${process.env["SUPABASE_URL"]}/rest/v1/github_accounts?select=token`,
+      {
+        headers: {
+          apikey: process.env["SUPABASE_PUBLISHABLE_KEY"]!,
+          Authorization: `Bearer ${access}`,
+        },
+      },
+    );
+    expect(read.ok()).toBe(false);
+    expect(await read.text()).not.toContain("gho_");
+    for (const body of await Promise.all(bodies)) expect(body).not.toContain("gho_");
+
+    await page.getByRole("button", { name: "Connected as studio-tester" }).click();
+    await dialog.getByRole("button", { name: "Disconnect" }).click();
+    await expect(dialog.getByText(/To cancel it on GitHub too/)).toBeVisible();
+    await dialog.getByRole("button", { name: "Disconnect" }).click();
+    await expect(dialog.getByText("Not connected to GitHub.")).toBeVisible();
+  });
 });
