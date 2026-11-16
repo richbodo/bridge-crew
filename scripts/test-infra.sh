@@ -100,8 +100,8 @@ done
 rm -f "$SEED_OUT"
 
 # ---------- 3. Write .env ----------
-# Vite and TanStack Start load .env, then .env.local, into both the browser
-# bundle and process.env, so server functions see the same values as the page.
+# Vite and TanStack Start load .env, then .env.local, into process.env, so server
+# functions see every value; only the VITE_ ones also go into the page's code.
 # Written only when it changes: a running dev server restarts whenever .env does.
 info "Writing .env..."
 ENV_NEW="$(mktemp)"
@@ -112,6 +112,9 @@ VITE_SUPABASE_URL="$SUPABASE_URL"
 VITE_SUPABASE_PUBLISHABLE_KEY="$PUB_KEY"
 SUPABASE_URL="$SUPABASE_URL"
 SUPABASE_PUBLISHABLE_KEY="$PUB_KEY"
+# The server's alone, for the one table no sign-in may read: GitHub tokens
+# (src/lib/github-connect.server.ts). Without the VITE_ prefix, it never reaches the page.
+SUPABASE_SECRET_KEY="$SECRET_KEY"
 
 # Playwright
 E2E_SUPABASE_URL="$SUPABASE_URL"

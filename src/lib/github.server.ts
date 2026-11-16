@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { gunzipSync } from "node:zlib";
@@ -41,11 +42,19 @@ function fixtures(): string | null {
   return process.env["BRIDGE_CREW_GITHUB_FIXTURES"] || null;
 }
 
-/** GitHub's answer, or a problem in words. */
-async function request(url: string, accept?: string): Promise<Response> {
+/**
+ * GitHub's answer, or a problem in words. With the teacher's token (Connect GitHub, Part 3),
+ * private repositories answer too, and the limit is 5,000 requests an hour.
+ */
+async function request(
+  url: string,
+  { accept, token }: { accept?: string; token?: string | null } = {},
+): Promise<Response> {
   let response: Response;
+  const headers: Record<string, string> = { ...HEADERS, ...(accept ? { Accept: accept } : {}) };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
   try {
-    response = await fetch(url, { headers: accept ? { ...HEADERS, Accept: accept } : HEADERS });
+    response = await fetch(url, { headers });
   } catch {
     throw new GitHubProblem("GitHub didn't answer. Is this laptop on the internet?");
   }
@@ -57,16 +66,26 @@ async function request(url: string, accept?: string): Promise<Response> {
       ? new Date(reset).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
       : "an hour";
     throw new GitHubProblem(
-      `GitHub only answers 60 requests an hour from one network without signing in, and they're used up. Try again after ${when}.`,
+      token
+        ? `GitHub's limit for this account is used up for the hour. Try again after ${when}.`
+        : `GitHub only answers 60 requests an hour from one network without signing in, and they're used up. Connect GitHub, or try again after ${when}.`,
     );
   }
   if (response.status === 404) throw new GitHubProblem("not found");
+  if (response.status === 401 && token) {
+    throw new GitHubProblem(
+      "GitHub doesn't accept this laptop's connection any more. Disconnect GitHub and connect it again.",
+    );
+  }
   throw new GitHubProblem(`GitHub said no (${response.status} ${response.statusText}).`);
 }
 
-function notFound(link: GitHubLink): GitHubProblem {
+function notFound(link: GitHubLink, connected: boolean): GitHubProblem {
+  const where = `github.com/${link.owner}/${link.repo}${link.ref ? ` with ${link.ref}` : ""}`;
   return new GitHubProblem(
-    `There's no public repository at github.com/${link.owner}/${link.repo}${link.ref ? ` with ${link.ref}` : ""}. If it's private, the studio can't open it yet.`,
+    connected
+      ? `There's no repository at ${where} that your GitHub account can see.`
+      : `There's no public repository at ${where}. If it's private, Connect GitHub first.`,
   );
 }
 
@@ -77,13 +96,13 @@ interface Archive {
   commit: string;
 }
 
-async function fromGitHub(link: GitHubLink): Promise<Archive> {
+async function fromGitHub(link: GitHubLink, token: string | null): Promise<Archive> {
   const base = `${API}/repos/${link.owner}/${link.repo}`;
   let repo: { default_branch: string; size: number };
   try {
-    repo = (await (await request(base)).json()) as typeof repo;
+    repo = (await (await request(base, { token })).json()) as typeof repo;
   } catch (error) {
-    throw (error as Error).message === "not found" ? notFound(link) : error;
+    throw (error as Error).message === "not found" ? notFound(link, Boolean(token)) : error;
   }
   if (repo.size * 1024 > MAX_ARCHIVE_BYTES * 2) {
     throw new GitHubProblem(
@@ -96,9 +115,9 @@ async function fromGitHub(link: GitHubLink): Promise<Archive> {
 
   let response: Response;
   try {
-    response = await request(`${base}/tarball/${encodeURIComponent(ref)}`);
+    response = await request(`${base}/tarball/${encodeURIComponent(ref)}`, { token });
   } catch (error) {
-    throw (error as Error).message === "not found" ? notFound(link) : error;
+    throw (error as Error).message === "not found" ? notFound(link, Boolean(token)) : error;
   }
   const size = Number(response.headers.get("content-length"));
   if (size > MAX_ARCHIVE_BYTES) {
@@ -122,14 +141,14 @@ async function fromGitHub(link: GitHubLink): Promise<Archive> {
 /** A fake repository from BRIDGE_CREW_GITHUB_FIXTURES, for tests. */
 function fromFixtures(root: string, link: GitHubLink): Archive {
   const repo = join(root, link.owner, link.repo);
-  if (!existsSync(repo)) throw notFound(link);
+  if (!existsSync(repo)) throw notFound(link, false);
   const head = existsSync(join(repo, "HEAD"))
     ? readFileSync(join(repo, "HEAD"), "utf8").trim().split(/\s+/)
     : ["main", readdirSync(repo).find((name) => statSync(join(repo, name)).isDirectory()) ?? ""];
   const [mainBranch, newest] = [head[0]!, head[1]!];
   const commit = link.ref && isCommit(link.ref) ? link.ref : newest;
   const dir = join(repo, commit);
-  if (!existsSync(dir)) throw notFound(link);
+  if (!existsSync(dir)) throw notFound(link, false);
   const files = new Map<string, Uint8Array>();
   const walk = (folder: string) => {
     for (const name of readdirSync(folder)) {
@@ -143,7 +162,10 @@ function fromFixtures(root: string, link: GitHubLink): Archive {
 }
 
 /** The newest commit on a branch: one request, to see whether GitHub has moved on. */
-export async function newestCommit(source: GitHubSource): Promise<string> {
+export async function newestCommit(
+  source: GitHubSource,
+  token: string | null = null,
+): Promise<string> {
   const root = fixtures();
   if (root) {
     const head = join(root, source.owner, source.repo, "HEAD");
@@ -152,7 +174,7 @@ export async function newestCommit(source: GitHubSource): Promise<string> {
   }
   const response = await request(
     `${API}/repos/${source.owner}/${source.repo}/commits/${encodeURIComponent(source.branch)}`,
-    "application/vnd.github.sha",
+    { accept: "application/vnd.github.sha", token },
   ).catch((error: Error) => {
     throw error.message === "not found"
       ? new GitHubProblem(
@@ -188,20 +210,22 @@ const RECENT_MS = 5 * 60_000;
  */
 export async function fetchRepoGame(
   link: GitHubLink,
-  { fresh = false }: { fresh?: boolean } = {},
+  { fresh = false, token = null }: { fresh?: boolean; token?: string | null } = {},
 ): Promise<RepoGame> {
-  const key = `${link.owner}/${link.repo}@${link.ref ?? ""}:${link.path}`.toLowerCase();
+  // A game opened with someone's token is kept for them alone.
+  const whose = token ? createHash("sha256").update(token).digest("hex").slice(0, 16) : "public";
+  const key = `${whose}:${link.owner}/${link.repo}@${link.ref ?? ""}:${link.path}`.toLowerCase();
   const kept = recent.get(key);
   if (!fresh && kept && Date.now() - kept.at < RECENT_MS) return kept.game;
-  const game = await openRepoGame(link);
+  const game = await openRepoGame(link, token);
   recent.set(key, { at: Date.now(), game });
   if (recent.size > 8) recent.delete(recent.keys().next().value!);
   return game;
 }
 
-async function openRepoGame(link: GitHubLink): Promise<RepoGame> {
+async function openRepoGame(link: GitHubLink, token: string | null): Promise<RepoGame> {
   const root = fixtures();
-  const archive = root ? fromFixtures(root, link) : await fromGitHub(link);
+  const archive = root ? fromFixtures(root, link) : await fromGitHub(link, token);
   const paths = [...archive.files.keys()];
   const read = (path: string) => {
     const data = archive.files.get(path);

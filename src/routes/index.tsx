@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { ConnectGitHubButton } from "@/components/ConnectGitHub";
 import { DemoSignIn } from "@/components/DemoSignIn";
 import { PickGameButtons } from "@/components/PickGame";
 import { PICKED_FILES_NOTE, type Picked } from "@/components/pick-game";
@@ -456,6 +457,9 @@ function Lobby() {
                         {lookMutation.isPending ? (
                           <p className="text-muted-foreground">Looking on GitHub…</p>
                         ) : null}
+                        <p className="text-[11px] text-muted-foreground">
+                          A private repository needs GitHub connected. <ConnectGitHubButton />
+                        </p>
                         {startingGame ? (
                           <div className="space-y-1">
                             <p className="font-medium text-card-foreground">

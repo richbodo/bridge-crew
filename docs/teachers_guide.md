@@ -75,8 +75,11 @@ from **Recent rooms** in the lobby and carry on. Stopping, updating and fixing p
   such as one you made with a student before, as the next version. The crew then builds on it.
   **Open a game**, in the lobby, starts a new room with one. Both take a GitHub link too, such
   as a game's play link, for a game you or someone else put on GitHub. The room then remembers
-  where it came from, and its **GitHub** button brings in anything newer. Only public
-  repositories open for now. See **Games from GitHub** in §4 of the users guide.
+  where it came from, and its **GitHub** button brings in anything newer. Public repositories
+  open as they are; for private ones, **Connect GitHub** (in the lobby, or the room's **GitHub**
+  menu) with a code you type at GitHub. It asks to read and change every repository your
+  account has, so you may prefer a GitHub account just for the studio's games. See **Games
+  from GitHub** in §4 of the users guide.
   Check its README or credits for students' names first, since the crew reads it. See §4 of the
   [users guide](users_guide.md#4-making-the-game).
 - **Learning how.** **How did you do that?** under any crew member's line asks them to explain,

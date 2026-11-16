@@ -670,13 +670,11 @@ function RoomPage() {
                 bigger={room.settings.games === "bigger"}
                 onDone={() => void refresh()}
               />
-              {room.settings.github ? (
-                <GitHubMenu
-                  sessionId={id}
-                  source={room.settings.github}
-                  onDone={() => void refresh()}
-                />
-              ) : null}
+              <GitHubMenu
+                sessionId={id}
+                source={room.settings.github ?? null}
+                onDone={() => void refresh()}
+              />
             </>
           }
           strip={

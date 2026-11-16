@@ -40,6 +40,17 @@ modules. Changes from Part 2 as first written, each marked there:
 - **A game the studio saved** opening as more than one version moves to G5, which restores the
   rest of a saved room: nothing writes that format until G4.
 
+G3 is built (2026-11-16): **Connect GitHub**, in the lobby under **Open a game** and in the
+room's **GitHub** menu, with the "Bridge Crew" OAuth app (client ID in `src/lib/github.ts`). The
+device flow answers with the app's client ID and no secret: GitHub gives a code and says
+"authorization pending" until someone approves. Approving it, then disconnecting, is the
+project lead's test against real GitHub. A connected teacher's requests carry their token, so
+private repositories open and the limit is 5,000 requests an hour. One decision since Part 3
+was written (2026-11-16): **no sign-in can read the token**, not even its own user's, so a
+student at the teacher's signed-in laptop can't fetch it with the browser's developer tools.
+The server reads it with the local database's secret key, which `just infra` writes to `.env`
+for the server only, and one module uses.
+
 ## Decisions
 
 Settled on 2026-11-16:
@@ -190,7 +201,9 @@ GitHub plays too, and a repository that needs building says so.
   plainly. A teacher may prefer a GitHub account just for the studio's games.
 - **The token** lives in the laptop's database, in a new `github_accounts` table that only its
   own Bridge Crew user can read. It goes only to GitHub: never to the browser, never to
-  Anthropic.
+  Anthropic. (As built: no sign-in can read the table, its own user's included. The server reads
+  the signed-in user's row with the local database's secret key, so the browser can't fetch the
+  token even with developer tools.)
 - **Disconnect** deletes the token. GitHub only lets an app's owner revoke its tokens, so the
   screen links to github.com/settings/applications, where the teacher can revoke it too.
 - On a shared seat, the connection is the teacher's: the signed-in user's.
