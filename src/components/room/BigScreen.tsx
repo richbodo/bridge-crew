@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
-import { CRASH_MESSAGE, prepareGame } from "@/lib/game-file";
+import { CRASH_MESSAGE, prepareGame, RELOAD_MESSAGE, SAVES_MESSAGE } from "@/lib/game-file";
 import type { Song } from "@/lib/music";
 
+import { clearSaves, downloadVersion, readSaves, useGameDocument, writeSaves } from "./game-document";
 import {
-  downloadVersion,
   labelOf,
   playMusic,
   playSound,
@@ -30,6 +30,7 @@ export interface ShownContribution {
 }
 
 interface Props {
+  sessionId: string;
   title: string;
   showing: Showing | null;
   made: MadeRow[];
@@ -43,6 +44,8 @@ interface Props {
   strip: ReactNode;
   /** The Manage button: rename and remove made things. */
   manage?: ReactNode;
+  /** The Bring in a game button. */
+  bringIn?: ReactNode;
 }
 
 /**
@@ -50,6 +53,7 @@ interface Props {
  * large. Full screen is the browser's own, and Esc comes back.
  */
 export function BigScreen({
+  sessionId,
   title,
   showing,
   made,
@@ -61,9 +65,12 @@ export function BigScreen({
   onCrash,
   strip,
   manage,
+  bringIn,
 }: Props) {
   const screenRef = useRef<HTMLDivElement>(null);
   const [full, setFull] = useState(false);
+  // Start fresh: the game runs again from the beginning, without its saves.
+  const [fresh, setFresh] = useState(0);
 
   useEffect(() => {
     const update = () => setFull(document.fullscreenElement === screenRef.current);
@@ -80,7 +87,7 @@ export function BigScreen({
     <div className="flex min-h-0 flex-1 flex-col">
       <div ref={screenRef} className="relative min-h-0 flex-1 bg-black/90 p-4">
         {thing?.kind === "version" ? (
-          <GameFrame thing={thing} onCrash={onCrash} />
+          <GameFrame key={`${thing.id}:${fresh}`} sessionId={sessionId} thing={thing} onCrash={onCrash} />
         ) : thing?.kind === "picture" ? (
           <figure className="flex h-full flex-col items-center justify-center gap-3">
             <img src={svgSource(thing.body)} alt={thing.name} className="max-h-[85%] max-w-full object-contain" />
@@ -140,12 +147,32 @@ export function BigScreen({
               </option>
             ))}
           </select>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {bringIn}
             {manage}
             {thing?.kind === "version" ? (
-              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => downloadVersion(thing, title)}>
-                Download
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs"
+                  title="Play from the beginning, without the game's saves"
+                  onClick={() => {
+                    clearSaves(sessionId);
+                    setFresh((n) => n + 1);
+                  }}
+                >
+                  Start fresh
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => void downloadVersion(sessionId, thing, title)}
+                >
+                  Download
+                </Button>
+              </>
             ) : null}
             <Button
               size="sm"
@@ -167,35 +194,79 @@ export function BigScreen({
 
 /**
  * A version of the game, in a sandboxed frame: scripts run, but without the room's origin, so
- * the game can't read the sign-in, and its content security policy blocks the network.
+ * the game can't read the sign-in, and its content security policy blocks the network. Pointer
+ * lock is allowed, for first-person mouse look. The room keeps the game's saves, and when the
+ * game reloads itself, the room reloads it with its newest saves.
  */
-function GameFrame({ thing, onCrash }: { thing: MadeRow; onCrash: (id: string, message: string) => void }) {
+function GameFrame({
+  sessionId,
+  thing,
+  onCrash,
+}: {
+  sessionId: string;
+  thing: MadeRow;
+  onCrash: (id: string, message: string) => void;
+}) {
   const frame = useRef<HTMLIFrameElement>(null);
   const report = useRef(onCrash);
   report.current = onCrash;
-  const doc = useMemo(() => prepareGame(thing.body, { inRoom: true }), [thing.body]);
+  const bundle = useGameDocument(sessionId, thing.id);
+  const [reloads, setReloads] = useState(0);
+  const doc = useMemo(
+    () =>
+      bundle.data
+        ? prepareGame(bundle.data.html, { inRoom: true, saves: readSaves(sessionId) })
+        : null,
+    // A reload reads the saves again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [bundle.data, sessionId, reloads],
+  );
 
   useEffect(() => {
     let reported = false;
     const listen = (event: MessageEvent) => {
       if (event.source !== frame.current?.contentWindow) return;
-      const data = event.data as { type?: string; message?: string } | null;
-      if (data?.type !== CRASH_MESSAGE || reported) return;
-      reported = true;
-      report.current(thing.id, String(data.message ?? ""));
+      const data = event.data as { type?: string; message?: string; saves?: unknown } | null;
+      if (data?.type === SAVES_MESSAGE && data.saves && typeof data.saves === "object") {
+        writeSaves(sessionId, data.saves as Record<string, string>);
+      } else if (data?.type === RELOAD_MESSAGE) {
+        setReloads((n) => n + 1);
+      } else if (data?.type === CRASH_MESSAGE && !reported) {
+        reported = true;
+        report.current(thing.id, String(data.message ?? ""));
+      }
     };
     window.addEventListener("message", listen);
     return () => window.removeEventListener("message", listen);
-  }, [thing.id]);
+  }, [sessionId, thing.id]);
 
+  if (!doc) {
+    return (
+      <p className="flex h-full items-center justify-center text-sm text-white/70">
+        {bundle.isError ? `${labelOf(thing)} didn't open: ${(bundle.error as Error).message}` : `Opening ${labelOf(thing)}…`}
+      </p>
+    );
+  }
+  const blocked = bundle.data?.remote.length ?? 0;
   return (
-    <iframe
-      ref={frame}
-      title={labelOf(thing)}
-      sandbox="allow-scripts"
-      srcDoc={doc}
-      className="h-full w-full rounded-md border-0 bg-white"
-    />
+    <div className="flex h-full flex-col">
+      <iframe
+        key={reloads}
+        ref={frame}
+        title={labelOf(thing)}
+        sandbox="allow-scripts allow-pointer-lock"
+        allow="fullscreen"
+        allowFullScreen
+        srcDoc={doc}
+        className="min-h-0 w-full flex-1 rounded-md border-0 bg-white"
+      />
+      {blocked ? (
+        <p className="pt-1 text-[11px] text-white/60">
+          This version asks the internet for {blocked === 1 ? "one thing" : `${blocked} things`}, which the
+          studio blocks.
+        </p>
+      ) : null}
+    </div>
   );
 }
 

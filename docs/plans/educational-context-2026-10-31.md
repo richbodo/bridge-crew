@@ -334,6 +334,9 @@ with **Use this** (Section 8 of `docs/state_machines.md`).
 
 **Engineer**
 
+*Since 2026-11-16, a Bigger room's versions can be folders of files, built into one file to run
+and share: see [Bigger games](bigger-games-2026-11-16.md). What follows describes a Simple room.*
+
 - Each version is one self-contained HTML file: inline script and style, canvas or DOM, and no
   network access. The only outside code is ZzFX, inlined into the file with the room's small
   music player.

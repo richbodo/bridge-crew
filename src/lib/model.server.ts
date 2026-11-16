@@ -334,6 +334,39 @@ function fixtureExtras(system: string, user: string, task: string): string {
  * that throws; "music" makes the Sound designer write a tune instead of sounds.
  */
 function fixtureMade(system: string, task: string): string {
+  if (system.includes("\nFILE: js/game.js")) {
+    // A Bigger room's game: a folder of two files, which counts its visits in a save.
+    const crash = /\bcrash/i.test(task) ? 'throw new Error("the mole fell off the map");' : "";
+    return `
+FILE: index.html
+\`\`\`html
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Fixture game</title>
+<style>body{margin:0;background:#2b1d14;color:#f5e6d3;font-family:sans-serif}canvas{display:block;margin:0 auto}</style>
+</head>
+<body>
+<p>Arrow keys move the mole. A fixture game in two files: no model was called.</p>
+<p id="visits"></p>
+<canvas id="c" width="320" height="200"></canvas>
+<script src="js/game.js"></script>
+</body>
+</html>
+\`\`\`
+
+FILE: js/game.js
+\`\`\`js
+const c = document.getElementById("c").getContext("2d");
+const visits = Number(localStorage.getItem("visits") || 0) + 1;
+localStorage.setItem("visits", String(visits));
+document.getElementById("visits").textContent = "Visits: " + visits;
+let x = 150;
+function draw() { c.fillStyle = "#4a3426"; c.fillRect(0, 0, 320, 200); c.fillStyle = "#9a8270"; c.fillRect(x, 90, 20, 20); }
+addEventListener("keydown", (e) => { if (e.key === "ArrowLeft") x -= 10; if (e.key === "ArrowRight") x += 10; draw(); });
+draw();
+${crash}
+\`\`\``;
+  }
   if (system.includes("\nFILE:")) {
     const crash = /\bcrash/i.test(task) ? 'throw new Error("the mole fell off the map");' : "";
     return `

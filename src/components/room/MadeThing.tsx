@@ -1,9 +1,10 @@
 import { useMemo, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/ui/button";
-import { prepareGame, slugify } from "@/lib/game-file";
 import { labelOf, testOf } from "@/lib/made";
 import { musicSamples, type Song } from "@/lib/music";
+
+import { downloadVersion } from "./game-document";
 
 export { labelOf };
 
@@ -14,6 +15,8 @@ export interface MadeRow {
   name: string;
   version: number | null;
   body: string;
+  /** A version's files, by path and hash; an old version has none, and its body is its HTML. */
+  files?: unknown;
   state: "waiting" | "used" | "not_used" | "removed";
   agent: string;
   contribution_id: string | null;
@@ -82,17 +85,8 @@ export function usePlayingMusic(): string | null {
   );
 }
 
-/** Saves a version as an HTML file that opens in any browser, ready to email to the family. */
-export function downloadVersion(thing: MadeRow, title: string) {
-  const file = new Blob([prepareGame(thing.body, { inRoom: false })], { type: "text/html" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(file);
-  link.download = `${slugify(title)}-v${thing.version ?? 1}.html`;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-}
-
 interface Props {
+  sessionId: string;
   thing: MadeRow;
   current: boolean;
   title: string;
@@ -101,7 +95,7 @@ interface Props {
   onUse: (thing: MadeRow) => void;
 }
 
-export function MadeThing({ thing, current, title, compact, onScreen, onUse }: Props) {
+export function MadeThing({ sessionId, thing, current, title, compact, onScreen, onUse }: Props) {
   const playingThis = usePlayingMusic() === thing.id;
   const test = thing.kind === "test";
   const firstLook = useMemo(
@@ -175,7 +169,7 @@ export function MadeThing({ thing, current, title, compact, onScreen, onUse }: P
               size="sm"
               variant="ghost"
               className="h-6 px-2 text-[11px]"
-              onClick={() => downloadVersion(thing, title)}
+              onClick={() => void downloadVersion(sessionId, thing, title)}
             >
               Download
             </Button>

@@ -260,6 +260,35 @@ export type Database = {
           },
         ]
       }
+      game_files: {
+        Row: {
+          body: string
+          created_at: string
+          hash: string
+          session_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          hash: string
+          session_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          hash?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_files_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hand_raises: {
         Row: {
           agent: string
@@ -377,6 +406,7 @@ export type Database = {
           body: string
           contribution_id: string | null
           created_at: string
+          files: Json | null
           id: string
           kind: string
           name: string
@@ -391,6 +421,7 @@ export type Database = {
           body: string
           contribution_id?: string | null
           created_at?: string
+          files?: Json | null
           id?: string
           kind: string
           name: string
@@ -405,6 +436,7 @@ export type Database = {
           body?: string
           contribution_id?: string | null
           created_at?: string
+          files?: Json | null
           id?: string
           kind?: string
           name?: string
@@ -779,6 +811,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bring_in_version: {
+        Args: { _files: Json; _session: string; _title: string }
+        Returns: Json
+      }
       crew_move_allowed: {
         Args: {
           _from: Database["public"]["Enums"]["agent_status"]

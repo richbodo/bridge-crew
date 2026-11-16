@@ -62,7 +62,9 @@ game's design notes, in the background.
 
 ## Small browser games
 
-- One HTML file, with a canvas or plain page elements, and no network.
+- One HTML file, with a canvas or plain page elements, and no network. In a room that makes
+  Bigger games, a game can be a folder of files, with 3D from the studio's Three.js and saved
+  progress; the Engineer's instructions say how.
 - Keyboard controls: arrow keys and the space bar. Mouse clicks work too.
 - One screen and one to three things to do. A clear goal, a score, and a way to restart.
 - Pictures are SVG. Sounds are ZzFX sound effects, and music is notes played on ZzFX

@@ -87,8 +87,13 @@ from where it stopped.
 2. The Game Studio opens in your browser. Click **Log me on as demo user 1**: that's you, the
    teacher. The student doesn't get an account.
 3. **Game Studio** is already picked. Type your name, the student's **nickname** (never their
-   real name) and a title for the game, then press **Open a room**. A Game Studio room has one
-   seat, so there's no invite.
+   real name) and a title for the game. Under **Games**, pick **Simple** or **Bigger**:
+   - **Simple games** are one HTML file, in 2D, and quick to build. They suit a first game.
+   - **Bigger games** can be a folder of code, 3D with Three.js, and save the player's
+     progress. They suit students who want a game like the ones they play.
+
+   A Simple room can become Bigger later (see **Bring in a game**), but not back. Then press
+   **Open a room**. A Game Studio room has one seat, so there's no invite.
 4. Read the **classroom notice** together, then press **We've read it**.
 
 Keep the Terminal window open during the session. The Game Studio only answers on this laptop,
@@ -140,8 +145,11 @@ shortcut, it also answers to other computers on the network.
 
 ### 4. Making the game
 
-- **What the crew makes.** The Engineer makes **versions** of the game, each one a single HTML
-  file. The Artist makes **pictures**, and the Sound designer makes **sounds** and **music**.
+- **What the crew makes.** The Engineer makes **versions** of the game. In a Simple room each
+  version is a single HTML file. In a Bigger room it's a folder of files, such as `index.html`
+  and scripts in `js/`, and the Engineer hands back only the files it changed. A Bigger room's
+  games can use the studio's **shelf**: Three.js r180 for 3D, and a few fonts. Nothing else
+  loads from the internet. The Artist makes **pictures**, and the Sound designer makes **sounds** and **music**.
   Music is written as notes, like `C4 E4 G4`, with a row of notes for each instrument, so the
   student can read the tune. Whatever a crew member makes comes with its hail.
 - **Nothing goes into the game until the student says yes.** Granting the hail puts it in the
@@ -174,8 +182,22 @@ shortcut, it also answers to other computers on the network.
   the Engineer to fix it. Granting the hail keeps the test, so the Tester can play it again on
   a later version; a test that wasn't kept has **Keep this**. **On screen** shows the pictures
   large.
-- **When a version crashes** on screen, the room says so and suggests "Ask the Engineer to fix
-  it?" **Yes** starts the Engineer on it; **No thanks** leaves it.
+- **When a version crashes** on screen, the room says so, with the file and line in a folder
+  game, and suggests "Ask the Engineer to fix it?" **Yes** starts the Engineer on it; **No
+  thanks** leaves it.
+- **Saves.** A game that saves the player's progress keeps it in the room, in this browser, from
+  one version to the next and after a reload. **Start fresh**, on the big screen, plays the game
+  from the beginning without its saves. The Tester always plays from the beginning.
+- **Bring in a game.** On the big screen, **Bring in a game** adds a game made somewhere else,
+  such as one you made with a student before, as the room's next version and the current
+  version. **Choose a folder** for a game in several files, or **Choose an HTML file** for a
+  one-file game. A one-file game comes into either kind of room. A game with several files, or
+  one that uses Three.js, needs a Bigger room, so a Simple room asks first: **Make it Bigger and
+  bring it in**. On the way in, Three.js and fonts loaded from the internet are switched for the
+  studio's own copies, and anything else from the internet, or too big, such as a video, is left
+  out. The room says what changed. A game written for an older Three.js may look darker, so the
+  room suggests asking the Engineer to update it. The crew reads a brought-in game as it reads
+  any version, so check its README or credits for students' names first.
 - **Reply**, under a crew member's line, starts a prompt to them about what they said, with the
   cursor in the message box. **How did you do that?** asks them to explain how they made it,
   in the same order as any help, without changing anything.
@@ -184,7 +206,10 @@ shortcut, it also answers to other computers on the network.
 - **Saving and sharing.** Every version is saved on the laptop the moment it's made, in the
   games folder, **Bridge Crew Games** on the Desktop: `v1.html`, `v2.html` and so on, with
   `index.html` as the current version. **Download** saves a version wherever you like. Each
-  file opens in any browser, even offline, so the teacher can email it to the family.
+  file opens in any browser, even offline, so the teacher can email it to the family: a folder
+  game comes as one file too, with everything it needs inside. A folder game is also saved as
+  its folder, `v1/`, `v2/` and so on, which runs from the laptop as it is and can be put on a
+  website, such as GitHub Pages, as it is.
 - **Delete room** also deletes the room's games folder.
 
 ### 5. Stopping, updating and fixing
