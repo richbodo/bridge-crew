@@ -161,44 +161,16 @@ export const explain = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * A demo room's opening: a context pack's, from `just demo`'s Context list, or with no context,
+ * the one `just run`'s demo room has (src/lib/demo-rooms.ts).
+ */
 export const seedDemo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((data: { sessionId: string }) => data)
+  .validator((data: { sessionId: string; context?: string }) => data)
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
-    const script = [
-      { author_name: "Rae", kind: "human" as const, body: "Right — do we self-host the transcription or buy it?" },
-      { author_name: "Milo", kind: "human" as const, body: "Buying is faster but I don't trust the latency numbers." },
-      { author_name: "Rae", kind: "human" as const, body: "/research realtime speech-to-text latency, hosted vs self-hosted" },
-      { author_name: "Bridge", kind: "system" as const, body: "Scout is on it: realtime speech-to-text latency, hosted vs self-hosted" },
-    ];
-    for (const line of script) {
-      await supabase.from("transcript").insert({ session_id: data.sessionId, ...line });
-    }
-    // A finished Scout run, hailing, made through the same moves as a real one.
-    const { data: run, error } = await supabase.rpc("start_run", {
-      _session: data.sessionId,
-      _agent: "scout",
-      _task: "realtime speech-to-text latency, hosted vs self-hosted",
-      _mode: "direct",
-    });
-    if (error || !run) throw new Error(error?.message ?? "The demo couldn't start Scout.");
-    await supabase.rpc("finish_run", {
-      _run: run,
-      _spoken:
-        "Hosted services land around three hundred milliseconds end to end, self-hosted is faster once it's warm but you own the warm-up. The gap is smaller than the pricing difference suggests. I'd buy for now and keep the interface swappable.",
-      _brief:
-        "## Findings\n\n- Hosted APIs: ~250-400ms median, predictable, per-minute pricing.\n- Self-hosted small models: ~120-200ms warm, cold start is the real cost.\n- Swap cost is low if the boundary is a stream in / text out interface.\n\n## Confidence\n\nMedium. Numbers are from vendor docs and one benchmark, not our own audio.",
-      _summary: "Hosted is close enough on latency — I'd buy and keep it swappable.",
-    });
-    await supabase.from("stage_docs").upsert(
-      {
-        session_id: data.sessionId,
-        slug: "plan",
-        body: "## Where we are\n\nDeciding how to get speech to text into the room.\n\n## Decisions\n\n- None yet.\n\n## Open questions\n\n- Do our own latency numbers match the vendor claims?\n\n## Next\n\n- Hear Scout out, then pick a default.",
-      },
-      { onConflict: "session_id,slug" },
-    );
+    const { seedDemoRoom } = await import("./demo-rooms.server");
+    await seedDemoRoom(context.supabase, data.sessionId, data.context);
     return { ok: true };
   });
 

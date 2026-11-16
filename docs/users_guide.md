@@ -87,12 +87,16 @@ from where it stopped.
 2. The Game Studio opens in your browser. Click **Log me on as demo user 1**: that's you, the
    teacher. The student doesn't get an account.
 3. **Game Studio** is already picked. Type your name, the student's **nickname** (never their
-   real name) and a title for the game. Under **Games**, pick **Simple** or **Bigger**:
+   real name) and a title for the game. Under **Game**, pick **New game**, or **Open a game** to
+   start from one made somewhere else: **Choose a folder** for a game in several files, or
+   **Choose an HTML file** for a one-file game. It becomes the room's first version, on screen,
+   as **Bring in a game** (§4) does. Then under **Games**, pick **Simple** or **Bigger**:
    - **Simple games** are one HTML file, in 2D, and quick to build. They suit a first game.
    - **Bigger games** can be a folder of code, 3D with Three.js, and save the player's
      progress. They suit students who want a game like the ones they play.
 
-   A Simple room can become Bigger later (see **Bring in a game**), but not back. Then press
+   A Simple room can become Bigger later (see **Bring in a game**), but not back. A game opened
+   here that needs a Bigger room picks **Bigger** for you, and the lobby says why. Then press
    **Open a room**. A Game Studio room has one seat, so there's no invite.
 4. Read the **classroom notice** together, then press **We've read it**.
 
@@ -197,7 +201,8 @@ shortcut, it also answers to other computers on the network.
   studio's own copies, and anything else from the internet, or too big, such as a video, is left
   out. The room says what changed. A game written for an older Three.js may look darker, so the
   room suggests asking the Engineer to update it. The crew reads a brought-in game as it reads
-  any version, so check its README or credits for students' names first.
+  any version, so check its README or credits for students' names first. To start a new room
+  with a game, use **Open a game** in the lobby (§2).
 - **Reply**, under a crew member's line, starts a prompt to them about what they said, with the
   cursor in the message box. **How did you do that?** asks them to explain how they made it,
   in the same order as any help, without changing anything.
@@ -257,7 +262,8 @@ in your inbox — check spam the first time). You land in the lobby.
 On a local copy started with `just demo`, the lobby and sign-in page also offer **Log me on
 as demo user 1** and **Log me on as demo user 2**: one click, no password or email. Each
 browser tab keeps its own sign-in, so two tabs can be the two humans in one room. See
-[dev_setup.md](dev_setup.md#demo-mode).
+[dev_setup.md](dev_setup.md#demo-mode). That lobby opens demo rooms only, with a **Context**
+to choose in place of the kind of room: see §14.
 
 ![The lobby](images/01-lobby.png)
 
@@ -393,9 +399,21 @@ the card. Every run, an agent receives: its duty, the conversation so far, the c
 scene: two humans debating hosted vs. self-hosted speech-to-text, a `/research` summon, a
 Scout hail waiting for you, and a starter `plan.md`.
 
+**In `just demo`'s lobby**, **Open a demo room** is the only button, and a **Context** list
+takes the place of **Kind of room**. Pick one before the room opens; it doesn't change after.
+
+- **Game Studio**, picked to start with, opens a Game Studio room ([Part 1](#part-1-the-game-studio))
+  with no scripted scene. Under **Game**, pick **New game** or **Open a game**, as in §2.
+- **Kererū Ferry Co-op**, **NZ politics**, **Social epidemiology** and **Bridge Crew
+  protocol** each open a Deliberation room about that context pack (§13). Every station reads
+  the pack, and the room opens with its own scripted scene: a few lines from Rae and Milo, a
+  summon, and one crew member's hail whose brief draws on the pack. The room's title is the
+  scene's, unless you type one.
+
 **What works in a demo room** — everything a normal room does:
 
-- Granting the floor to the pre-loaded Scout hail (Scout speaks, Scribe then updates `plan.md`)
+- Granting the floor to the pre-loaded hail (the crew member speaks, Scribe then updates
+  `plan.md`)
 - Typing, summoning, redirecting and standing down stations, with live model answers
 - Reassigning stations, attaching context packs, creating session packs
 - Inviting a second human by link, code, or email
@@ -403,15 +421,16 @@ Scout hail waiting for you, and a starter `plan.md`.
 
 **What is not real in a demo room:**
 
-- The opening four lines and Scout's first contribution are **canned text**, not model output —
-  "Rae" and "Milo" are not real participants and never reply
-- The pre-loaded hail's brief was written by hand, so it cites no live sources
+- The opening lines and the first crew member's contribution are **canned text**, not model
+  output — "Rae" and "Milo" are not real participants and never reply
+- The pre-loaded hail's brief was written by hand, so it cites no live sources. In a context's
+  room it was written from the pack, so to see the crew read the pack, ask a station something
+  only the pack answers
 - The seeded `plan.md` was written by hand, not by the Scribe (the Scribe overwrites it on its
   next run)
-- No context pack was read for that first canned answer
 
 Everything you do *after* opening the demo room is real. To start clean, leave and use
-**Open a room** instead.
+**Open a room** instead, outside `just demo`.
 
 ### 15. Leaving and coming back
 

@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 
 import { makeNameLookup, runAgentBrief, writeSharedDoc, type NameLookup } from "./agents.server";
-import { bringIn } from "./bring-in";
+import { bringIn, whyBigger } from "./bring-in";
 import { ENTRY, sizeOf, type GameFiles } from "./bundle";
 import { assembleContext, type ContributionNote } from "./context";
 import { loadPackDocs } from "./context.server";
@@ -780,8 +780,7 @@ export async function bringInGame(
   }
   if (game.needsBigger && !isBigger(settings)) {
     if (!input.makeBigger) {
-      const why = Object.keys(game.files).length > 1 ? `has ${Object.keys(game.files).length} files` : "uses Three.js";
-      return { ok: false, needsBigger: true, message: `This game ${why}, so it needs a Bigger room.` };
+      return { ok: false, needsBigger: true, message: whyBigger(game) };
     }
     await makeRoomBigger(sb, sessionId);
   }

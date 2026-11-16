@@ -18,6 +18,48 @@ every time it runs. Packs live in two places and share one namespace:
 Documents are inlined verbatim, in path order, with `index.md` first. There is no retrieval
 and no summarisation: whatever is in the folder is what the model sees.
 
+## A demo room's opening: `demo.md`
+
+A pack can have a `demo.md` beside its documents. It isn't part of the pack: the crew never
+reads it. It's the scripted opening of a demo room about the pack, and a pack with one is listed
+in the **Context** list of `just demo`'s lobby
+([users guide §14](../users_guide.md#14-demo-room), `src/lib/demo-rooms.ts`). Opening that
+room gives every station the pack, then puts the script in the room through the same moves as a
+real run.
+
+```markdown
+# The room's title
+
+- **Context:** Its name in the lobby's list
+- **About:** One line under the name.
+- **Order:** 1
+- **Crew member:** analyst
+- **Task:** what the crew member was asked
+- **Hail:** The one line it hails with.
+
+## People
+
+- **Rae:** A line from one of the people.
+- **Rae:** /analyze what the crew member was asked
+
+## Spoken
+
+What the crew member says when granted the floor, within the 10-sentence cap.
+
+## Brief
+
+(a fenced markdown block: the written brief, with its own ## headings)
+
+## Plan
+
+(a fenced markdown block: the starting plan.md)
+```
+
+The crew member is a Deliberation job (scribe, scout, advocate, skeptic, analyst), and the last
+line from the people asks for it. The brief should use at least three of the pack's canaries,
+so the scene shows the crew using the pack. `src/lib/__tests__/demo-rooms.test.ts` checks all
+of this.
+
 ## Canaries
 
 Every fixture pack ends with a `## Canaries` list: specific, checkable, unguessable facts —
