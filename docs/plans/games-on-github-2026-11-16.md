@@ -28,6 +28,18 @@ Deliberation pack, and **Open a game** in the lobby. Two changes from Part 1 as 
 the Game Studio rather than of the demo; and nothing is greyed out once a room is open, because
 there is no context switch in the room to grey out. Each station shows its pack on its card.
 
+G2 is built (2026-11-16): opening a game from a GitHub link, games written as modules, and the
+room's GitHub link with **Bring in GitHub's newest**. The teacher's four games open from their
+play links and play on the big screen and in the Tester's browser, and so does a small
+module-based Three.js game from GitHub. A real Engineer changed a module game and kept it as
+modules. Changes from Part 2 as first written, each marked there:
+
+- Modules are built with **Rolldown**, Vite 8's own bundler. Vite 8 doesn't bring esbuild.
+- A **play link** opens its repository's main branch. GitHub only says where a site is published
+  from to a signed-in owner.
+- **A game the studio saved** opening as more than one version moves to G5, which restores the
+  rest of a saved room: nothing writes that format until G4.
+
 ## Decisions
 
 Settled on 2026-11-16:
@@ -114,31 +126,46 @@ a game from a folder at the start. The teacher's shortcut says **Open a room**.
 
 - **The link** can be:
   - a repository (`github.com/owner/repo`, or with `/tree/branch/folder`);
-  - a play link (`owner.github.io/repo/`), which maps to its repository;
+  - a play link (`owner.github.io/repo/`), which maps to its repository and its main branch
+    (as built: GitHub only says where a site is published from to a signed-in owner);
   - or just `owner/repo`.
 - **Where:** **Open a game** in the lobby, and **Bring in a game** on the big screen, which gets
   a **GitHub link** box beside **Choose a folder**.
 - **Fetching.** The server downloads the repository's archive, one request for the newest
   commit on its main branch, and unpacks it in memory. Public repositories need no sign-in;
-  private ones use the teacher's connection (Part 3). The size limits are Bring in's.
+  private ones use the teacher's connection (Part 3). The size limits are Bring in's. (As
+  built: two requests, one for the repository's main branch and one for the archive, whose
+  header names the commit. A game looked at in the lobby is kept for five minutes, so opening
+  the room doesn't download it again.)
 - **Finding the game:**
   1. `index.html` at the top.
   2. Otherwise `docs/index.html`, GitHub Pages' other usual folder.
   3. Otherwise the only HTML page.
 
   A repository that has to be built first, with a `package.json` and no built page, gets "This
-  game needs building first, which the studio can't do yet."
+  game needs building first, which the studio can't do yet." (As built: a project whose
+  `package.json` names a build tool plays from its built folder, `dist/`, `build/` or `docs/`,
+  when it has one committed.)
 - **Then it's Bring in** (Phase A): Three.js and fonts switched for the shelf's, the rest
   listed, a Simple room asked to become Bigger, and a suggestion to update an older Three.js.
 - **Games written as modules.** Many web games, most of Three.js's examples among them, load
   their scripts with `import`. Phase A can't run those, so this part adds it. The bundle builds a
-  game's modules into one script with esbuild, which comes with Vite already. It maps `three`
-  and `three/addons/…` to the shelf, so the shelf's build also makes a module copy of
-  Three.js. This is what "roughly fits" mostly needs.
+  game's modules into one script with Rolldown, Vite 8's own bundler (the plan first said
+  esbuild, which Vite 8 doesn't bring). It maps `three` and `three/addons/…` to the shelf, so
+  the shelf also has a module copy of Three.js. This is what "roughly fits" mostly needs.
+  - Bring in rewrites a module game's import map, and any import straight from a CDN, to point
+    Three.js at the shelf, so the game's folder still runs as a website with the shelf's files
+    beside it, as GitHub Pages will serve it (G4).
+  - In the bundle, modules and plain scripts share one Three.js: the module copy takes its
+    names from the global THREE that `studio/three.js` defines.
+  - A crash in a module still names its own file and line: the bundle carries a table from its
+    lines back to the files'.
+  - The Engineer is told when a game is written as modules, and keeps it that way.
 - **The link stays with the room:** the repository, its branch and the commit it came from. The
   room's header shows "From github.com/owner/repo". When GitHub has newer commits, the room's
   **GitHub** menu offers **Bring in GitHub's newest**, as a new version.
-- **A game the studio saved** has a `bridge-crew/` folder, so it opens as more than one version:
+- **A game the studio saved** has a `bridge-crew/` folder, so it opens as more than one version
+  (moved to G5, since nothing writes that folder until G4):
   - its versions come back, one per tag (`v1` … `vN`);
   - so do its `game.md`, and its pictures, sounds and music;
   - from a private repository, the history comes back too, as **Earlier sessions** above the

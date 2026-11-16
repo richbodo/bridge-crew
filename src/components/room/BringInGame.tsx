@@ -13,12 +13,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { bringInFromGitHub } from "@/lib/github.functions";
 import { bringInGame } from "@/lib/room.functions";
 
 /**
  * Bring in a game (docs/plans/bigger-games-2026-11-16.md Part 4): the people pick a game folder
- * or an HTML file made elsewhere, and it becomes the room's next version, on screen. The files
- * are read here, in the browser, and stored on the laptop's database by the server.
+ * or an HTML file made elsewhere, or paste a GitHub link (docs/plans/games-on-github-2026-11-16.md
+ * Part 2), and it becomes the room's next version, on screen. Picked files are read here, in the
+ * browser; a GitHub link is opened by the server. Either way, the laptop's database keeps them.
  */
 
 export function BringInGame({
@@ -31,28 +34,38 @@ export function BringInGame({
   onDone: () => void;
 }) {
   const bring = useServerFn(bringInGame);
+  const bringFromGitHub = useServerFn(bringInFromGitHub);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [needsBigger, setNeedsBigger] = useState<{ picked: Picked; message: string } | null>(null);
+  const [link, setLink] = useState("");
+  const [needsBigger, setNeedsBigger] = useState<{
+    game: Picked | string;
+    message: string;
+  } | null>(null);
 
-  const send = async (picked: Picked, makeBigger = false) => {
+  /** Picked files, or a GitHub link. */
+  const send = async (game: Picked | string, makeBigger = false) => {
     setBusy(true);
     try {
-      const result = await bring({
-        data: {
-          sessionId,
-          files: picked.files,
-          ...(picked.folder ? { folder: picked.folder } : {}),
-          ...(picked.left.length ? { left: picked.left } : {}),
-          ...(makeBigger ? { makeBigger } : {}),
-        },
-      });
+      const result =
+        typeof game === "string"
+          ? await bringFromGitHub({ data: { sessionId, link: game, makeBigger } })
+          : await bring({
+              data: {
+                sessionId,
+                files: game.files,
+                ...(game.folder ? { folder: game.folder } : {}),
+                ...(game.left.length ? { left: game.left } : {}),
+                ...(makeBigger ? { makeBigger } : {}),
+              },
+            });
       if (result.ok) {
         setNeedsBigger(null);
+        setLink("");
         setOpen(false);
         onDone();
       } else if (result.needsBigger) {
-        setNeedsBigger({ picked, message: result.message });
+        setNeedsBigger({ game, message: result.message });
       } else {
         toast.error(result.message);
       }
@@ -81,7 +94,7 @@ export function BringInGame({
           <DialogTitle>Bring in a game</DialogTitle>
           <DialogDescription>
             A game made somewhere else becomes this room's next version, and the current version.
-            Pick its folder, or its HTML file if it's just one.
+            Pick its folder, or its HTML file if it's just one, or paste its GitHub link.
           </DialogDescription>
         </DialogHeader>
         {needsBigger ? (
@@ -92,7 +105,7 @@ export function BringInGame({
               can't go back to Simple.
             </p>
             <div className="flex gap-2">
-              <Button size="sm" disabled={busy} onClick={() => void send(needsBigger.picked, true)}>
+              <Button size="sm" disabled={busy} onClick={() => void send(needsBigger.game, true)}>
                 Make it Bigger and bring it in
               </Button>
               <Button
@@ -108,6 +121,24 @@ export function BringInGame({
         ) : (
           <div className="space-y-3 text-sm">
             <PickGameButtons disabled={busy} onPicked={send} />
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (link.trim()) void send(link.trim());
+              }}
+            >
+              <Input
+                aria-label="GitHub link"
+                value={link}
+                placeholder="A GitHub link, such as github.com/someone/rocket-lab"
+                onChange={(e) => setLink(e.target.value)}
+                className="h-8 text-xs"
+              />
+              <Button size="sm" type="submit" variant="secondary" disabled={busy || !link.trim()}>
+                Bring it in
+              </Button>
+            </form>
             <p className="text-xs text-muted-foreground">
               {bigger
                 ? "This room makes Bigger games, so a folder of code is fine."

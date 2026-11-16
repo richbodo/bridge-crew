@@ -25,6 +25,8 @@ const liveModel = process.env["E2E_LIVE_MODEL"] === "1";
 export const E2E_GAMES_DIR = resolve("test-results/games");
 const modelEnv: Record<string, string> = {
   BRIDGE_CREW_GAMES_DIR: E2E_GAMES_DIR,
+  // "GitHub" is fake repositories on disk, so the tests never need the network or its limits.
+  BRIDGE_CREW_GITHUB_FIXTURES: resolve("e2e/fixtures/github"),
   ...(liveModel ? {} : { BRIDGE_CREW_MODEL_PROVIDER: "fixture" }),
 };
 

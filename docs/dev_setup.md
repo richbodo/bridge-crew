@@ -184,6 +184,7 @@ values into `process.env`, so the browser and the server functions always agree.
 | `BRIDGE_CREW_MODEL`, `BRIDGE_CREW_SCRIBE_MODEL` | Override the Claude model for the crew / Scribe. |
 | `BRIDGE_CREW_INFERENCE_GEO=us` | Keeps inference in the US (`inference_geo`, at a small extra cost). |
 | `BRIDGE_CREW_GAMES_DIR` | Where Game Studio games are saved. Default `~/Bridge Crew Games`; `just e2e` uses `test-results/games`. |
+| `BRIDGE_CREW_GITHUB_FIXTURES` | A folder of fake GitHub repositories to open games from instead of GitHub (`src/lib/github.server.ts`). `just e2e` uses `e2e/fixtures/github`. Unset, games open from GitHub itself: public repositories, 60 requests an hour per network without signing in. |
 
 Opus requests in Deliberation rooms opt into server-side refusal fallback
 (`fallbacks: "default"`). Game Studio rooms don't, so a request the model declines stays
