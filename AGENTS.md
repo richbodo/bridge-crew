@@ -19,6 +19,10 @@ frozen: append corrections, never edit them.
 - **The Tester's playtest:** `src/lib/playtest.server.ts` plays the current version in
   Playwright's headless Chromium (`playwright-core` is a runtime dependency, and the installer
   downloads the browser), with the game's clock paused between the Tester's turns.
+- **Games:** a version is a folder of files (`game_files`, stored by hash), run and shared as one
+  file, its bundle (`src/lib/bundle.ts`). The **shelf** (`src/lib/shelf.ts`) is the libraries and
+  fonts games may use: Three.js and fonts, built into `src/lib/vendor/` by `just shelf`. See
+  [docs/plans/bigger-games-2026-11-16.md](docs/plans/bigger-games-2026-11-16.md).
 - **UI:** Tailwind 4 + shadcn/ui. `src/components/ui/` is managed by the shadcn CLI.
 - **Packages:** Bun (`bun.lock`). `bunfig.toml` blocks versions published in the last 24 hours;
   don't add exclusions without asking.

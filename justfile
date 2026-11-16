@@ -93,6 +93,11 @@ mail:
 psql:
     psql "postgresql://postgres:postgres@127.0.0.1:55322/postgres"
 
+# Rebuild the Game Studio's shelf (Three.js and fonts) into src/lib/vendor/ after changing a version.
+[group('infra')]
+shelf:
+    bun scripts/build-shelf.ts
+
 # Regenerate src/integrations/supabase/types.ts after adding a migration.
 [group('infra')]
 db-types:

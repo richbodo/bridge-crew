@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { AgentCard } from "@/components/room/AgentCard";
 import { BigScreen, type Showing } from "@/components/room/BigScreen";
+import { BringInGame } from "@/components/room/BringInGame";
 import {
   ChatPane,
   ContributionActions,
@@ -56,6 +57,7 @@ import {
   useThing,
 } from "@/lib/room.functions";
 import { deleteRoom, getRoom } from "@/lib/session.functions";
+import { BROUGHT_IN } from "@/lib/made";
 import { jobOf as templateJob, templateOf } from "@/lib/templates";
 
 export const Route = createFileRoute("/_authenticated/session/$id")({
@@ -317,7 +319,9 @@ function RoomPage() {
     room.participants.find((p) => p.user_id === authorId)?.color ?? "var(--muted-foreground)";
 
   const nameFor = (agent: string) =>
-    room.agents.find((a) => a.agent === agent)?.display_name?.trim() || jobOf(agent).name;
+    agent === BROUGHT_IN
+      ? "Brought in"
+      : room.agents.find((a) => a.agent === agent)?.display_name?.trim() || jobOf(agent).name;
 
   const statusOf = (agent: string): AgentStatus =>
     (room.agents.find((a) => a.agent === agent)?.status as AgentStatus | undefined) ?? "idle";
@@ -353,6 +357,7 @@ function RoomPage() {
         {things.map((thing) => (
           <div key={thing.id} className="space-y-1">
             <MadeThing
+              sessionId={id}
               thing={thing}
               current={thing.id === currentVersion}
               title={room.session.title}
@@ -477,7 +482,9 @@ function RoomPage() {
         <div>
           <h1 className="text-sm font-semibold tracking-wide text-foreground">{room.session.title}</h1>
           <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-            {template.sharedSeat ? template.name : `join code ${room.session.code}`}
+            {template.sharedSeat
+              ? `${template.name}${template.bigScreen ? ` · ${room.settings.games === "bigger" ? "Bigger" : "Simple"} games` : ""}`
+              : `join code ${room.session.code}`}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -598,6 +605,7 @@ function RoomPage() {
 
       {onScreen ? (
         <BigScreen
+          sessionId={id}
           title={room.session.title}
           showing={screen?.showing ?? null}
           made={shown}
@@ -608,6 +616,9 @@ function RoomPage() {
           onOff={() => screenMutation.mutate({ view: "off" })}
           onCrash={onCrash}
           manage={manageButton}
+          bringIn={
+            <BringInGame sessionId={id} bigger={room.settings.games === "bigger"} onDone={() => void refresh()} />
+          }
           strip={
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
               {composer(1)}
@@ -772,6 +783,7 @@ function RoomPage() {
                     {[...shown].reverse().map((thing) => (
                       <MadeThing
                         key={thing.id}
+                        sessionId={id}
                         thing={thing}
                         current={thing.id === currentVersion}
                         title={room.session.title}

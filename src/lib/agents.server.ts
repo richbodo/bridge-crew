@@ -50,8 +50,19 @@ export interface AgentProfile {
   duty?: string | null;
 }
 
+/** What a crew member's instructions depend on in its room. */
+export interface RoomKind {
+  /** A Bigger room's games are folders (docs/plans/bigger-games-2026-11-16.md). */
+  bigger?: boolean;
+}
+
 /** The system prompt: the crew member's duty (or the one it was reassigned), then the house style. */
-export function systemPromptFor(template: Template, job: Job, profile?: AgentProfile): string {
+export function systemPromptFor(
+  template: Template,
+  job: Job,
+  profile?: AgentProfile,
+  room: RoomKind = {},
+): string {
   const name = profile?.name?.trim();
   const duty = profile?.duty?.trim();
   const role = duty
@@ -59,7 +70,10 @@ export function systemPromptFor(template: Template, job: Job, profile?: AgentPro
     : name
       ? `${job.duty}\nIn this room you go by the name ${name}.`
       : job.duty;
-  const extras = [formatFor(job.makes), template.crewProposals ? askFormat(template) : null];
+  const extras = [
+    formatFor(job.makes, { bigger: room.bigger ?? false }),
+    template.crewProposals ? askFormat(template) : null,
+  ];
   return [role, houseStyle(template), ...extras.filter(Boolean)].join("\n\n");
 }
 
@@ -71,9 +85,10 @@ export async function runAgentBrief(
   context: string,
   profile?: AgentProfile,
   tool?: CrewTool,
+  room: RoomKind = {},
 ): Promise<AgentResult> {
   const messages = [
-    { role: "system" as const, content: systemPromptFor(template, job, profile) },
+    { role: "system" as const, content: systemPromptFor(template, job, profile, room) },
     {
       role: "user" as const,
       content: `${context || "## Session transcript\n\n(nothing yet)"}\n\n## Your task\n\n${brief}`,

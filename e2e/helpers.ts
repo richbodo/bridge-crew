@@ -48,10 +48,16 @@ export const STUDIO_JOBS = [
 /** Opens a Game Studio room as the teacher, and closes the classroom notice. */
 export async function openStudio(
   page: Page,
-  { title, teacher = "Pat", student = "Sam" }: { title: string; teacher?: string; student?: string },
+  {
+    title,
+    teacher = "Pat",
+    student = "Sam",
+    games = "simple",
+  }: { title: string; teacher?: string; student?: string; games?: "simple" | "bigger" },
 ) {
   await page.goto("/");
   await page.getByLabel("Game Studio").check();
+  await page.getByLabel(games === "bigger" ? "Bigger games" : "Simple games").check();
   await page.getByLabel("Your name in the room").fill(teacher);
   await page.getByLabel("Student's nickname").fill(student);
   await page.getByLabel("Session title").fill(title);

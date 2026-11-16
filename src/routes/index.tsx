@@ -52,6 +52,7 @@ function Lobby() {
 
   const [templateKey, setTemplateKey] = useState<TemplateKey>(STARTING_TEMPLATE);
   const [studentName, setStudentName] = useState("");
+  const [games, setGames] = useState<"simple" | "bigger">("simple");
   const [title, setTitle] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [color, setColor] = useState(COLORS[0]!);
@@ -81,6 +82,7 @@ function Lobby() {
           color,
           template: templateKey,
           studentName,
+          ...(TEMPLATES[templateKey].bigScreen ? { games } : {}),
         },
       });
       if (withDemo) await demo({ data: { sessionId: session.id } });
@@ -232,6 +234,40 @@ function Lobby() {
                       onChange={(e) => setStudentName(e.target.value)}
                     />
                   </div>
+                ) : null}
+                {template.bigScreen ? (
+                  <fieldset className="space-y-2">
+                    <legend className="text-sm font-medium text-card-foreground">Games</legend>
+                    {(
+                      [
+                        ["simple", "Simple", "One file, 2D, quick to build. For first games."],
+                        ["bigger", "Bigger", "A folder of code, 3D with Three.js, saved progress."],
+                      ] as const
+                    ).map(([key, name, blurb]) => (
+                      <label
+                        key={key}
+                        className={`flex cursor-pointer gap-2 rounded-md border p-2 text-xs ${
+                          games === key ? "border-ring" : "border-border"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="games"
+                          value={key}
+                          checked={games === key}
+                          onChange={() => setGames(key)}
+                          className="mt-0.5"
+                        />
+                        <span>
+                          <span className="block font-medium text-card-foreground">{name} games</span>
+                          <span className="text-muted-foreground">{blurb}</span>
+                        </span>
+                      </label>
+                    ))}
+                    <p className="text-[11px] text-muted-foreground">
+                      A Simple room can become Bigger later, but not back.
+                    </p>
+                  </fieldset>
                 ) : null}
                 <div className="space-y-1">
                   <Label htmlFor="title">Session title</Label>

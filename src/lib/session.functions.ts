@@ -23,6 +23,8 @@ export const createSession = createServerFn({ method: "POST" })
       color: string;
       template?: TemplateKey;
       studentName?: string;
+      /** Game Studio only: Simple or Bigger games (docs/plans/bigger-games-2026-11-16.md). */
+      games?: "simple" | "bigger";
     }) => data,
   )
   .handler(async ({ data, context }) => {
@@ -39,7 +41,11 @@ export const createSession = createServerFn({ method: "POST" })
         code,
         owner_id: userId,
         template: template.key,
-        settings: { seats: template.seats, ...(studentName ? { studentName } : {}) },
+        settings: {
+          seats: template.seats,
+          ...(studentName ? { studentName } : {}),
+          ...(template.bigScreen ? { games: data.games === "bigger" ? "bigger" : "simple" } : {}),
+        },
       })
       .select("id, code, title")
       .single();

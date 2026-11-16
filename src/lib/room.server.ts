@@ -3,17 +3,21 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 
 import { makeNameLookup, runAgentBrief, writeSharedDoc, type NameLookup } from "./agents.server";
+import { bringIn } from "./bring-in";
+import { ENTRY, sizeOf, type GameFiles } from "./bundle";
 import { assembleContext, type ContributionNote } from "./context";
 import { loadPackDocs } from "./context.server";
+import { bundleOf, fileListOf, loadFiles, storeFiles } from "./game-store.server";
 import type { Mode } from "./machines";
-import { cleanName, labelOf, testSteps, type AskDraft, type MadeDraft } from "./made";
+import { BROUGHT_IN, cleanName, labelOf, testSteps, type AskDraft, type MadeDraft } from "./made";
+import { THREE_VERSION } from "./shelf";
 import type { CrewTool } from "./model.server";
 import { FIXTURE_PLAY, PLAY_TOOL, playFrom } from "./playtest";
 import { Playtest, resultOf } from "./playtest.server";
 import { enforceSpeechCap } from "./speech";
 import { saveCurrent, saveVersion, type RoomName } from "./games.server";
 import { findAddressees, parseSummon, type Addressable } from "./summon";
-import { jobOf, templateOf, type Template } from "./templates";
+import { jobOf, templateOf, type Job, type Template } from "./templates";
 
 /**
  * The room's transitions, run by the server (docs/state_machines.md). The moves themselves
@@ -53,6 +57,15 @@ export interface RoomSettings {
   /** The made thing that's the current version (§8). */
   currentVersion?: string;
   screen?: Screen;
+  /**
+   * Game size (docs/plans/bigger-games-2026-11-16.md): a Simple room makes one-file games; a
+   * Bigger room's games are folders, with the shelf. No setting means Simple.
+   */
+  games?: "simple" | "bigger";
+}
+
+export function isBigger(settings: RoomSettings): boolean {
+  return settings.games === "bigger";
 }
 
 /** A room's template, settings and crew: what every transition needs to know. */
@@ -82,11 +95,46 @@ async function roomOf(sb: Client, sessionId: string) {
 async function madeInOrder(sb: Client, sessionId: string) {
   const { data } = await sb
     .from("made_things")
-    .select("id, kind, name, version, body, state, agent")
+    .select("id, kind, name, version, body, files, state, agent")
     .eq("session_id", sessionId)
     .order("created_at", { ascending: true })
     .order("id", { ascending: true });
   return data ?? [];
+}
+
+/** A file's code in a fence, for a crew member that reads the code. */
+function fencedFile(path: string, body: string): string {
+  const lang = /\.(\w+)$/.exec(path)?.[1]?.toLowerCase() ?? "";
+  const fence = body.includes("```") ? "~~~~" : "```";
+  if (body.startsWith("data:")) return `#### ${path}\n\n(a picture or font, ${Math.round(body.length / 1024)} KB)`;
+  return `#### ${path}\n\n${fence}${lang === "md" ? "markdown" : lang}\n${body}\n${fence}`;
+}
+
+/**
+ * The current version, for a crew member's context. The Engineer and the Tester read its code;
+ * the others get its list of files (docs/plans/bigger-games-2026-11-16.md Part 3).
+ */
+async function currentVersionFor(
+  sb: Client,
+  sessionId: string,
+  current: { name: string; kind: string; version: number | null; body: string; files: Json | null },
+  readsCode: boolean,
+): Promise<string> {
+  const label = labelOf(current);
+  const files = await loadFiles(sb, sessionId, current);
+  const paths = Object.keys(files);
+  if (paths.length === 1 && paths[0] === ENTRY) {
+    return readsCode
+      ? `### The current version (${label})\n\n\`\`\`html\n${files[ENTRY]}\n\`\`\``
+      : `### The current version (${label})\n\nOne HTML file, ${Math.round((files[ENTRY] ?? "").length / 1024)} KB.`;
+  }
+  const list = paths
+    .sort((a, b) => (a === ENTRY ? -1 : b === ENTRY ? 1 : a.localeCompare(b)))
+    .map((path) => `- ${path} (${Math.max(1, Math.round((files[path] ?? "").length / 1024))} KB)`)
+    .join("\n");
+  const head = `### The current version (${label}): a folder of ${sizeOf(files)}\n\n${list}`;
+  if (!readsCode) return head;
+  return `${head}\n\n${paths.map((path) => fencedFile(path, files[path] ?? "")).join("\n\n")}`;
 }
 
 /**
@@ -99,6 +147,7 @@ async function gameSoFar(
   template: Template,
   settings: RoomSettings,
   nameOf: NameLookup,
+  job: Job,
 ) {
   const things = await madeInOrder(sb, sessionId);
   const current = things.find((t) => t.id === settings.currentVersion);
@@ -120,9 +169,10 @@ async function gameSoFar(
               : "not used";
       return `- #${number} ${labelOf(thing)}, by ${called(template, nameOf, thing.agent)} (${state})`;
     });
+  const readsCode = job.makes === "version" || job.makes === "tests";
   const parts = [
     current
-      ? `### The current version (${labelOf(current)})\n\n\`\`\`html\n${current.body}\n\`\`\``
+      ? await currentVersionFor(sb, sessionId, current, readsCode)
       : "No version of the game has been built yet.",
     ...used
       .filter((t) => t.kind === "picture")
@@ -173,6 +223,7 @@ async function removable(
 
 /** "the Sound designer", or the name the room gave that crew member. */
 function called(template: Template, nameOf: NameLookup, agent: string) {
+  if (agent === BROUGHT_IN) return "the people, who brought it in";
   const name = nameOf(agent);
   return name === jobOf(template, agent).name ? `the ${name}` : name;
 }
@@ -253,6 +304,7 @@ async function gatherContext(
   settings: RoomSettings,
   packs: string[],
   nameOf: NameLookup,
+  job: Job,
 ) {
   const [{ data: lines }, { data: doc }, { data: work }, docs] = await Promise.all([
     sb
@@ -283,7 +335,7 @@ async function gatherContext(
     docs,
     plan: doc?.body ?? "",
     planTitle: template.doc.file,
-    game: template.bigScreen ? await gameSoFar(sb, sessionId, template, settings, nameOf) : "",
+    game: template.bigScreen ? await gameSoFar(sb, sessionId, template, settings, nameOf, job) : "",
     contributions,
     transcript: (lines ?? []).map(asRead),
   });
@@ -326,7 +378,7 @@ async function playtestFor(sb: Client, sessionId: string, runId: string, setting
       if (!play.steps.length) return { parts: [{ text: "There were no steps to play." }], failed: true };
       name ||= play.name;
       try {
-        test ??= await Playtest.open(current.body, names);
+        test ??= await Playtest.open(bundleOf(await loadFiles(sb, sessionId, current)).html, names);
       } catch (error) {
         console.error("the playtest browser didn't open", error);
         return {
@@ -380,7 +432,7 @@ export async function executeRun(sb: Client, runId: string) {
     // The Tester plays the current version (Part 5 of the education plan).
     if (job.makes === "tests") playtest = await playtestFor(sb, sessionId, runId, settings);
     const packs = (me?.context_packs as string[] | null) ?? [];
-    const context = await gatherContext(sb, sessionId, template, settings, packs, nameOf);
+    const context = await gatherContext(sb, sessionId, template, settings, packs, nameOf, job);
     await sb
       .from("agents_state")
       .update({ progress: "gathering and drafting…", snapshot: null })
@@ -396,6 +448,7 @@ export async function executeRun(sb: Client, runId: string) {
         context.text,
         { name: me?.display_name ?? null, duty: me?.duty ?? null },
         playtest?.tool,
+        { bigger: isBigger(settings) },
       ),
       RUN_TIME_LIMIT_MS,
       `it took longer than ${minutes} minutes`,
@@ -407,7 +460,9 @@ export async function executeRun(sb: Client, runId: string) {
     const summary = spoken.split(/(?<=[.!?])\s+/)[0] || spoken.slice(0, 140);
     // Help changes nothing in the game unless asked (Part 6), so a help run makes and removes nothing.
     const help = run.mode === "help";
-    const made = help ? [] : [...result.made, ...(playtest?.made() ?? [])];
+    const made = help
+      ? []
+      : await withStoredFiles(sb, sessionId, settings, [...result.made, ...(playtest?.made() ?? [])]);
     const removes =
       help || !result.removes.length
         ? []
@@ -436,15 +491,48 @@ export async function executeRun(sb: Client, runId: string) {
   }
 }
 
+/**
+ * A run's versions with their files stored in game_files, so each made thing only lists them. In
+ * a Bigger room the Engineer hands back only the files it changed, so the rest come from the
+ * current version.
+ */
+async function withStoredFiles(
+  sb: Client,
+  sessionId: string,
+  settings: RoomSettings,
+  made: MadeDraft[],
+): Promise<Array<MadeDraft & { files?: Record<string, string> }>> {
+  if (!made.some((thing) => thing.kind === "version")) return made;
+  let base: GameFiles = {};
+  if (isBigger(settings) && settings.currentVersion) {
+    const { data: current } = await sb
+      .from("made_things")
+      .select("body, files")
+      .eq("id", settings.currentVersion)
+      .maybeSingle();
+    if (current) base = await loadFiles(sb, sessionId, current);
+  }
+  return Promise.all(
+    made.map(async (thing) => {
+      if (thing.kind !== "version") return thing;
+      const files = { ...(isBigger(settings) ? base : {}), ...(thing.files ?? { [ENTRY]: thing.body }) };
+      if (!(ENTRY in files)) return { ...thing, body: "", files: {} };
+      return { kind: thing.kind, name: thing.name, body: "", files: await storeFiles(sb, sessionId, files) };
+    }),
+  ).then((things) => things.filter((thing) => thing.kind !== "version" || Object.keys(thing.files ?? {}).length));
+}
+
 /** Saves a run's versions to the room's games folder (Part 5). */
 async function saveVersionsOf(sb: Client, runId: string, name: RoomName) {
   const { data: versions } = await sb
     .from("made_things")
-    .select("version, body")
+    .select("session_id, version, body, files")
     .eq("run_id", runId)
     .eq("kind", "version");
   for (const v of versions ?? []) {
-    if (v.version) await saveVersion(name, v.version, v.body).catch(logFileError);
+    if (!v.version) continue;
+    const files = await loadFiles(sb, v.session_id, v);
+    await saveVersion(name, v.version, files).catch(logFileError);
   }
 }
 
@@ -454,10 +542,10 @@ async function saveCurrentVersion(sb: Client, sessionId: string) {
   if (!settings.currentVersion) return;
   const { data: current } = await sb
     .from("made_things")
-    .select("body")
+    .select("body, files")
     .eq("id", settings.currentVersion)
     .maybeSingle();
-  if (current) await saveCurrent(name, current.body).catch(logFileError);
+  if (current) await saveCurrent(name, await loadFiles(sb, sessionId, current)).catch(logFileError);
 }
 
 /** One entry in the captain's log (floor_events), as whoever is signed in. */
@@ -638,6 +726,95 @@ export async function useThing(sb: Client, sessionId: string, thingId: string) {
   const { error } = await sb.rpc("use_made_thing", { _thing: thingId });
   if (error) throw new Error(error.message);
   await saveCurrentVersion(sb, sessionId);
+}
+
+/** A version's bundle, for the big screen and Download: one HTML file, before the frame's additions. */
+export async function gameDocument(sb: Client, sessionId: string, thingId: string) {
+  const { data: thing } = await sb
+    .from("made_things")
+    .select("kind, body, files")
+    .eq("id", thingId)
+    .eq("session_id", sessionId)
+    .maybeSingle();
+  if (!thing || thing.kind !== "version") throw new Error("That isn't a version of the game.");
+  const files = await loadFiles(sb, sessionId, thing);
+  const bundle = bundleOf(files);
+  return { html: bundle.html, missing: bundle.missing, remote: bundle.remote, size: sizeOf(files) };
+}
+
+/** A Simple room becomes a Bigger room. There's no way back (docs/state_machines.md §11, Game size). */
+export async function makeRoomBigger(sb: Client, sessionId: string) {
+  const { template, settings } = await roomOf(sb, sessionId);
+  if (!template.bigScreen) throw new Error("Only a Game Studio room makes games.");
+  if (isBigger(settings)) return;
+  const { error } = await sb
+    .from("sessions")
+    .update({ settings: { ...settings, games: "bigger" } as unknown as Json })
+    .eq("id", sessionId);
+  if (error) throw new Error(error.message);
+  await note(sb, sessionId, "This room makes Bigger games now: folders of code, 3D with Three.js, and saves.");
+  await logEvent(sb, sessionId, "room", "games_bigger", null);
+}
+
+export type BringInResult =
+  | { ok: true; version: number; notes: string[] }
+  | { ok: false; needsBigger: boolean; message: string };
+
+/**
+ * Bring in a game (docs/plans/bigger-games-2026-11-16.md Part 4): a game made elsewhere becomes
+ * the next version and the current version, and goes on screen. A game that needs a Bigger room
+ * asks first, unless the people already said to make the room Bigger.
+ */
+export async function bringInGame(
+  sb: Client,
+  sessionId: string,
+  input: { files: Record<string, string>; folder?: string; left?: string[]; makeBigger?: boolean },
+): Promise<BringInResult> {
+  const { template, settings, name, nameOf } = await roomOf(sb, sessionId);
+  if (!template.bigScreen) return { ok: false, needsBigger: false, message: "Only a Game Studio room makes games." };
+  let game: ReturnType<typeof bringIn>;
+  try {
+    game = bringIn(input.files, input.folder ?? "", input.left ?? []);
+  } catch (error) {
+    return { ok: false, needsBigger: false, message: (error as Error).message };
+  }
+  if (game.needsBigger && !isBigger(settings)) {
+    if (!input.makeBigger) {
+      const why = Object.keys(game.files).length > 1 ? `has ${Object.keys(game.files).length} files` : "uses Three.js";
+      return { ok: false, needsBigger: true, message: `This game ${why}, so it needs a Bigger room.` };
+    }
+    await makeRoomBigger(sb, sessionId);
+  }
+
+  const list = await storeFiles(sb, sessionId, game.files);
+  const { data, error } = await sb.rpc("bring_in_version", {
+    _session: sessionId,
+    _files: list as unknown as Json,
+    _title: game.title,
+  });
+  if (error) throw new Error(error.message);
+  const { id, version } = data as { id: string; version: number };
+  const label = labelOf({ kind: "version", name: game.title || `v${version}`, version });
+  await note(sb, sessionId, [`${label} was brought in: ${sizeOf(game.files)}.`, ...game.notes].join(" "));
+
+  // A game written for an older Three.js gets a suggestion to update it (Part 4).
+  const engineer = template.roster.find((job) => job.makes === "version");
+  if (game.oldThree && engineer) {
+    await sb.from("proposals").insert({
+      session_id: sessionId,
+      source: "room",
+      kind: "summon",
+      target: engineer.key,
+      task: `${label} was written for Three.js r${game.oldThree}, and the studio has r${THREE_VERSION}. Update it so it looks and works as it did before. Since r155, lights use physical units and colours are managed, so scenes written for older versions usually come out darker and duller. Change nothing else.`,
+      question: `${label} was written for an older Three.js (r${game.oldThree}). Ask the ${nameOf(engineer.key)} to update it for the studio?`,
+      made_thing_id: id,
+    });
+  }
+
+  await saveVersion(name, version, game.files).catch(logFileError);
+  await saveCurrent(name, game.files).catch(logFileError);
+  await setScreen(sb, sessionId, { view: "on", showing: { kind: "made", id } });
+  return { ok: true, version, notes: game.notes };
 }
 
 /** Why Manage couldn't remove, rename or put back a thing, in words. */

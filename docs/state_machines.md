@@ -85,7 +85,9 @@ machines.
     the Game Studio, ten in Deliberation);
   - the **brief**: the longer written detail, which anyone in the room can open and read.
 - **Made thing** (Game Studio): something a run makes along with its contribution:
-  - a **version**: one playable copy of the game, made by the Engineer as one HTML file;
+  - a **version**: one playable copy of the game, made by the Engineer, or **brought in** by
+    the people from a game made elsewhere. In a Simple room it's one HTML file; in a Bigger room
+    it's a folder of files, which runs as one file, its **bundle**;
   - a **picture**, drawn by the Artist;
   - a **sound**, made by the Sound designer;
   - a piece of **music**, also by the Sound designer: notes for up to four instruments, which
@@ -157,6 +159,9 @@ machines.
   session's main points into the shared document, and shows them on the big screen.
 - **Reopen:** starts the next session in a wrapped-up room.
 - **Delete room:** removes a room for good: its records, its shared document and its games folder.
+- **Game size** (Game Studio): a **Simple room** makes one-file 2D games. A **Bigger room**'s
+  games can be folders of code, use the studio's **shelf** (Three.js for 3D, and fonts), and
+  keep saves. The teacher picks one when making the room.
 
 ## 2. Things that have state
 
@@ -171,6 +176,7 @@ machines.
 | Scribe      | Idle, Updating, Behind                         | 9       | Yes                                                 |
 | Screen      | Off screen, On screen, Full screen             | 10      | Yes. Full screen isn't saved (Section 15)           |
 | Room        | Open, Wrapped up                               | 11      | Planned: today a room is always open                |
+| Game size   | Simple, Bigger                                 | 11      | Yes                                                 |
 
 ## 3. Crew member state
 
@@ -310,6 +316,7 @@ stateDiagram-v2
   state "Not used" as NotUsed
   [*] --> Waiting: run finishes
   [*] --> NotUsed: run superseded
+  [*] --> Used: brought in
   Waiting --> Used: hail granted
   Waiting --> NotUsed: not now, replaced, or withdrawn
   NotUsed --> Used: student picks it
@@ -319,7 +326,9 @@ stateDiagram-v2
 ```
 
 - **Every made thing is saved** the moment its run finishes. Versions go to the games folder as
-  `v<N>.html`, so nothing is lost.
+  `v<N>.html`, and a folder version also as its folder, `v<N>/`, so nothing is lost.
+- **Brought in:** a game made elsewhere, which the people bring in, is their own work, so it's
+  Used, and the current version, straight away.
 - **Used** means it's part of the game. The Engineer builds with the pictures, sounds and music
   that are used, and the newest used version becomes the current version. A used test is
   **kept**: the Tester can play it again on a later version.
@@ -386,7 +395,9 @@ stateDiagram-v2
   Grant and Not now.
 - The big screen changes only when someone asks.
 
-## 11. Room state (planned)
+## 11. Room state
+
+Open and Wrapped up are planned: today a room is always open. Game size is built.
 
 ```mermaid
 stateDiagram-v2
@@ -408,6 +419,21 @@ stateDiagram-v2
 - **While Wrapped up,** the room can be read, but nothing new can be sent.
 - **Reopen** starts the next session, with every crew member Idle.
 - **Delete room** asks first. Then it removes everything, including the games folder.
+
+### Game size (Game Studio)
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  [*] --> Simple: room created as Simple
+  [*] --> Bigger: room created as Bigger
+  Simple --> Bigger: make it Bigger
+```
+
+- **Make it Bigger** comes from **Bring in a game**, when the game needs a Bigger room: it has
+  several files, or it uses Three.js. The people say yes first.
+- There's no way back: a Bigger room's versions may be folders, which a Simple room can't make.
+- A room made before game sizes existed is Simple.
 
 ## 12. How a prompt is read
 

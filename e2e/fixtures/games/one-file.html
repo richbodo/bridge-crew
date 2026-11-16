@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>One file</title></head>
+<body>
+<h1>One-file game</h1>
+<p id="saves"></p>
+<script>
+const plays = Number(localStorage.getItem("plays") || 0) + 1;
+localStorage.setItem("plays", String(plays));
+document.getElementById("saves").textContent = "Plays: " + plays;
+</script>
+</body>
+</html>

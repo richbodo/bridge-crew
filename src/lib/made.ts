@@ -1,4 +1,6 @@
+import { cleanPath, ENTRY, type GameFiles } from "./bundle";
 import { musicSteps, noteFrequency } from "./music";
+import { FONTS_NOTE, SHELF_DIR, THREE_NOTE } from "./shelf";
 import type { Makes } from "./templates";
 
 /**
@@ -12,7 +14,12 @@ export interface MadeDraft {
   kind: MadeKind;
   name: string;
   body: string;
+  /** A version's files: all of them, or in a Bigger room only the ones the Engineer changed. */
+  files?: GameFiles;
 }
+
+/** Who made a version that was brought in, in the made_things agent column. */
+export const BROUGHT_IN = "brought-in";
 
 const KIND_LABEL: Record<string, string> = { picture: "Picture", music: "Music", test: "Test" };
 
@@ -69,8 +76,20 @@ export function testSteps(body: string): string {
 export const ZZFX_PARAMETERS =
   "volume, randomness, frequency, attack, sustain, release, shape (0 sine, 1 triangle, 2 saw, 3 tan, 4 noise, 5 square), shapeCurve, slide, deltaSlide, pitchJump, pitchJumpTime, repeatTime, noise, modulation, bitCrush, delay, sustainVolume, decay, tremolo, filter";
 
-const FORMATS: Partial<Record<Makes, string>> = {
-  version: `After the BRIEF, hand back the whole game as one HTML file:
+/** The rules every version follows, in a Simple room or a Bigger one. */
+const VERSION_RULES = `- Pictures: inline the SVG of the pictures listed under "The game so far", or draw with canvas.
+- Sounds: call zzfx(...) with the parameter lists listed under "The game so far". zzfx is
+  already defined on the page; don't define it.
+- Music: paste a song listed under "The game so far" into the script as an object, and call
+  playMusic(song). It plays over and over until stopMusic() or the next playMusic(...);
+  playMusic(song, false) plays it once. Both are already defined on the page; don't define them.
+- Controls: arrow keys and the space bar, and mouse clicks. Show the controls on screen, keep a
+  score, and give a way to restart.
+- No sound before the player presses a key or clicks, and nothing that flashes.
+- In SPOKEN, say in a few sentences what changed.`;
+
+/** A Simple room's game: one HTML file, handed back whole. */
+const SIMPLE_VERSION = `After the BRIEF, hand back the whole game as one HTML file:
 
 FILE:
 \`\`\`html
@@ -83,16 +102,41 @@ Rules for the file:
   and no network requests.
 - Start from the current version under "The game so far", if there is one, and change only what
   you were asked to. Return the complete file, never a fragment.
-- Pictures: inline the SVG of the pictures listed under "The game so far", or draw with canvas.
-- Sounds: call zzfx(...) with the parameter lists listed under "The game so far". zzfx is
-  already defined on the page; don't define it.
-- Music: paste a song listed under "The game so far" into the script as an object, and call
-  playMusic(song). It plays over and over until stopMusic() or the next playMusic(...);
-  playMusic(song, false) plays it once. Both are already defined on the page; don't define them.
-- Controls: arrow keys and the space bar, and mouse clicks. Show the controls on screen, keep a
-  score, and give a way to restart.
-- No sound before the player presses a key or clicks, and nothing that flashes.
-- In SPOKEN, say in a few sentences what changed.`,
+${VERSION_RULES}`;
+
+/** A Bigger room's game: a folder of files, and only the changed ones handed back. */
+const BIGGER_VERSION = `After the BRIEF, hand back each file you changed or added, whole, one after another:
+
+FILE: index.html
+\`\`\`html
+<!doctype html>
+...
+\`\`\`
+
+FILE: js/game.js
+\`\`\`js
+...
+\`\`\`
+
+Rules for the files:
+- The game is a folder of files. index.html opens first, and loads the others with
+  <script src="js/....js"></script> and <link rel="stylesheet" href="....css">, in the order they
+  should run. Use plain scripts that share globals, not modules or import statements. Give each
+  part of the game its own file, and put the numbers a student might change, such as speeds and
+  sizes, in a commented CONFIG object in js/config.js.
+- Start from the current version under "The game so far", if there is one, and change only what
+  you were asked to. Hand back only the files you changed or added, each one complete, never a
+  fragment. Files you don't hand back stay as they are.
+- Nothing loads from the internet, and no network requests. The studio's shelf has
+  ${THREE_NOTE}
+  ${FONTS_NOTE}
+  Paths under ${SHELF_DIR} are the shelf's: never hand back a file there.
+- Fill the window: size the canvas to the window at the screen's full resolution
+  (devicePixelRatio), and keep it right when the window changes size.
+- Saving progress: localStorage works.
+${VERSION_RULES}`;
+
+const FORMATS: Partial<Record<Makes, string>> = {
   picture: `After the BRIEF, hand back one picture as SVG, with a short name:
 
 PICTURE: <a one-word name, like mole>
@@ -166,8 +210,8 @@ Only things you made. The current version can't be removed. Nothing is removed u
 student grants you the floor, so say in SPOKEN what you'll remove.`;
 
 /** The instructions for what this job hands back, if it makes something. */
-export function formatFor(makes: Makes): string | null {
-  const format = FORMATS[makes];
+export function formatFor(makes: Makes, { bigger = false }: { bigger?: boolean } = {}): string | null {
+  const format = makes === "version" ? (bigger ? BIGGER_VERSION : SIMPLE_VERSION) : FORMATS[makes];
   return format ? `${format}\n\n${TIDY}` : null;
 }
 
@@ -187,9 +231,9 @@ export function splitMade(raw: string): { text: string; made: MadeDraft[] } {
   const made: MadeDraft[] = [];
 
   if (tail.startsWith("FILE:")) {
-    const html = fenced(tail, "html");
-    if (html && /<(html|body|script|canvas|div)\b/i.test(html)) {
-      made.push({ kind: "version", name: "", body: html });
+    const files = filesFrom(tail);
+    if (Object.keys(files).length) {
+      made.push({ kind: "version", name: "", body: files[ENTRY] ?? "", files });
     }
   } else if (tail.startsWith("PICTURE:")) {
     const name = /^PICTURE:\s*([^\n`]*)/.exec(tail)?.[1]?.trim() ?? "";
@@ -223,6 +267,29 @@ export function splitMade(raw: string): { text: string; made: MadeDraft[] } {
     }
   }
   return { text, made };
+}
+
+/** The most files one version can hand back. */
+const MAX_FILES = 40;
+
+/**
+ * A version's FILE blocks: "FILE:" (the page, index.html) or "FILE: js/game.js", each followed by
+ * a fenced block that ends with a line of its own fence. A page that isn't HTML, and a path off
+ * the folder or on the shelf, make nothing.
+ */
+function filesFrom(tail: string): GameFiles {
+  const files: GameFiles = {};
+  const block = /(?:^|\n)[ \t]*FILE:[ \t]*([^\n]*)\n+[ \t]*```[^\n]*\n([\s\S]*?)\n[ \t]*```[ \t]*(?=\n|$)/g;
+  for (const match of tail.matchAll(block)) {
+    const named = (match[1] ?? "").replace(/[`"'*]/g, "").trim();
+    const path = named ? cleanPath(named) : ENTRY;
+    const body = (match[2] ?? "").trim();
+    if (!path || named.includes("..") || path.startsWith(SHELF_DIR) || !body) continue;
+    if (path === ENTRY && !/<(html|body|script|canvas|div)\b/i.test(body)) continue;
+    if (!(path in files) && Object.keys(files).length >= MAX_FILES) break;
+    files[path] = body;
+  }
+  return files;
 }
 
 /** One section of the tail, from its marker to the next marker or the end. */

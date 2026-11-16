@@ -65,6 +65,14 @@ from **Recent rooms** in the lobby and carry on. Stopping, updating and fixing p
   hear the sounds, or read a tune's notes and play it. "Off screen" comes back. The screen only changes when someone asks.
 - **When something breaks.** If a version crashes on screen, the room suggests asking the
   Engineer to fix it. The student says **Yes** or **No thanks**.
+- **Simple or Bigger games.** You pick when you open the room. Simple games are one HTML file in
+  2D, which suits a first game. Bigger games can be folders of code, 3D with Three.js, and save
+  the player's progress, which suits teenagers who want a game like the ones they play. A Simple
+  room can become Bigger, but not back.
+- **Bringing in a game.** On the big screen, **Bring in a game** adds a game made somewhere else,
+  such as one you made with a student before, as the next version. The crew then builds on it.
+  Check its README or credits for students' names first, since the crew reads it. See §4 of the
+  [users guide](users_guide.md#4-making-the-game).
 - **Learning how.** **How did you do that?** under any crew member's line asks them to explain,
   at the student's level, without changing the game. **Reply** asks them a follow-up, and puts
   the cursor in the message box.
@@ -105,7 +113,8 @@ chooses when to listen, can ask how something was done, and can ask a different 
 Every version is saved on the laptop as it's made, in the games folder, **Bridge Crew Games** on
 the Desktop: `v1.html`, `v2.html`, and `index.html` for the current version. **Download**, on any version,
 saves a copy wherever you like. Each file opens in any browser, even offline, so you can email
-the game to the family.
+the game to the family. A Bigger room's folder games come as one file too, and are also saved
+as folders (`v1/`, `v2/`, …) that you can put on a website, such as GitHub Pages, as they are.
 
 **Delete room**, in the header, removes the room, its conversation and its games folder for
 good.

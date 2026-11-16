@@ -96,6 +96,51 @@ export const reportCrash = createServerFn({ method: "POST" })
     return report(context.supabase, data.sessionId, data.thingId, data.message);
   });
 
+/** A version's bundle, for the big screen and Download (docs/plans/bigger-games-2026-11-16.md). */
+export const getGameDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: { sessionId: string; thingId: string }) => data)
+  .handler(async ({ data, context }) => {
+    const { gameDocument } = await import("./room.server");
+    return gameDocument(context.supabase, data.sessionId, data.thingId);
+  });
+
+/** Bring in a game: a folder or an HTML file the people picked, as the next version. */
+export const bringInGame = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator(
+    (data: {
+      sessionId: string;
+      files: Record<string, string>;
+      folder?: string;
+      /** Files the browser left out, by name, for the room's note. */
+      left?: string[];
+      makeBigger?: boolean;
+    }) => {
+      if (!data.files || typeof data.files !== "object") throw new Error("There are no files.");
+      return data;
+    },
+  )
+  .handler(async ({ data, context }) => {
+    const { bringInGame: bring } = await import("./room.server");
+    return bring(context.supabase, data.sessionId, {
+      files: data.files,
+      ...(data.folder ? { folder: data.folder } : {}),
+      ...(data.left?.length ? { left: data.left.slice(0, 50).map(String) } : {}),
+      ...(data.makeBigger ? { makeBigger: true } : {}),
+    });
+  });
+
+/** A Simple room becomes a Bigger room, for good. */
+export const makeRoomBigger = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((data: { sessionId: string }) => data)
+  .handler(async ({ data, context }) => {
+    const { makeRoomBigger: grow } = await import("./room.server");
+    await grow(context.supabase, data.sessionId);
+    return { ok: true };
+  });
+
 export const answerProposal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((data: { sessionId: string; proposalId: string; yes: boolean }) => data)
