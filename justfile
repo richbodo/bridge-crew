@@ -230,7 +230,8 @@ _demo-banner crew:
       1. A tab opens at {{url}} once the app is up. Click "Log me on as demo user 1".
       2. Open a second tab (just open, or ⌘T and the same address) and click "demo user 2".
          Each tab keeps its own sign-in.
-      3. Demo user 1 opens a room; demo user 2 joins with its code or invite link.
+      3. Demo user 1 picks a Context (Game Studio, or a context pack) and opens a demo room;
+         demo user 2 joins with its code or invite link.
 
     Use new tabs rather than Duplicate Tab, which copies the tab's sign-in.
     Ctrl-C stops the app; the local stack keeps running (just infra-stop).
@@ -249,7 +250,8 @@ _studio-banner crew:
     Game Studio on {{url}}  (crew: {{crew}})
 
       1. A tab opens at {{url}} once the app is up. Click "Log me on as demo user 1": you're the teacher.
-      2. Game Studio is already picked. Give the student a nickname and open a room.
+      2. Game Studio is already picked. Give the student a nickname and open a room, with a
+         new game or one you have (Open a game).
       3. Read the classroom notice, then let the student start: "Storyteller, what's the story?"
 
     One teacher and one student share this one sign-in; the switch above the message box

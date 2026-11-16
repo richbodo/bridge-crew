@@ -22,6 +22,12 @@ It builds on [Bigger games](bigger-games-2026-11-16.md) Phase A: game folders, t
 shelf and **Bring in a game**. The words for the room (crew member, run, hail, grant, made thing,
 version) are in [`docs/state_machines.md`](../state_machines.md).
 
+**Status:** G1 is built (2026-11-16): the demo lobby with its Context list, a `demo.md` for each
+Deliberation pack, and **Open a game** in the lobby. Two changes from Part 1 as first written:
+**Open a game** is offered for every Game Studio room, not only in demo mode, since it's part of
+the Game Studio rather than of the demo; and nothing is greyed out once a room is open, because
+there is no context switch in the room to grey out. Each station shows its pack on its card.
+
 ## Decisions
 
 Settled on 2026-11-16:
@@ -90,14 +96,15 @@ Defaults, not asked:
 - **In a Game Studio demo room:** **Game**, either **New game** or **Open a game**, with a GitHub
   link, a folder or an HTML file. Then **Games**, Simple or Bigger, as Phase A has it. A game
   that needs Bigger switches the room to Bigger, and the lobby says so before the room opens.
-- **Once the room is open, the context doesn't change.** The packs show greyed out in the
-  Context panel, as they do today.
+- **Once the room is open, the context doesn't change.** There's no switch for it in the room.
+  Each station shows the pack on its card, and can still be reassigned, as in any room.
 
 **The teacher's Desktop shortcut** (`just game-studio`, where the room kind is fixed to Game
 Studio): the button stays **Open a room**, since a lesson isn't a demo. There's no Context
 list. It gets **New game** or **Open a game** too.
 
-**Outside demo mode** (`just run`), the lobby is unchanged.
+**Outside demo mode** (`just run`), the lobby keeps **Kind of room**, **Open a room** and
+**Open a demo room**. A Game Studio room gets **New game** or **Open a game** there too.
 
 **Done when:** in `just demo`, each context opens a demo room with its pack, and each
 Deliberation context's opening shows the crew using that pack. A Game Studio demo room can open

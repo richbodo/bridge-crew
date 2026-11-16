@@ -53,7 +53,9 @@ Setup, demo mode and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md).
   Both are gitignored.
 - Demo mode (`VITE_BRIDGE_CREW_DEMO=1`, `src/lib/demo.ts`) keeps each tab's Supabase session in
   `sessionStorage`. Anything that reads the session must go through the `supabase` client, never
-  `localStorage` directly. The demo accounts are seeded by `scripts/test-infra.sh`.
+  `localStorage` directly. The demo accounts are seeded by `scripts/test-infra.sh`. Its lobby
+  opens demo rooms by **Context** (`src/lib/demo-rooms.ts`); a context pack's opening scene is
+  its `docs/context/<pack>/demo.md`, which the crew never reads.
 - Generated files: `src/routeTree.gen.ts` (router plugin), `src/integrations/supabase/types.ts`
   (`just db-types`).
 - Room templates (`src/lib/templates/`) set a room's roster, shared document, seats and rules.

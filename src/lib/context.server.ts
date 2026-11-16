@@ -21,6 +21,8 @@ function buildRepoPacks(): Map<string, ContextDoc[]> {
     const rest = path.replace(/^\/docs\/context\//, "");
     const parts = rest.split("/");
     if (parts.length < 2) continue; // docs/context/README.md and friends
+    // A demo room's opening (src/lib/demo-rooms.ts): for the lobby, not for the crew.
+    if (parts.length === 2 && parts[1] === "demo.md") continue;
     const name = parts[0]!;
     const list = packs.get(name) ?? [];
     list.push({ pack: name, path, body, source: "repo" });

@@ -27,6 +27,12 @@ export interface BroughtIn {
   oldThree: number | null;
 }
 
+/** Why a game needs a Bigger room, as the room and the lobby say it: "This game has 3 files". */
+export function whyBigger(game: BroughtIn): string {
+  const count = Object.keys(game.files).length;
+  return `This game ${count > 1 ? `has ${count} files` : "uses Three.js"}, so it needs a Bigger room.`;
+}
+
 /** Folders and files that are never part of a game. */
 function skipped(path: string): boolean {
   return path

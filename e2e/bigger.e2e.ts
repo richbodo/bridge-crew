@@ -106,4 +106,25 @@ test.describe("bigger games", () => {
     await page.getByRole("button", { name: "Download" }).click();
     expect((await download).suggestedFilename()).toMatch(/-v1\.html$/);
   });
+
+  test("a Game Studio room can open with a one-file game, and stays Simple", async ({ page }) => {
+    await page.goto("/");
+    await page.getByLabel("Game Studio").check();
+    await page.getByLabel("Your name in the room").fill("Pat");
+    await page.getByLabel("Student's nickname").fill("Sam");
+    await page.getByLabel("Open a game").check();
+    await expect(page.getByRole("button", { name: "Open a room" })).toBeDisabled();
+    await page.getByLabel("Game file").setInputFiles(join(fixtures, "one-file.html"));
+    await expect(page.getByText(/^one file: 1 file\./)).toBeVisible();
+    await expect(page.getByLabel("Simple games")).toBeChecked();
+
+    await page.getByRole("button", { name: "Open a room" }).click();
+    await page.waitForURL(/\/session\/[0-9a-f-]+/);
+    await page.getByRole("button", { name: "We've read it" }).click();
+    await expect(page.getByRole("heading", { name: "one file" })).toBeVisible();
+    await expect(page.getByText("Game Studio · Simple games")).toBeVisible();
+    await expect(
+      page.frameLocator('iframe[title="Version 1: one file"]').getByText("Plays: 1"),
+    ).toBeVisible();
+  });
 });

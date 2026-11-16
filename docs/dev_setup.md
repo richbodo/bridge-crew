@@ -55,16 +55,25 @@ mac% just demo-fixture    # crew answers with canned replies: no key, no credits
   Tab*: a duplicated tab starts as a copy of the original's sign-in.
 - The header shows which demo user the tab is, and the room form starts with
   that user's name and colour (Demo 1 in blue, Demo 2 in pink).
+- The lobby has one button, **Open a demo room**, and a **Context** list in
+  place of **Kind of room**: **Game Studio** (the default), then one entry per
+  context pack with a `demo.md`. A pack's room is a Deliberation room where
+  every station reads that pack, opening with the scene in its `demo.md`
+  ([users guide §14](users_guide.md#14-demo-room)). A Game Studio room can
+  start from a game, with **Open a game**.
 
-A typical run: demo user 1 opens a room and copies the invite link from
+A typical run: demo user 1 opens a demo room and copies the invite link from
 **Invite**; the second tab opens the link, clicks **Log me on as demo user 2**,
 and comes aboard.
 
-Demo mode is the `VITE_BRIDGE_CREW_DEMO=1` setting (`src/lib/demo.ts`). It is
-meant for the local stack only; the demo accounts exist only where
-`scripts/test-infra.sh` created them. Not to be confused with **Open a demo
-room** in the lobby, which seeds a scripted conversation into a new room
-([users guide §14](users_guide.md#14-demo-room)) and works in any mode.
+Demo mode is the `VITE_BRIDGE_CREW_DEMO=1` setting (`src/lib/demo.ts`); the
+Context list is `src/lib/demo-rooms.ts`. It is meant for the local stack only;
+the demo accounts exist only where `scripts/test-infra.sh` created them.
+`just game-studio`, and the teacher's Desktop shortcut, are demo mode with the
+kind of room set (`VITE_BRIDGE_CREW_TEMPLATE=game-studio`): their lobby keeps
+**Open a room**, since a lesson isn't a demo, and has no Context list. Outside
+demo mode (`just run`), **Open a demo room** is offered for a Deliberation room
+and seeds the speech-to-text scene.
 
 ---
 
