@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { AgentCard } from "@/components/room/AgentCard";
 import { BigScreen, type Showing } from "@/components/room/BigScreen";
+import { GitHubMenu } from "@/components/room/GitHubMenu";
 import { BringInGame } from "@/components/room/BringInGame";
 import {
   ChatPane,
@@ -43,6 +44,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { listContextPacks } from "@/lib/context.functions";
 import type { AgentStatus } from "@/lib/crew";
+import { describeSource, sourceUrl } from "@/lib/github";
 import { GUIDE_PART, USERS_GUIDE_URL } from "@/lib/links";
 import {
   answerHail,
@@ -251,7 +253,12 @@ function RoomPage() {
   });
 
   const profileMutation = useMutation({
-    mutationFn: async (input: { agent: string; name: string; duty: string; contextPacks: string[] }) => {
+    mutationFn: async (input: {
+      agent: string;
+      name: string;
+      duty: string;
+      contextPacks: string[];
+    }) => {
       await saveProfile({ data: { sessionId: id, ...input } });
       await refresh();
     },
@@ -406,7 +413,10 @@ function RoomPage() {
   const roster = template.roster.map((job) => job.key);
   const atWork = roster.filter((agent) => statusOf(agent) === "working").map(nameFor);
   const notSaid = contributions.filter((c) => c.outcome && c.outcome in NOT_SAID).reverse();
-  const said = contributions.filter((c) => c.outcome === "said").reverse().slice(0, 12);
+  const said = contributions
+    .filter((c) => c.outcome === "said")
+    .reverse()
+    .slice(0, 12);
 
   const composer = (rows: number) => (
     <Composer
@@ -431,7 +441,11 @@ function RoomPage() {
         : {})}
       replyingTo={
         replyTo
-          ? { name: nameFor(replyTo.agent), spoken: replyTo.spoken, onCancel: () => setReplyTo(null) }
+          ? {
+              name: nameFor(replyTo.agent),
+              spoken: replyTo.spoken,
+              onCancel: () => setReplyTo(null),
+            }
           : null
       }
       atWork={atWork}
@@ -480,11 +494,26 @@ function RoomPage() {
     <div className="flex h-screen flex-col bg-background">
       <header className="flex items-center justify-between border-b border-border px-5 py-3">
         <div>
-          <h1 className="text-sm font-semibold tracking-wide text-foreground">{room.session.title}</h1>
+          <h1 className="text-sm font-semibold tracking-wide text-foreground">
+            {room.session.title}
+          </h1>
           <p className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
             {template.sharedSeat
               ? `${template.name}${template.bigScreen ? ` · ${room.settings.games === "bigger" ? "Bigger" : "Simple"} games` : ""}`
               : `join code ${room.session.code}`}
+            {room.settings.github ? (
+              <>
+                {" · from "}
+                <a
+                  href={sourceUrl(room.settings.github)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="normal-case tracking-normal hover:text-foreground hover:underline"
+                >
+                  {describeSource(room.settings.github)}
+                </a>
+              </>
+            ) : null}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -495,17 +524,27 @@ function RoomPage() {
           ) : (
             room.participants.map((p) => (
               <span key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="inline-block size-2 rounded-full" style={{ backgroundColor: p.color }} />
+                <span
+                  className="inline-block size-2 rounded-full"
+                  style={{ backgroundColor: p.color }}
+                />
                 {p.display_name}
                 {p.user_id === room.me.user_id ? (
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-foreground">(you)</span>
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-foreground">
+                    (you)
+                  </span>
                 ) : null}
               </span>
             ))
           )}
 
           {template.bigScreen && !onScreen ? (
-            <Button size="sm" variant="secondary" className="h-7 px-2 text-xs" onClick={() => screenMutation.mutate({ view: "on" })}>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-7 px-2 text-xs"
+              onClick={() => screenMutation.mutate({ view: "on" })}
+            >
               On screen
             </Button>
           ) : null}
@@ -532,7 +571,12 @@ function RoomPage() {
                 >
                   Delete
                 </Button>
-                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setConfirmDelete(false)}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setConfirmDelete(false)}
+                >
                   Keep it
                 </Button>
               </span>
@@ -577,7 +621,10 @@ function RoomPage() {
         </div>
       ) : null}
 
-      <AlertDialog open={leaving.status === "blocked"} onOpenChange={(open) => (open ? null : leaving.reset?.())}>
+      <AlertDialog
+        open={leaving.status === "blocked"}
+        onOpenChange={(open) => (open ? null : leaving.reset?.())}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Leave the studio?</AlertDialogTitle>
@@ -617,7 +664,20 @@ function RoomPage() {
           onCrash={onCrash}
           manage={manageButton}
           bringIn={
-            <BringInGame sessionId={id} bigger={room.settings.games === "bigger"} onDone={() => void refresh()} />
+            <>
+              <BringInGame
+                sessionId={id}
+                bigger={room.settings.games === "bigger"}
+                onDone={() => void refresh()}
+              />
+              {room.settings.github ? (
+                <GitHubMenu
+                  sessionId={id}
+                  source={room.settings.github}
+                  onDone={() => void refresh()}
+                />
+              ) : null}
+            </>
           }
           strip={
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
@@ -628,10 +688,15 @@ function RoomPage() {
                   <div className="rounded-lg border border-border bg-card p-2 text-xs">
                     <div className="flex items-center gap-2">
                       <p className="text-muted-foreground">
-                        {room.hails.length} hail{room.hails.length === 1 ? "" : "s"} · {nameFor(newestHail.agent)} is hailing
+                        {room.hails.length} hail{room.hails.length === 1 ? "" : "s"} ·{" "}
+                        {nameFor(newestHail.agent)} is hailing
                       </p>
                       {hailer.avatar ? (
-                        <CrewAvatar avatar={hailer.avatar} accent={hailer.accent} status="hand_raised" />
+                        <CrewAvatar
+                          avatar={hailer.avatar}
+                          accent={hailer.accent}
+                          status="hand_raised"
+                        />
                       ) : null}
                     </div>
                     <p className="mt-1 text-card-foreground">{newestHail.summary}</p>
@@ -685,7 +750,9 @@ function RoomPage() {
           <section className="min-h-0 space-y-3 overflow-y-auto border-r border-border p-4">
             {suggestions ? (
               <>
-                <h2 className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">Suggestions</h2>
+                <h2 className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+                  Suggestions
+                </h2>
                 {suggestions}
               </>
             ) : null}

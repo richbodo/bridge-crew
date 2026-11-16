@@ -34,7 +34,8 @@ aren't built yet; they're listed at the end.
 2. Click **Log me on as demo user 1**. You're the teacher; the student doesn't get an account.
 3. **Game Studio** is already picked. Type your name, the student's **nickname** (never their
    real name) and a title for the game. Under **Game**, pick **New game**, or **Open a game** to
-   start from one you made before, from its folder or HTML file. Then press **Open a room**.
+   start from one you made before, from its folder, its HTML file or its GitHub link. Then
+   press **Open a room**.
 4. Read the **classroom notice** together, then press **We've read it**.
 
 At the end, press **Control-C** in the Terminal window to stop. Next week, open the same room
@@ -72,7 +73,10 @@ from **Recent rooms** in the lobby and carry on. Stopping, updating and fixing p
   room can become Bigger, but not back.
 - **Bringing in a game.** On the big screen, **Bring in a game** adds a game made somewhere else,
   such as one you made with a student before, as the next version. The crew then builds on it.
-  **Open a game**, in the lobby, starts a new room with one.
+  **Open a game**, in the lobby, starts a new room with one. Both take a GitHub link too, such
+  as a game's play link, for a game you or someone else put on GitHub. The room then remembers
+  where it came from, and its **GitHub** button brings in anything newer. Only public
+  repositories open for now. See **Games from GitHub** in §4 of the users guide.
   Check its README or credits for students' names first, since the crew reads it. See §4 of the
   [users guide](users_guide.md#4-making-the-game).
 - **Learning how.** **How did you do that?** under any crew member's line asks them to explain,

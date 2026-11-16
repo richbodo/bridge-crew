@@ -162,6 +162,8 @@ machines.
 - **Game size** (Game Studio): a **Simple room** makes one-file 2D games. A **Bigger room**'s
   games can be folders of code, use the studio's **shelf** (Three.js for 3D, and fonts), and
   keep saves. The teacher picks one when making the room.
+- **GitHub link** (Game Studio): where a room's game came from on GitHub, when it came from
+  there: the repository, the branch the room follows, and the commit. The room is **linked**.
 
 ## 2. Things that have state
 
@@ -177,6 +179,7 @@ machines.
 | Screen      | Off screen, On screen, Full screen             | 10      | Yes. Full screen isn't saved (Section 15)           |
 | Room        | Open, Wrapped up                               | 11      | Planned: today a room is always open                |
 | Game size   | Simple, Bigger                                 | 11      | Yes                                                 |
+| GitHub link | Not linked, Linked, GitHub has newer           | 11      | Yes. Versions to save comes with saving (G4)        |
 
 ## 3. Crew member state
 
@@ -434,6 +437,33 @@ stateDiagram-v2
   several files, or it uses Three.js. The people say yes first.
 - There's no way back: a Bigger room's versions may be folders, which a Simple room can't make.
 - A room made before game sizes existed is Simple.
+
+### GitHub link (Game Studio)
+
+A room's game can come from a GitHub repository
+([Games on GitHub](plans/games-on-github-2026-11-16.md) Part 2). The room keeps where: the
+repository, the branch it follows, the commit, and the game's folder in it.
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  state "Not linked" as None
+  state "GitHub has newer" as Behind
+  [*] --> None: room created
+  None --> Linked: a game brought in from GitHub
+  Linked --> Behind: GitHub has new commits
+  Behind --> Linked: GitHub's newest brought in
+  Linked --> Linked: another game brought in from GitHub
+```
+
+- **Brought in from GitHub** happens in the lobby (**Open a game**), or with **Bring in a game**
+  on the big screen. The game becomes the room's next version, as any brought-in game does
+  (made thing: **Used**, Section 8), and the room is linked to where it came from.
+- **GitHub has newer** isn't kept: the room's **GitHub** menu asks GitHub when it opens, with
+  one request, and compares GitHub's newest commit on the branch with the room's.
+- **GitHub's newest brought in** makes the next version, and the room's commit moves to it.
+- A game from somewhere else, such as a folder, leaves the link as it is.
+- Saving to GitHub (G4) adds **Versions to save**, when the room has versions GitHub doesn't.
 
 ## 12. How a prompt is read
 

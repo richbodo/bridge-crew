@@ -88,9 +88,9 @@ from where it stopped.
    teacher. The student doesn't get an account.
 3. **Game Studio** is already picked. Type your name, the student's **nickname** (never their
    real name) and a title for the game. Under **Game**, pick **New game**, or **Open a game** to
-   start from one made somewhere else: **Choose a folder** for a game in several files, or
-   **Choose an HTML file** for a one-file game. It becomes the room's first version, on screen,
-   as **Bring in a game** (§4) does. Then under **Games**, pick **Simple** or **Bigger**:
+   start from one made somewhere else: **Choose a folder** for a game in several files,
+   **Choose an HTML file** for a one-file game, or paste its **GitHub link** and press **Look**.
+   It becomes the room's first version, on screen, as **Bring in a game** (§4) does. Then under **Games**, pick **Simple** or **Bigger**:
    - **Simple games** are one HTML file, in 2D, and quick to build. They suit a first game.
    - **Bigger games** can be a folder of code, 3D with Three.js, and save the player's
      progress. They suit students who want a game like the ones they play.
@@ -202,7 +202,25 @@ shortcut, it also answers to other computers on the network.
   out. The room says what changed. A game written for an older Three.js may look darker, so the
   room suggests asking the Engineer to update it. The crew reads a brought-in game as it reads
   any version, so check its README or credits for students' names first. To start a new room
-  with a game, use **Open a game** in the lobby (§2).
+  with a game, use **Open a game** in the lobby (§2). A game can also come from GitHub: see
+  **Games from GitHub**, below.
+- **Games from GitHub.** **Open a game** in the lobby, and **Bring in a game** on the big screen,
+  take a **GitHub link**: a repository (`github.com/someone/rocket-lab`, or a folder in one), a
+  play link (`someone.github.io/rocket-lab`), or just `someone/rocket-lab`. The laptop
+  downloads the repository and finds the game in it: `index.html` at the top, then in `docs/`,
+  then the only web page. Then it comes in as any game does, with the same switches and
+  limits.
+  - **Games written as modules**, whose scripts load each other with `import`, as many Three.js
+    games do, work too: their Three.js is switched for the studio's, and the crew keeps them as
+    modules. A project that has to be built first, such as one made with Vite, says "This game
+    needs building first, which the studio can't do yet."
+  - **Only public repositories** open for now. Opening one needs no GitHub account, but GitHub
+    only answers 60 requests an hour from one network without one, and opening a game takes
+    two.
+  - **The room remembers where its game came from.** The header says "from github.com/…", and
+    the **GitHub** button on the big screen shows the commit and asks GitHub whether it has
+    anything newer. If it has, **Bring in GitHub's newest** makes it the room's next version;
+    the versions so far stay as they are.
 - **Reply**, under a crew member's line, starts a prompt to them about what they said, with the
   cursor in the message box. **How did you do that?** asks them to explain how they made it,
   in the same order as any help, without changing anything.

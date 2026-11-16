@@ -3,6 +3,8 @@
  * Builds the shelf (src/lib/shelf.ts) into src/lib/vendor/, from the pinned devDependencies:
  *   - three/three.js: Three.js and its add-ons as one script that defines the global THREE, so
  *     a game needs no imports and the bundle can inline it;
+ *   - three/exports.txt: the names it defines, so a game written as modules can import them
+ *     (src/lib/shelf.server.ts makes studio/three.module.js from the two);
  *   - fonts/<id>.css.txt: each shelf font's @font-face rules, with the fonts inlined as data URLs
  *     (.txt, because Vitest empties any .css import).
  * The output is committed, so the app and the teacher's install never build it. Run it after
@@ -12,20 +14,11 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { SHELF_FONTS, THREE_VERSION } from "../src/lib/shelf";
+import { SHELF_FONTS, THREE_ADDONS as ADDONS, THREE_VERSION } from "../src/lib/shelf";
 
 const root = resolve(import.meta.dir, "..");
 const vendor = join(root, "src/lib/vendor");
 const modules = join(root, "node_modules");
-
-const ADDONS: Record<string, string> = {
-  OrbitControls: "controls/OrbitControls.js",
-  PointerLockControls: "controls/PointerLockControls.js",
-  EffectComposer: "postprocessing/EffectComposer.js",
-  RenderPass: "postprocessing/RenderPass.js",
-  UnrealBloomPass: "postprocessing/UnrealBloomPass.js",
-  OutputPass: "postprocessing/OutputPass.js",
-};
 
 async function buildThree() {
   const pkg = JSON.parse(await readFile(join(modules, "three/package.json"), "utf8")) as {
@@ -74,6 +67,11 @@ async function buildThree() {
   const header = `/*! Three.js r${THREE_VERSION} with ${Object.keys(ADDONS).join(", ")}. Copyright 2010-2025 Three.js Authors. SPDX-License-Identifier: MIT. Built for the Bridge Crew shelf by scripts/build-shelf.ts. */\n`;
   await mkdir(join(vendor, "three"), { recursive: true });
   await writeFile(join(vendor, "three/three.js"), header + code);
+  const three = (await import(join(modules, "three/build/three.module.js"))) as Record<string, unknown>;
+  const names = [...Object.keys(three), ...Object.keys(ADDONS)].filter((name) =>
+    /^[A-Za-z_$][\w$]*$/.test(name),
+  );
+  await writeFile(join(vendor, "three/exports.txt"), `${names.join("\n")}\n`);
   await writeFile(
     join(vendor, "three/LICENSE"),
     await readFile(join(modules, "three/LICENSE"), "utf8"),
