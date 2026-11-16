@@ -121,7 +121,8 @@ FILE: js/game.js
 Rules for the files:
 - The game is a folder of files. index.html opens first, and loads the others with
   <script src="js/....js"></script> and <link rel="stylesheet" href="....css">, in the order they
-  should run. Use plain scripts that share globals, not modules or import statements. Give each
+  should run. Use plain scripts that share globals, not modules or import statements, unless the
+  current version is already written as modules: then keep it that way, as its notes say. Give each
   part of the game its own file, and put the numbers a student might change, such as speeds and
   sizes, in a commented CONFIG object in js/config.js.
 - Start from the current version under "The game so far", if there is one, and change only what

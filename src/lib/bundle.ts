@@ -1,4 +1,4 @@
-import { isShelfPath } from "./shelf";
+import { isShelfPath, THREE_ADDONS_DIR, THREE_MODULE_PATH } from "./shelf";
 
 /**
  * A game folder and its bundle (docs/plans/bigger-games-2026-11-16.md Part 1). A version is a
@@ -194,13 +194,27 @@ export function bundleGame(files: GameFiles, shelf: ShelfLookup): Bundle {
   return { html, missing: [...missing], remote: [...remote] };
 }
 
-/** Shelf paths a game's page asks for, so a folder on disk can carry copies of them. */
+/**
+ * Shelf paths a game asks for, so a folder on disk can carry copies of them: its page's scripts
+ * and stylesheets, and for a game written as modules, the Three.js module and the add-ons its
+ * files import.
+ */
 export function shelfPathsIn(files: GameFiles): string[] {
   const page = files[ENTRY] ?? "";
   const found = new Set<string>();
   for (const match of page.matchAll(/\s(?:src|href)\s*=\s*["']?([^"'\s>]+)/gi)) {
     const path = cleanPath(match[1] ?? "");
     if (isShelfPath(path)) found.add(path);
+  }
+  if (page.includes(THREE_MODULE_PATH)) {
+    found.add(THREE_MODULE_PATH);
+    for (const [path, code] of Object.entries(files)) {
+      if (!/\.(?:m?js|html?)$/i.test(path)) continue;
+      for (const match of code.matchAll(/["']three\/(?:addons|examples\/jsm)\/([^"']+)["']/g)) {
+        const addon = `${THREE_ADDONS_DIR}${match[1]}`;
+        if (isShelfPath(addon)) found.add(addon);
+      }
+    }
   }
   return [...found];
 }

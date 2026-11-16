@@ -32,8 +32,8 @@ export function roomFolder(room: RoomName): string {
 }
 
 /** A version's bundle, as the family gets it. */
-function bundleFile(files: GameFiles): string {
-  return prepareGame(bundleOf(files).html, { inRoom: false });
+async function bundleFile(files: GameFiles): Promise<string> {
+  return prepareGame((await bundleOf(files)).html, { inRoom: false });
 }
 
 /** A file's content as written to disk: pictures and fonts are stored as data URLs. */
@@ -47,7 +47,7 @@ export async function saveVersion(room: RoomName, version: number, files: GameFi
   const folder = roomFolder(room);
   await mkdir(folder, { recursive: true });
   try {
-    await writeFile(join(folder, `v${version}.html`), bundleFile(files), { flag: "wx" });
+    await writeFile(join(folder, `v${version}.html`), await bundleFile(files), { flag: "wx" });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
   }
@@ -55,7 +55,9 @@ export async function saveVersion(room: RoomName, version: number, files: GameFi
   if (Object.keys(files).length < 2 && !shelfPathsIn(files).length) return;
   const own = join(folder, `v${version}`);
   if (await stat(own).catch(() => null)) return;
-  const shelf = Object.fromEntries(shelfPathsIn(files).map((path) => [path, shelfFile(path) ?? ""]));
+  const shelf = Object.fromEntries(
+    shelfPathsIn(files).map((path) => [path, shelfFile(path) ?? ""]),
+  );
   for (const [path, body] of Object.entries({ ...shelf, ...files })) {
     const target = resolve(own, path);
     if (!target.startsWith(own + sep)) continue;
@@ -68,12 +70,13 @@ export async function saveVersion(room: RoomName, version: number, files: GameFi
 export async function saveCurrent(room: RoomName, files: GameFiles) {
   const folder = roomFolder(room);
   await mkdir(folder, { recursive: true });
-  await writeFile(join(folder, "index.html"), bundleFile(files));
+  await writeFile(join(folder, "index.html"), await bundleFile(files));
 }
 
 /** Delete room takes the games folder with it. */
 export async function removeRoomFolder(room: RoomName) {
   const folder = roomFolder(room);
-  if (!folder.startsWith(gamesDir() + sep)) throw new Error("That folder isn't in the games folder.");
+  if (!folder.startsWith(gamesDir() + sep))
+    throw new Error("That folder isn't in the games folder.");
   await rm(folder, { recursive: true, force: true });
 }

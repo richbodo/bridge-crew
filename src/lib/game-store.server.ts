@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 
 import { bundleGame, filesOf, type Bundle, type GameFiles } from "./bundle";
+import { linkModules } from "./modules.server";
 import { shelfFile } from "./shelf.server";
 
 /**
@@ -86,7 +87,13 @@ export async function loadFiles(
   return files;
 }
 
-/** A version's bundle, with the shelf's files. */
-export function bundleOf(files: GameFiles): Bundle {
-  return bundleGame(files, shelfFile);
+/** A version's bundle, with the shelf's files, and its module scripts built (if it has any). */
+export async function bundleOf(files: GameFiles): Promise<Bundle> {
+  const linked = await linkModules(files, shelfFile);
+  const bundle = bundleGame(linked.files, shelfFile);
+  return {
+    html: bundle.html,
+    missing: [...new Set([...linked.missing, ...bundle.missing])],
+    remote: [...new Set([...linked.remote, ...bundle.remote])],
+  };
 }

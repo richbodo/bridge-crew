@@ -139,9 +139,17 @@ export const CRASH_MESSAGE = "bridge-crew-crash";
 const CRASH_REPORTER = `<script>
 (function () {
   function report(message, error) {
-    // A bundle's scripts end with a sourceURL line, so the stack names the game's own file.
+    // A bundle's scripts end with a sourceURL line, so the stack names the game's own file. A
+    // game's modules are built into one script, whose line table says which file each line was.
     var at = /([\\w.\\/-]+\\.js):(\\d+)(?::\\d+)?/.exec((error && error.stack) || "");
-    var where = at ? " (in " + at[1] + ", line " + at[2] + ")" : "";
+    var file = at && at[1], line = at && Number(at[2]);
+    var table = file && self.__bridgeCrewLines && self.__bridgeCrewLines[file];
+    if (table) {
+      var source = table.sources[table.lines[(line - 1) * 2] - 1];
+      line = table.lines[(line - 1) * 2 + 1];
+      file = source && line ? source : null;
+    }
+    var where = file ? " (in " + file + ", line " + line + ")" : "";
     parent.postMessage({ type: "${CRASH_MESSAGE}", message: (String(message || "Something went wrong") + where).slice(0, 300) }, "*");
   }
   addEventListener("error", function (e) { report(e.message, e.error); });

@@ -16,6 +16,8 @@ import { bringIn, whyBigger } from "@/lib/bring-in";
 import { DEMO_MODE, demoUserFor } from "@/lib/demo";
 import { DEMO_CONTEXTS, demoScriptFor, GAME_STUDIO } from "@/lib/demo-rooms";
 import { USERS_GUIDE_URL } from "@/lib/links";
+import { describeSource } from "@/lib/github";
+import { bringInFromGitHub, lookAtGitHubGame } from "@/lib/github.functions";
 import { bringInGame, seedDemo } from "@/lib/room.functions";
 import { createSession, joinSession, myParticipations } from "@/lib/session.functions";
 import { isTemplateKey, TEMPLATE_ORDER, TEMPLATES, type TemplateKey } from "@/lib/templates";
@@ -55,9 +57,14 @@ const STARTING_TEMPLATE: TemplateKey = FIXED_TEMPLATE ?? "deliberation";
  */
 const DEMO_LOBBY = DEMO_MODE && !FIXED_TEMPLATE;
 
-/** A game picked in the lobby, to be the room's first version. */
+/** A game picked in the lobby, or found at a GitHub link, to be the room's first version. */
 interface StartingGame {
-  picked: Picked;
+  /** Files picked from this laptop, or */
+  picked: Picked | null;
+  /** a GitHub link, which the server opens again when the room does. */
+  link: string | null;
+  /** "github.com/owner/repo", for a link. */
+  from: string | null;
   title: string;
   files: number;
   /** Why it needs a Bigger room, if it does. */
@@ -72,6 +79,9 @@ function Lobby() {
   const join = useServerFn(joinSession);
   const demo = useServerFn(seedDemo);
   const bring = useServerFn(bringInGame);
+  const bringFromGitHub = useServerFn(bringInFromGitHub);
+  const lookAt = useServerFn(lookAtGitHubGame);
+  const [gameLink, setGameLink] = useState("");
   const listMine = useServerFn(myParticipations);
 
   const [pickedTemplate, setTemplateKey] = useState<TemplateKey>(STARTING_TEMPLATE);
@@ -109,11 +119,35 @@ function Lobby() {
   const titleFor = (demoButton: boolean) =>
     demoScript?.title || game?.title || (demoButton ? "Demo run" : "Untitled session");
 
+  const lookMutation = useMutation({
+    mutationFn: (link: string) => lookAt({ data: { link } }),
+    onSuccess: (look, link) => {
+      if (!look.ok) {
+        setStartingGame(null);
+        toast.error(look.message);
+        return;
+      }
+      setStartingGame({
+        picked: null,
+        link,
+        from: describeSource(look.source),
+        title: look.title,
+        files: look.files,
+        bigger: look.bigger,
+        notes: look.notes,
+      });
+      if (look.bigger) setGames("bigger");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   const pickGame = (picked: Picked) => {
     try {
       const brought = bringIn(picked.files, picked.folder, picked.left);
       setStartingGame({
         picked,
+        link: null,
+        from: null,
         title: brought.title,
         files: Object.keys(brought.files).length,
         bigger: brought.needsBigger ? whyBigger(brought) : null,
@@ -147,14 +181,16 @@ function Lobby() {
       let gameProblem: string | null = null;
       if (game) {
         try {
-          const result = await bring({
-            data: {
-              sessionId: session.id,
-              files: game.picked.files,
-              ...(game.picked.folder ? { folder: game.picked.folder } : {}),
-              ...(game.picked.left.length ? { left: game.picked.left } : {}),
-            },
-          });
+          const result = game.link
+            ? await bringFromGitHub({ data: { sessionId: session.id, link: game.link } })
+            : await bring({
+                data: {
+                  sessionId: session.id,
+                  files: game.picked!.files,
+                  ...(game.picked!.folder ? { folder: game.picked!.folder } : {}),
+                  ...(game.picked!.left.length ? { left: game.picked!.left } : {}),
+                },
+              });
           if (!result.ok) gameProblem = result.message;
         } catch (error) {
           gameProblem = (error as Error).message;
@@ -392,12 +428,41 @@ function Lobby() {
                     {gameChoice === "open" ? (
                       <div className="space-y-2 rounded-md border border-dashed border-border p-2 text-xs">
                         <PickGameButtons disabled={createMutation.isPending} onPicked={pickGame} />
+                        <form
+                          className="flex gap-2"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            if (gameLink.trim()) lookMutation.mutate(gameLink.trim());
+                          }}
+                        >
+                          <Input
+                            aria-label="GitHub link"
+                            value={gameLink}
+                            placeholder="Or a GitHub link"
+                            onChange={(e) => setGameLink(e.target.value)}
+                            className="h-8 text-xs"
+                          />
+                          <Button
+                            size="sm"
+                            type="submit"
+                            variant="secondary"
+                            disabled={
+                              lookMutation.isPending || createMutation.isPending || !gameLink.trim()
+                            }
+                          >
+                            Look
+                          </Button>
+                        </form>
+                        {lookMutation.isPending ? (
+                          <p className="text-muted-foreground">Looking on GitHub…</p>
+                        ) : null}
                         {startingGame ? (
                           <div className="space-y-1">
                             <p className="font-medium text-card-foreground">
                               {startingGame.title || "The game"}: {startingGame.files} file
-                              {startingGame.files === 1 ? "" : "s"}. It'll be the room's first
-                              version.
+                              {startingGame.files === 1 ? "" : "s"}
+                              {startingGame.from ? `, from ${startingGame.from}` : ""}. It'll be the
+                              room's first version.
                             </p>
                             {startingGame.bigger ? (
                               <p className="text-foreground">
@@ -412,7 +477,8 @@ function Lobby() {
                           </div>
                         ) : (
                           <p className="text-muted-foreground">
-                            Choose the game's folder, or its HTML file if it's just one.
+                            Choose the game's folder, or its HTML file if it's just one, or paste
+                            its GitHub link.
                           </p>
                         )}
                         <p className="text-[11px] text-muted-foreground">{PICKED_FILES_NOTE}</p>

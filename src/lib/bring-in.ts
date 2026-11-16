@@ -1,5 +1,6 @@
 import { cleanPath, ENTRY, type GameFiles } from "./bundle";
-import { fontPath, SHELF_DIR, shelfFont, THREE_PATH, THREE_VERSION } from "./shelf";
+import { importMapOf, isModuleGame, shelfAddon, threeUrl, withoutImportMaps } from "./modules";
+import { fontPath, SHELF_DIR, shelfFont, THREE_IMPORTS, THREE_PATH, THREE_VERSION } from "./shelf";
 
 /**
  * Bringing in a game (docs/plans/bigger-games-2026-11-16.md Part 4): a game made elsewhere, as
@@ -140,6 +141,95 @@ export function bringIn(
       return `<script src="${THREE_PATH}"></script>`;
     },
   );
+
+  // A game written as modules: Three.js from a CDN, in its import map or its imports, becomes
+  // the shelf's, through an import map (docs/plans/games-on-github-2026-11-16.md Part 2).
+  const moduleThree: (number | null)[] = [];
+  const pointAtShelf = (code: string) =>
+    code.replace(
+      /(\bfrom\s*|\bimport\s*\(?\s*)(["'])((?:https?:)?\/\/[^"']+)\2/g,
+      (whole, before: string, quote: string, url: string) => {
+        const three = threeUrl(url);
+        if (!three) return whole;
+        moduleThree.push(three.version);
+        return `${before}${quote}${three.specifier}${quote}`;
+      },
+    );
+  if (
+    isModuleGame(page) ||
+    Object.values(files).some((code) => /\bfrom\s*["'](?:https?:)?\/\/[^"']*three/i.test(code))
+  ) {
+    // es-module-shims stood in for import maps in older browsers; every browser has them now.
+    page = page.replace(
+      /<script\b[^>]*\ssrc\s*=\s*["']?[^"'\s>]*es-module-shims[^"'\s>]*["']?[^>]*>\s*<\/script\s*>\s*/gi,
+      "",
+    );
+    const map = importMapOf(page);
+    const imports: Record<string, string> = {};
+    for (const [key, value] of Object.entries(map)) {
+      const three = threeUrl(key.endsWith("/") ? `${value}controls/OrbitControls.js` : value);
+      if (three && (key === "three" || key.startsWith("three/"))) {
+        moduleThree.push(three.version);
+        continue;
+      }
+      if (/^(?:https?:)?\/\//i.test(value)) {
+        notes.push(
+          `It imports ${key} from the internet (${value.length > 60 ? `${value.slice(0, 57)}…` : value}), which the studio blocks.`,
+        );
+      }
+      imports[key] = value;
+    }
+    page = page.replace(
+      /<script\b[^>]*\stype\s*=\s*["']?module\b[^>]*>([\s\S]*?)<\/script\s*>/gi,
+      (tag, code: string) => (code.trim() ? tag.replace(code, pointAtShelf(code)) : tag),
+    );
+    for (const [path, code] of Object.entries(files)) {
+      if (/\.m?js$/i.test(path)) files[path] = pointAtShelf(code);
+    }
+    const all = [
+      page,
+      ...Object.entries(files)
+        .filter(([path]) => /\.m?js$/i.test(path))
+        .map(([, code]) => code),
+    ];
+    const importsThree = all.some((code) =>
+      /(?:from\s*|import\s*\(?\s*)["']three(?:\/[^"']*)?["']/.test(code),
+    );
+    if (importsThree) {
+      usesThree = true;
+      Object.assign(imports, THREE_IMPORTS);
+      const version = moduleThree.find((number) => number !== null) ?? null;
+      if (version !== null && version !== THREE_VERSION) oldThree = version;
+      if (moduleThree.length) {
+        notes.push(
+          `It's written as modules, and imported Three.js${version ? ` r${version}` : ""} from the internet. It now uses the studio's Three.js r${THREE_VERSION}${version && version !== THREE_VERSION ? ", which may look different" : ""}.`,
+        );
+      }
+      const unshelved = new Set<string>();
+      for (const code of all) {
+        for (const match of code.matchAll(/["'](three\/(?:addons|examples\/jsm)\/[^"']+)["']/g)) {
+          if (!shelfAddon(match[1]!))
+            unshelved.add(match[1]!.split("/").pop()!.replace(/\.js$/, ""));
+        }
+      }
+      if (unshelved.size) {
+        notes.push(
+          `It uses ${[...unshelved].join(", ")} from Three.js's add-ons, which ${unshelved.size === 1 ? "isn't" : "aren't"} on the studio's shelf.`,
+        );
+      }
+    }
+    // One import map, where the first was, or before the first script.
+    const json = `<script type="importmap">\n${JSON.stringify({ imports }, null, 2)}\n</script>`;
+    const at = page.search(/<script\b[^>]*\stype\s*=\s*["']?importmap/i);
+    const first = at >= 0 ? at : page.search(/<script\b/i);
+    if (Object.keys(imports).length) {
+      const before = withoutImportMaps(page.slice(0, Math.max(first, 0)));
+      const after = withoutImportMaps(page.slice(Math.max(first, 0)));
+      page = first < 0 ? `${json}\n${page}` : `${before}${json}\n${after}`;
+    } else {
+      page = withoutImportMaps(page);
+    }
+  }
 
   // Fonts from Google Fonts become the shelf's, where it has them.
   const kept: string[] = [];

@@ -10,7 +10,16 @@ import { loadPackDocs } from "./context.server";
 import { bundleOf, fileListOf, loadFiles, storeFiles } from "./game-store.server";
 import type { Mode } from "./machines";
 import { BROUGHT_IN, cleanName, labelOf, testSteps, type AskDraft, type MadeDraft } from "./made";
-import { THREE_VERSION } from "./shelf";
+import {
+  describeSource,
+  parseGameLink,
+  shortCommit,
+  type GitHubLink,
+  type GitHubSource,
+} from "./github";
+import { fetchRepoGame, newestCommit } from "./github.server";
+import { isModuleGame } from "./modules";
+import { MODULES_NOTE, THREE_VERSION } from "./shelf";
 import type { CrewTool } from "./model.server";
 import { FIXTURE_PLAY, PLAY_TOOL, playFrom } from "./playtest";
 import { Playtest, resultOf } from "./playtest.server";
@@ -62,6 +71,11 @@ export interface RoomSettings {
    * Bigger room's games are folders, with the shelf. No setting means Simple.
    */
   games?: "simple" | "bigger";
+  /**
+   * The room's GitHub link (docs/plans/games-on-github-2026-11-16.md Part 2): where its game came
+   * from, kept so the room can show it and bring in GitHub's newest.
+   */
+  github?: GitHubSource;
 }
 
 export function isBigger(settings: RoomSettings): boolean {
@@ -106,7 +120,8 @@ async function madeInOrder(sb: Client, sessionId: string) {
 function fencedFile(path: string, body: string): string {
   const lang = /\.(\w+)$/.exec(path)?.[1]?.toLowerCase() ?? "";
   const fence = body.includes("```") ? "~~~~" : "```";
-  if (body.startsWith("data:")) return `#### ${path}\n\n(a picture or font, ${Math.round(body.length / 1024)} KB)`;
+  if (body.startsWith("data:"))
+    return `#### ${path}\n\n(a picture or font, ${Math.round(body.length / 1024)} KB)`;
   return `#### ${path}\n\n${fence}${lang === "md" ? "markdown" : lang}\n${body}\n${fence}`;
 }
 
@@ -132,7 +147,8 @@ async function currentVersionFor(
     .sort((a, b) => (a === ENTRY ? -1 : b === ENTRY ? 1 : a.localeCompare(b)))
     .map((path) => `- ${path} (${Math.max(1, Math.round((files[path] ?? "").length / 1024))} KB)`)
     .join("\n");
-  const head = `### The current version (${label}): a folder of ${sizeOf(files)}\n\n${list}`;
+  const modules = isModuleGame(files[ENTRY] ?? "") ? `\n\n${MODULES_NOTE}` : "";
+  const head = `### The current version (${label}): a folder of ${sizeOf(files)}\n\n${list}${readsCode ? modules : ""}`;
   if (!readsCode) return head;
   return `${head}\n\n${paths.map((path) => fencedFile(path, files[path] ?? "")).join("\n\n")}`;
 }
@@ -375,10 +391,14 @@ async function playtestFor(sb: Client, sessionId: string, runId: string, setting
     fixtureInput: FIXTURE_PLAY,
     use: async (input) => {
       const play = playFrom(input);
-      if (!play.steps.length) return { parts: [{ text: "There were no steps to play." }], failed: true };
+      if (!play.steps.length)
+        return { parts: [{ text: "There were no steps to play." }], failed: true };
       name ||= play.name;
       try {
-        test ??= await Playtest.open(bundleOf(await loadFiles(sb, sessionId, current)).html, names);
+        test ??= await Playtest.open(
+          (await bundleOf(await loadFiles(sb, sessionId, current))).html,
+          names,
+        );
       } catch (error) {
         console.error("the playtest browser didn't open", error);
         return {
@@ -462,7 +482,10 @@ export async function executeRun(sb: Client, runId: string) {
     const help = run.mode === "help";
     const made = help
       ? []
-      : await withStoredFiles(sb, sessionId, settings, [...result.made, ...(playtest?.made() ?? [])]);
+      : await withStoredFiles(sb, sessionId, settings, [
+          ...result.made,
+          ...(playtest?.made() ?? []),
+        ]);
     const removes =
       help || !result.removes.length
         ? []
@@ -515,11 +538,21 @@ async function withStoredFiles(
   return Promise.all(
     made.map(async (thing) => {
       if (thing.kind !== "version") return thing;
-      const files = { ...(isBigger(settings) ? base : {}), ...(thing.files ?? { [ENTRY]: thing.body }) };
+      const files = {
+        ...(isBigger(settings) ? base : {}),
+        ...(thing.files ?? { [ENTRY]: thing.body }),
+      };
       if (!(ENTRY in files)) return { ...thing, body: "", files: {} };
-      return { kind: thing.kind, name: thing.name, body: "", files: await storeFiles(sb, sessionId, files) };
+      return {
+        kind: thing.kind,
+        name: thing.name,
+        body: "",
+        files: await storeFiles(sb, sessionId, files),
+      };
     }),
-  ).then((things) => things.filter((thing) => thing.kind !== "version" || Object.keys(thing.files ?? {}).length));
+  ).then((things) =>
+    things.filter((thing) => thing.kind !== "version" || Object.keys(thing.files ?? {}).length),
+  );
 }
 
 /** Saves a run's versions to the room's games folder (Part 5). */
@@ -549,7 +582,13 @@ async function saveCurrentVersion(sb: Client, sessionId: string) {
 }
 
 /** One entry in the captain's log (floor_events), as whoever is signed in. */
-async function logEvent(sb: Client, sessionId: string, holder: string, event: string, detail: string | null) {
+async function logEvent(
+  sb: Client,
+  sessionId: string,
+  holder: string,
+  event: string,
+  detail: string | null,
+) {
   await sb.rpc("log_event", {
     _session: sessionId,
     _holder: holder,
@@ -610,7 +649,11 @@ export async function handlePrompt(
   const words = SCREEN_WORDS.exec(text);
   if (template.bigScreen && words) {
     const on = words[1]!.toLowerCase() === "on";
-    await setScreen(sb, sessionId, on ? { view: "on", showing: await newestThing(sb, sessionId) } : { view: "off" });
+    await setScreen(
+      sb,
+      sessionId,
+      on ? { view: "on", showing: await newestThing(sb, sessionId) } : { view: "off" },
+    );
     return { ok: true as const };
   }
 
@@ -642,10 +685,18 @@ export async function handlePrompt(
       `Argue FOR: ${command.question}`,
       `Advocate and Skeptic are taking up: ${command.question}`,
     );
-    await summon("skeptic", `Argue AGAINST: ${command.question}`, "Skeptic is preparing the case against.");
+    await summon(
+      "skeptic",
+      `Argue AGAINST: ${command.question}`,
+      "Skeptic is preparing the case against.",
+    );
   } else if (command.type === "summon" || command.type === "redirect") {
     const verb = statusOf(command.agent) === "working" ? "redirected" : "is on it";
-    await summon(command.agent, command.brief, `${nameOf(command.agent)} ${verb}: ${command.brief}`);
+    await summon(
+      command.agent,
+      command.brief,
+      `${nameOf(command.agent)} ${verb}: ${command.brief}`,
+    );
   } else {
     // Reply: a prompt linked to a contribution goes to its crew member, unless it names others.
     const answering = replyTo
@@ -716,7 +767,13 @@ export async function setScreen(
     .update({ settings: { ...settings, screen } as unknown as Json })
     .eq("id", sessionId);
   if (error) throw new Error(error.message);
-  await logEvent(sb, sessionId, "room", next.view === "on" ? "on_screen" : "off_screen", screen.showing ? `${screen.showing.kind} ${screen.showing.id}` : null);
+  await logEvent(
+    sb,
+    sessionId,
+    "room",
+    next.view === "on" ? "on_screen" : "off_screen",
+    screen.showing ? `${screen.showing.kind} ${screen.showing.id}` : null,
+  );
 }
 
 // ---------- made things (docs/state_machines.md §8) ----------
@@ -738,7 +795,7 @@ export async function gameDocument(sb: Client, sessionId: string, thingId: strin
     .maybeSingle();
   if (!thing || thing.kind !== "version") throw new Error("That isn't a version of the game.");
   const files = await loadFiles(sb, sessionId, thing);
-  const bundle = bundleOf(files);
+  const bundle = await bundleOf(files);
   return { html: bundle.html, missing: bundle.missing, remote: bundle.remote, size: sizeOf(files) };
 }
 
@@ -752,7 +809,11 @@ export async function makeRoomBigger(sb: Client, sessionId: string) {
     .update({ settings: { ...settings, games: "bigger" } as unknown as Json })
     .eq("id", sessionId);
   if (error) throw new Error(error.message);
-  await note(sb, sessionId, "This room makes Bigger games now: folders of code, 3D with Three.js, and saves.");
+  await note(
+    sb,
+    sessionId,
+    "This room makes Bigger games now: folders of code, 3D with Three.js, and saves.",
+  );
   await logEvent(sb, sessionId, "room", "games_bigger", null);
 }
 
@@ -768,10 +829,18 @@ export type BringInResult =
 export async function bringInGame(
   sb: Client,
   sessionId: string,
-  input: { files: Record<string, string>; folder?: string; left?: string[]; makeBigger?: boolean },
+  input: {
+    files: Record<string, string>;
+    folder?: string;
+    left?: string[];
+    makeBigger?: boolean;
+    /** Where it came from on GitHub, which becomes the room's GitHub link. */
+    source?: GitHubSource;
+  },
 ): Promise<BringInResult> {
   const { template, settings, name, nameOf } = await roomOf(sb, sessionId);
-  if (!template.bigScreen) return { ok: false, needsBigger: false, message: "Only a Game Studio room makes games." };
+  if (!template.bigScreen)
+    return { ok: false, needsBigger: false, message: "Only a Game Studio room makes games." };
   let game: ReturnType<typeof bringIn>;
   try {
     game = bringIn(input.files, input.folder ?? "", input.left ?? []);
@@ -794,7 +863,24 @@ export async function bringInGame(
   if (error) throw new Error(error.message);
   const { id, version } = data as { id: string; version: number };
   const label = labelOf({ kind: "version", name: game.title || `v${version}`, version });
-  await note(sb, sessionId, [`${label} was brought in: ${sizeOf(game.files)}.`, ...game.notes].join(" "));
+  const from = input.source
+    ? ` from ${describeSource(input.source)} (commit ${shortCommit(input.source.commit)})`
+    : "";
+  await note(
+    sb,
+    sessionId,
+    [`${label} was brought in${from}: ${sizeOf(game.files)}.`, ...game.notes].join(" "),
+  );
+  if (input.source) {
+    // Read again: making the room Bigger changed its settings.
+    const { settings: now } = await roomOf(sb, sessionId);
+    const { error: linkError } = await sb
+      .from("sessions")
+      .update({ settings: { ...now, github: input.source } as unknown as Json })
+      .eq("id", sessionId);
+    if (linkError) throw new Error(linkError.message);
+    await logEvent(sb, sessionId, "room", "github_linked", describeSource(input.source));
+  }
 
   // A game written for an older Three.js gets a suggestion to update it (Part 4).
   const engineer = template.roster.find((job) => job.makes === "version");
@@ -814,6 +900,111 @@ export async function bringInGame(
   await saveCurrent(name, game.files).catch(logFileError);
   await setScreen(sb, sessionId, { view: "on", showing: { kind: "made", id } });
   return { ok: true, version, notes: game.notes };
+}
+
+// ---------- games on GitHub (docs/plans/games-on-github-2026-11-16.md Part 2) ----------
+
+/** A game on GitHub, looked at before a room opens: what Bring in would make of it. */
+export type GitHubLook =
+  | {
+      ok: true;
+      source: GitHubSource;
+      title: string;
+      files: number;
+      /** Why it needs a Bigger room, if it does. */
+      bigger: string | null;
+      notes: string[];
+    }
+  | { ok: false; message: string };
+
+function linkOf(link: string | GitHubLink): GitHubLink {
+  return typeof link === "string" ? parseGameLink(link) : link;
+}
+
+/** Opens a game on GitHub without a room, to say what it is. */
+export async function lookAtGitHubGame(link: string | GitHubLink): Promise<GitHubLook> {
+  try {
+    const repo = await fetchRepoGame(linkOf(link));
+    const game = bringIn(repo.files, "", repo.left);
+    return {
+      ok: true,
+      source: repo.source,
+      title: game.title || repo.source.repo.replace(/[-_]+/g, " "),
+      files: Object.keys(game.files).length,
+      bigger: game.needsBigger ? whyBigger(game) : null,
+      notes: game.notes,
+    };
+  } catch (error) {
+    // A link that isn't one, GitHub saying no, or no game in it; anything else is a bug.
+    if (error instanceof TypeError) throw error;
+    return { ok: false, message: (error as Error).message };
+  }
+}
+
+/**
+ * Brings in a game from GitHub as the room's next version, as Bring in does a folder, and links
+ * the room to where it came from. `fresh` skips the server's copy from a few minutes ago.
+ */
+export async function bringInFromGitHub(
+  sb: Client,
+  sessionId: string,
+  input: { link: string | GitHubLink; makeBigger?: boolean; fresh?: boolean },
+): Promise<BringInResult> {
+  let repo: Awaited<ReturnType<typeof fetchRepoGame>>;
+  try {
+    repo = await fetchRepoGame(linkOf(input.link), { fresh: input.fresh ?? false });
+  } catch (error) {
+    if (error instanceof TypeError) throw error;
+    return { ok: false, needsBigger: false, message: (error as Error).message };
+  }
+  return bringInGame(sb, sessionId, {
+    files: repo.files,
+    // The repository's name is the game's, as a folder's is.
+    folder: repo.source.repo,
+    left: repo.left,
+    ...(input.makeBigger ? { makeBigger: true } : {}),
+    source: repo.source,
+  });
+}
+
+export type GitHubStatus =
+  | { linked: false }
+  | {
+      linked: true;
+      source: GitHubSource;
+      newest: string | null;
+      newer: boolean;
+      problem: string | null;
+    };
+
+/** The room's GitHub link, and whether GitHub has moved on since: one request. */
+export async function gitHubStatus(sb: Client, sessionId: string): Promise<GitHubStatus> {
+  const { settings } = await roomOf(sb, sessionId);
+  const source = settings.github;
+  if (!source) return { linked: false };
+  try {
+    const newest = await newestCommit(source);
+    return { linked: true, source, newest, newer: newest !== source.commit, problem: null };
+  } catch (error) {
+    return { linked: true, source, newest: null, newer: false, problem: (error as Error).message };
+  }
+}
+
+/** GitHub's newest, on the branch the room follows, as the room's next version. */
+export async function bringInGitHubNewest(sb: Client, sessionId: string, makeBigger = false) {
+  const { settings } = await roomOf(sb, sessionId);
+  const source = settings.github;
+  if (!source)
+    return {
+      ok: false as const,
+      needsBigger: false,
+      message: "This room's game didn't come from GitHub.",
+    };
+  return bringInFromGitHub(sb, sessionId, {
+    link: { owner: source.owner, repo: source.repo, ref: source.branch, path: source.path },
+    makeBigger,
+    fresh: true,
+  });
 }
 
 /** Why Manage couldn't remove, rename or put back a thing, in words. */
@@ -912,7 +1103,13 @@ export async function answerProposal(
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!answered) return { ok: false as const, reason: "not_open" as const };
-  await logEvent(sb, sessionId, answered.target, yes ? "proposal_accepted" : "proposal_declined", answered.question);
+  await logEvent(
+    sb,
+    sessionId,
+    answered.target,
+    yes ? "proposal_accepted" : "proposal_declined",
+    answered.question,
+  );
   if (yes) {
     const { template, nameOf } = await roomOf(sb, sessionId);
     const suggested =
@@ -936,7 +1133,11 @@ export async function answerProposal(
 export async function explain(
   sb: Client,
   userId: string,
-  { sessionId, contributionId, speaker }: { sessionId: string; contributionId: string; speaker?: Speaker },
+  {
+    sessionId,
+    contributionId,
+    speaker,
+  }: { sessionId: string; contributionId: string; speaker?: Speaker },
 ) {
   const { data: contribution } = await sb
     .from("contributions")
@@ -956,7 +1157,8 @@ export async function explain(
   await sb.from("transcript").insert({
     session_id: sessionId,
     author_id: userId,
-    author_name: role === "student" ? settings.studentName || "Student" : (me?.display_name ?? "Someone"),
+    author_name:
+      role === "student" ? settings.studentName || "Student" : (me?.display_name ?? "Someone"),
     kind: "human" as const,
     body: `${nameOf(contribution.agent)}, how did you do that?`,
     speaker_role: role,
