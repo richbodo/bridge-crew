@@ -229,6 +229,8 @@ shortcut, it also answers to other computers on the network.
   plays in is missing. Paste the install line into Terminal again; it downloads the browser.
 - **The browser can't connect to localhost.** The Game Studio isn't running. Double-click
   **Game Studio** on the Desktop; if it's already running, that opens it again.
+- **"Another program is using port 8080."** Something else on the Mac has the Game Studio's
+  place. Restart the Mac, then double-click **Game Studio** again.
 - **A crew member stays working for a long time.** After five minutes it stops by itself. You
   can also press **Stand down** on its card.
 - **Anything else.** The last lines in the Terminal window usually say what went wrong.

@@ -13,7 +13,7 @@ frozen: append corrections, never edit them.
   `*.server.ts` are server-only and must never be imported from client code.
 - **Data:** Supabase — Postgres with row-level security, Auth (email + password), Realtime.
   Runs locally through the Supabase CLI. The schema is `supabase/migrations/`; add a new
-  migration for every change, never edit one that has been applied, then run `bun run db:types`.
+  migration for every change, never edit one that has been applied, then run `just db-types`.
 - **Crew model calls:** `src/lib/model.server.ts` — the Anthropic API, or canned `fixture`
   replies for tests. No local models.
 - **The Tester's playtest:** `src/lib/playtest.server.ts` plays the current version in
@@ -35,7 +35,7 @@ scripts and `scripts/*.sh`.
 ```
 just infra                   # local Supabase + seeded users + .env (idempotent; infra-reset wipes)
 just run                     # http://localhost:8080 (run-fixture: canned crew replies)
-just demo                    # same, plus one-click demo logins, one sign-in per tab
+just demo                    # same, plus one-click demo logins, one sign-in per tab, in a tab it opens
 just test                    # Vitest unit tests (src/**/__tests__)
 just e2e                     # Playwright, own servers on :8181 and :8182 (demo), canned replies
 just e2e-live                # Playwright with real Claude calls (costs credits)
@@ -55,7 +55,7 @@ Setup, demo mode and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md).
   `sessionStorage`. Anything that reads the session must go through the `supabase` client, never
   `localStorage` directly. The demo accounts are seeded by `scripts/test-infra.sh`.
 - Generated files: `src/routeTree.gen.ts` (router plugin), `src/integrations/supabase/types.ts`
-  (`bun run db:types`).
+  (`just db-types`).
 - Room templates (`src/lib/templates/`) set a room's roster, shared document, seats and rules.
   Job keys are text; look jobs up with `jobOf(template, key)`, never a fixed crew list. The
   Game Studio's rules for young people live in its `setting`; keep them there.
