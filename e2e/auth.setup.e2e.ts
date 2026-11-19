@@ -41,8 +41,8 @@ setup("sign in", async ({ page, context }) => {
     );
   }
 
-  // Signed in when the lobby offers the room form.
-  await expect(page.getByRole("button", { name: "Open a room" })).toBeVisible();
+  // Signed in when the lobby asks what kind of room.
+  await expect(page.getByRole("heading", { name: "What kind of room?" })).toBeVisible();
 
   await context.storageState({ path: "e2e/.auth/user.json" });
 });

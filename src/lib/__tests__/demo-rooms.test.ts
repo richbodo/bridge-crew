@@ -27,25 +27,20 @@ function canariesOf(pack: string): string[] {
 }
 
 describe("demo openings", () => {
-  it("lists Game Studio first, then every pack with a demo.md, in their order", () => {
+  it("lists every pack with a demo.md, in their order", () => {
     expect(DEMO_CONTEXTS.map((context) => context.key)).toEqual([
-      GAME_STUDIO,
       "kereru-ferry-coop",
       "nz-politics",
       "social-epidemiology",
       "bridge-crew-protocol",
     ]);
     expect(DEMO_CONTEXTS.map((context) => context.name)).toEqual([
-      "Game Studio",
       "Kererū Ferry Co-op",
       "NZ politics",
       "Social epidemiology",
       "Bridge Crew protocol",
     ]);
-    expect(DEMO_CONTEXTS[0]!.template).toBe("game-studio");
-    expect(DEMO_CONTEXTS.slice(1).every((context) => context.template === "deliberation")).toBe(
-      true,
-    );
+    expect(DEMO_CONTEXTS.some((context) => context.key === GAME_STUDIO)).toBe(false);
   });
 
   it("reads every demo.md", () => {

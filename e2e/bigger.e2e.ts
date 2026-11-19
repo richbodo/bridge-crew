@@ -108,8 +108,7 @@ test.describe("bigger games", () => {
   });
 
   test("a Game Studio room can open with a one-file game, and stays Simple", async ({ page }) => {
-    await page.goto("/");
-    await page.getByLabel("Game Studio").check();
+    await page.goto("/?kind=game-studio");
     await page.getByLabel("Your name in the room").fill("Pat");
     await page.getByLabel("Student's nickname").fill("Sam");
     // Bigger is the lobby's default; a one-file game can open in either.

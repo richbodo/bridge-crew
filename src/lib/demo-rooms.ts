@@ -1,15 +1,15 @@
-import { TEMPLATES, type TemplateKey } from "./templates";
+import { TEMPLATES } from "./templates";
 
 /**
- * Demo rooms (docs/plans/games-on-github-2026-11-16.md Part 1). In demo mode the lobby offers a
- * **Context**: Game Studio, or a context pack whose room opens with a scripted opening. The
- * script lives beside its pack as `docs/context/<pack>/demo.md`, in the format
+ * Demo rooms (docs/plans/games-on-github-2026-11-16.md Part 1). In demo mode a Deliberation
+ * room is a demo room, on a **Context**: a context pack whose room opens with a scripted
+ * opening. The script lives beside its pack as `docs/context/<pack>/demo.md`, in the format
  * `docs/context/README.md` describes, and the crew never reads it (src/lib/context.server.ts
  * leaves it out). A pack without one isn't listed. Pure apart from the scripts, which are
  * bundled at build time; src/lib/demo-rooms.server.ts puts an opening in a room.
  */
 
-/** The Context that opens a Game Studio room: the default. */
+/** The Game Studio's own context pack, which has no demo opening. */
 export const GAME_STUDIO = "game-studio";
 
 export interface DemoLine {
@@ -183,25 +183,18 @@ export function demoScriptFor(pack: string): DemoScript | undefined {
 }
 
 export interface DemoContext {
-  /** "game-studio", or a pack's name. */
+  /** The pack's name. */
   key: string;
   name: string;
   about: string;
-  template: TemplateKey;
 }
 
-/** The lobby's Context list in demo mode: Game Studio first, then each pack with an opening. */
-export const DEMO_CONTEXTS: DemoContext[] = [
-  {
-    key: GAME_STUDIO,
-    name: TEMPLATES["game-studio"].name,
-    about: TEMPLATES["game-studio"].description,
-    template: "game-studio",
-  },
-  ...SCRIPTS.map((script) => ({
-    key: script.pack!,
-    name: script.context,
-    about: script.about,
-    template: "deliberation" as const,
-  })),
-];
+/**
+ * The Context list on the demo lobby's Deliberation page: each pack with an opening. A Game
+ * Studio room is a lesson there too, so it has no Context.
+ */
+export const DEMO_CONTEXTS: DemoContext[] = SCRIPTS.map((script) => ({
+  key: script.pack!,
+  name: script.context,
+  about: script.about,
+}));

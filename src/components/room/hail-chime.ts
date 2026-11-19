@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * A small two-note chime when a crew member hails, so the people in the room hear it while
@@ -6,6 +6,9 @@ import { useEffect, useRef } from "react";
  *
  * Browsers only let a page make sound after someone has clicked or typed in it, and Safari only
  * from inside that click, so the first click or key in the room wakes the sound up.
+ *
+ * The Chime switch in the room's header turns it off. That's kept in this browser, so a
+ * classroom that wants quiet turns it off once.
  */
 
 let audio: AudioContext | null = null;
@@ -66,8 +69,42 @@ export function playHailChime() {
     .catch(() => undefined);
 }
 
-/** Chimes when a hail appears that wasn't there before; the hails a room opens with are quiet. */
-export function useHailChime(roomId: string, hails: ReadonlyArray<{ id: string }> | undefined) {
+const CHIME_SETTING = "bridge-crew:chime";
+
+/** Whether the chime is on in this browser, and a way to change it. */
+export function useChimeSetting(): [boolean, (on: boolean) => void] {
+  const [on, setOn] = useState(true);
+  // Read once the page is up, so the server's page matches the first render.
+  useEffect(() => {
+    try {
+      setOn(localStorage.getItem(CHIME_SETTING) !== "off");
+    } catch {
+      // Storage blocked: the chime stays on.
+    }
+  }, []);
+  const change = useCallback((next: boolean) => {
+    setOn(next);
+    try {
+      if (next) localStorage.removeItem(CHIME_SETTING);
+      else localStorage.setItem(CHIME_SETTING, "off");
+    } catch {
+      // Storage blocked: the setting lasts until the page closes.
+    }
+    // Turned on with a click, so it can play now, even in Safari: this is what you'll hear.
+    if (next) playHailChime();
+  }, []);
+  return [on, change];
+}
+
+/**
+ * Chimes when a hail appears that wasn't there before, unless the chime is off; the hails a room
+ * opens with are quiet.
+ */
+export function useHailChime(
+  roomId: string,
+  hails: ReadonlyArray<{ id: string }> | undefined,
+  on: boolean,
+) {
   const known = useRef<{ roomId: string; seen: Set<string> } | null>(null);
 
   useEffect(() => {
@@ -92,6 +129,6 @@ export function useHailChime(roomId: string, hails: ReadonlyArray<{ id: string }
     const { seen } = known.current;
     const fresh = hails.some((hail) => !seen.has(hail.id));
     for (const hail of hails) seen.add(hail.id);
-    if (fresh) playHailChime();
-  }, [roomId, hails]);
+    if (fresh && on) playHailChime();
+  }, [roomId, hails, on]);
 }

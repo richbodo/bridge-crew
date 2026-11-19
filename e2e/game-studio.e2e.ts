@@ -105,7 +105,8 @@ test.describe("the Game Studio", () => {
 
     await page.evaluate(() => history.back());
     await ask.getByRole("button", { name: "Leave" }).click();
-    await page.waitForURL(/\/$/);
+    // Back to the lobby's Game Studio page, where the room was opened.
+    await page.waitForURL(/\/\?kind=game-studio$/);
 
     await page.goto(`/session/${id}`);
     await page.getByRole("button", { name: "We've read it" }).click();
@@ -172,9 +173,10 @@ test("a Deliberation room takes two people, not three", async ({ page, browser }
     const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
     const guest = await context.newPage();
     await signIn(guest, email, process.env["E2E_PASSWORD"]!);
-    await guest.getByLabel("Your name in the room").fill(name);
     await guest.getByLabel("Join with a code").fill(code);
     await guest.getByRole("button", { name: "Join", exact: true }).click();
+    await guest.getByLabel("Your name in the room").fill(name);
+    await guest.getByRole("button", { name: "Come aboard" }).click();
     return guest;
   };
 

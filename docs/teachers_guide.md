@@ -32,15 +32,15 @@ aren't built yet; they're listed at the end.
 1. Double-click **Game Studio** on the Desktop. A Terminal window starts everything, and the
    Game Studio opens in your browser.
 2. Click **Log me on as demo user 1**. You're the teacher; the student doesn't get an account.
-3. **Game Studio** is already picked, and the form is filled in: you're **Teacher**, the
-   student is **Student**, the session is named for the date and time, and the room makes
-   **Bigger games**. Change any of them if you like; a nickname is never the student's real
-   name. Under **Game**, pick **New game**, or **Open a game** to start from one you made
-   before, from its folder, its HTML file or its GitHub link. Then press **Open a room**.
+3. Press **Quick start**, at the top. The room opens for **Teacher** and **Student**, with a
+   new game, making **Bigger games**, and named for the date and time. To change any of that,
+   use **Settings** below it first; a nickname is never the student's real name. Under
+   **Game**, pick **New game**, or **Open a game** to start from one you made before, from its
+   folder, its HTML file or its GitHub link. Then press **Quick start** or **Open a room**.
 4. Read the **classroom notice** together, then press **We've read it**.
 
 At the end, press **Control-C** in the Terminal window to stop. Next week, open the same room
-from **Recent rooms** in the lobby and carry on. Stopping, updating and fixing problems are in
+from **Recent rooms**, under the settings, and carry on. Stopping, updating and fixing problems are in
 [users guide §5](users_guide.md#5-stopping-updating-and-fixing).
 
 ## During the session
@@ -52,7 +52,8 @@ from **Recent rooms** in the lobby and carry on. Stopping, updating and fixing p
   what's the story?" or "Artist, draw the mole." A name in the middle of a sentence is just a
   word. A good first step, which the message box suggests, is telling the Storyteller the basic
   story of the game.
-- **Hails.** A crew member works quietly, then **hails** with one line, with a soft chime.
+- **Hails.** A crew member works quietly, then **hails** with one line, with a soft chime
+  (**Chime**, in the header, mutes it).
   Nothing is said until the student presses **Grant the floor**. **Not now** declines it; the
   work stays readable under **Briefs not said**. When the Scribe adds to `game.md`, the new
   lines light up for a few seconds.

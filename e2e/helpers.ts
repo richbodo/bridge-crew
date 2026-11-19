@@ -10,7 +10,7 @@ export async function openRoom(
   page: Page,
   { title, name = "Tester", demo = false }: { title: string; name?: string; demo?: boolean },
 ) {
-  await page.goto("/");
+  await page.goto("/?kind=deliberation");
   await page.getByLabel("Your name in the room").fill(name);
   await page.getByLabel("Session title").fill(title);
   await page.getByRole("button", { name: demo ? "Open a demo room" : "Open a room" }).click();
@@ -55,8 +55,7 @@ export async function openStudio(
     games = "simple",
   }: { title: string; teacher?: string; student?: string; games?: "simple" | "bigger" },
 ) {
-  await page.goto("/");
-  await page.getByLabel("Game Studio").check();
+  await page.goto("/?kind=game-studio");
   await page.getByLabel(games === "bigger" ? "Bigger games" : "Simple games").check();
   await page.getByLabel("Your name in the room").fill(teacher);
   await page.getByLabel("Student's nickname").fill(student);
@@ -78,5 +77,5 @@ export async function signIn(page: Page, email: string, password: string) {
     .getByRole("button", { name: /sign in|come aboard/i })
     .first()
     .click();
-  await expect(page.getByRole("button", { name: "Open a room" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What kind of room?" })).toBeVisible();
 }

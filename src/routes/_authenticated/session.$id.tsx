@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useBlocker, useNavigate, useParams } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { Bell, BellOff } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -18,7 +19,7 @@ import { Composer, type Speaker } from "@/components/room/Composer";
 import { ContextPanel } from "@/components/room/ContextPanel";
 import { CrewAvatar } from "@/components/room/CrewAvatar";
 import { useFreshIds, useFreshLines } from "@/components/room/fresh";
-import { useHailChime } from "@/components/room/hail-chime";
+import { useChimeSetting, useHailChime } from "@/components/room/hail-chime";
 import { HailQueue } from "@/components/room/HailQueue";
 import { InvitePanel } from "@/components/room/InvitePanel";
 import {
@@ -300,7 +301,8 @@ function RoomPage() {
 
   // A chime for each new hail, and a moment's light on what's new in the document and in Made
   // in this room (src/components/room/hail-chime.ts, fresh.ts).
-  useHailChime(id, room?.hails);
+  const [chimeOn, setChimeOn] = useChimeSetting();
+  useHailChime(id, room?.hails, chimeOn);
   const freshPlan = useFreshLines(room?.plan);
   const freshMade = useFreshIds(madeRows?.map((thing) => thing.id));
 
@@ -564,6 +566,25 @@ function RoomPage() {
               On screen
             </Button>
           ) : null}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={chimeOn}
+            title={
+              chimeOn
+                ? "A chime plays when a crew member hails. Click to mute it."
+                : "The chime is muted. Click to hear it again."
+            }
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => setChimeOn(!chimeOn)}
+          >
+            {chimeOn ? (
+              <Bell aria-hidden className="size-3.5" />
+            ) : (
+              <BellOff aria-hidden className="size-3.5" />
+            )}
+            Chime
+          </button>
           <ContextPanel sessionId={id} />
           {template.seats > 1 ? <InvitePanel sessionId={id} code={room.session.code} /> : null}
           <a

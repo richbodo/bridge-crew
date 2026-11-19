@@ -15,8 +15,7 @@ test.describe("games on GitHub", () => {
   test("a game written as modules opens from its GitHub link, and brings in GitHub's newest", async ({
     page,
   }) => {
-    await page.goto("/");
-    await page.getByLabel("Game Studio").check();
+    await page.goto("/?kind=game-studio");
     await page.getByLabel("Your name in the room").fill("Pat");
     await page.getByLabel("Student's nickname").fill("Sam");
     await page.getByLabel("Open a game").check();
@@ -95,8 +94,7 @@ test.describe("games on GitHub", () => {
       if (response.url().includes("/_serverFn/")) bodies.push(response.text().catch(() => ""));
     });
 
-    await page.goto("/");
-    await page.getByLabel("Game Studio").check();
+    await page.goto("/?kind=game-studio");
     await page.getByLabel("Open a game").check();
     await page.getByRole("button", { name: "Connect GitHub" }).click();
     const dialog = page.getByRole("dialog", { name: "GitHub" });

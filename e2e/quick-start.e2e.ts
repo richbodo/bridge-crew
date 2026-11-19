@@ -3,8 +3,9 @@ import { expect, test, type Page } from "@playwright/test";
 import { openStudio, say, stationCard } from "./helpers";
 
 /**
- * A quick start and a room that's easy to follow: the lobby's defaults, the first tip, a chime
- * for a hail, a light round a working portrait, and a moment's light on what's new.
+ * A quick start and a room that's easy to follow: the lobby's defaults and Quick start, the
+ * first tip, a chime for a hail (and the switch that mutes it), a light round a working
+ * portrait, and a moment's light on what's new.
  */
 
 /** Counts the tones the page makes, in place of listening for them. */
@@ -24,9 +25,9 @@ async function countTones(page: Page) {
 }
 
 test.describe("a quick start", () => {
-  test("a Game Studio room opens with the lobby's defaults, nothing typed", async ({ page }) => {
+  test("Quick start opens a Game Studio room with the lobby's defaults", async ({ page }) => {
     await page.goto("/");
-    await page.getByLabel("Game Studio").check();
+    await page.getByRole("link", { name: /^Game Studio/ }).click();
     await expect(page.getByLabel("Bigger games")).toBeChecked();
     await expect(page.getByLabel("Your name in the room")).toHaveValue("Teacher");
     await expect(page.getByLabel("Student's nickname")).toHaveValue("Student");
@@ -35,7 +36,7 @@ test.describe("a quick start", () => {
     await expect(title).toHaveValue(/^Session \d{4}-\d\d-\d\d \d\d:\d\d$/);
     const named = await title.inputValue();
 
-    await page.getByRole("button", { name: "Open a room" }).click();
+    await page.getByRole("button", { name: "Quick start" }).click();
     await page.waitForURL(/\/session\/[0-9a-f-]+/);
     await page.getByRole("button", { name: "We've read it" }).click();
     await expect(page.getByRole("heading", { name: named })).toBeVisible();
@@ -52,8 +53,7 @@ test.describe("a quick start", () => {
   });
 
   test("a Deliberation room keeps its own name box empty", async ({ page }) => {
-    await page.goto("/");
-    await page.getByLabel("Deliberation").check();
+    await page.goto("/?kind=deliberation");
     await expect(page.getByLabel("Your name in the room")).toHaveValue("");
     await expect(page.getByLabel("Session title")).toHaveValue(/^Session /);
   });
@@ -74,6 +74,28 @@ test.describe("following the room", () => {
     await expect(page.getByText("Storyteller is hailing")).toBeVisible();
     await page.waitForTimeout(1_000);
     expect(await tones()).toBe(0);
+  });
+
+  test("the Chime switch mutes the chime, and stays off in this browser", async ({ page }) => {
+    const tones = await countTones(page);
+    await openStudio(page, { title: `E2E mute ${Date.now()}` });
+    const chime = page.getByRole("switch", { name: "Chime" });
+    await expect(chime).toHaveAttribute("aria-checked", "true");
+    await chime.click();
+    await expect(chime).toHaveAttribute("aria-checked", "false");
+
+    await say(page, "Storyteller, why does the mole need gems?");
+    await expect(page.getByText("Storyteller is hailing")).toBeVisible({ timeout: 30_000 });
+    await page.waitForTimeout(1_000);
+    expect(await tones()).toBe(0);
+
+    // Still off after a reload. Turning it on plays it once, so you hear what it sounds like.
+    await page.reload();
+    await page.getByRole("button", { name: "We've read it" }).click();
+    await expect(chime).toHaveAttribute("aria-checked", "false");
+    await chime.click();
+    await expect(chime).toHaveAttribute("aria-checked", "true");
+    await expect.poll(tones).toBe(4);
   });
 
   test("a working crew member's portrait has a light round it, on its card and by the box", async ({
