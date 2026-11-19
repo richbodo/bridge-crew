@@ -30,6 +30,7 @@ Bridge Crew also has a **Game Studio**: a room where a teacher and one student, 
 - [State machines](docs/state_machines.md) — every state in a room, drawn and defined, for developers and teachers
 - [Education plan](docs/plans/educational-context-2026-10-31.md) and [New Zealand legal notes](docs/legal/new-zealand.md) — the Game Studio's design, build phases, and the law it has to meet
 - [Bigger games](docs/plans/bigger-games-2026-11-16.md) — game folders, 3D with Three.js, saves and bringing in a game, for teenagers who want more than a one-file game
+- [Tune the crew](docs/plans/tune-the-crew-2026-11-19.md) — changing what each crew member is told, from the lobby, for every room on a computer
 - [Roadmap](docs/ROADMAP.md) — goals for later, waiting for their own plans
 - [The Bridge Crew Plan](docs/plans/BRIDGE_CREW_PLAN.md) — architecture, crew roster, build phases, and exit gates
 

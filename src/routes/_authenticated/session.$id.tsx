@@ -62,6 +62,8 @@ import {
   useThing,
 } from "@/lib/room.functions";
 import { deleteRoom, getRoom } from "@/lib/session.functions";
+import { applyTuning, tuningFromRows } from "@/lib/tuning";
+import { getTuning } from "@/lib/tuning.functions";
 import { STUDENT, withRole } from "@/lib/lobby";
 import { BROUGHT_IN } from "@/lib/made";
 import { jobOf as templateJob, templateOf } from "@/lib/templates";
@@ -155,6 +157,15 @@ function RoomPage() {
   const packsQuery = useQuery({
     queryKey: ["context-packs", id],
     queryFn: () => packList({ data: { sessionId: id } }),
+  });
+
+  // Tune the crew's changes for this kind of room, so Reassign starts from the job as tuned.
+  const readTuning = useServerFn(getTuning);
+  const roomKind = roomQuery.data ? templateOf(roomQuery.data.template).key : null;
+  const tuningQuery = useQuery({
+    queryKey: ["tuning", roomKind],
+    queryFn: () => readTuning({ data: { kind: roomKind! } }),
+    enabled: roomKind !== null,
   });
 
   const refresh = useCallback(
@@ -322,7 +333,7 @@ function RoomPage() {
     );
   }
 
-  const template = templateOf(room.template);
+  const template = applyTuning(templateOf(room.template), tuningFromRows(tuningQuery.data));
   const jobOf = (agent: string) => templateJob(template, agent);
   const studentName = room.settings.studentName || STUDENT;
   const currentVersion = room.settings.currentVersion ?? null;
@@ -842,6 +853,7 @@ function RoomPage() {
                   duty={state?.duty ?? null}
                   packs={(state?.context_packs as string[] | null) ?? []}
                   availablePacks={packsQuery.data ?? []}
+                  defaultPacks={template.defaultPacks}
                   busy={profileMutation.isPending}
                   onStop={() => stopMutation.mutate(agent)}
                   onEngage={(brief) =>

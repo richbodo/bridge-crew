@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as JoinCodeRouteImport } from './routes/join.$code'
 import { Route as AuthenticatedSessionIdRouteImport } from './routes/_authenticated/session.$id'
+import { Route as AuthenticatedTuneKindRouteImport } from './routes/_authenticated/tune.$kind'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -39,18 +40,25 @@ const AuthenticatedSessionIdRoute = AuthenticatedSessionIdRouteImport.update({
   path: '/session/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTuneKindRoute = AuthenticatedTuneKindRouteImport.update({
+  id: '/tune/$kind',
+  path: '/tune/$kind',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/join/$code': typeof JoinCodeRoute
   '/session/$id': typeof AuthenticatedSessionIdRoute
+  '/tune/$kind': typeof AuthenticatedTuneKindRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/join/$code': typeof JoinCodeRoute
   '/session/$id': typeof AuthenticatedSessionIdRoute
+  '/tune/$kind': typeof AuthenticatedTuneKindRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,12 +67,13 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/join/$code': typeof JoinCodeRoute
   '/_authenticated/session/$id': typeof AuthenticatedSessionIdRoute
+  '/_authenticated/tune/$kind': typeof AuthenticatedTuneKindRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/join/$code' | '/session/$id'
+  fullPaths: '/' | '/auth' | '/join/$code' | '/session/$id' | '/tune/$kind'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/join/$code' | '/session/$id'
+  to: '/' | '/auth' | '/join/$code' | '/session/$id' | '/tune/$kind'
   id:
     | '__root__'
     | '/'
@@ -72,6 +81,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/join/$code'
     | '/_authenticated/session/$id'
+    | '/_authenticated/tune/$kind'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -118,15 +128,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSessionIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/tune/$kind': {
+      id: '/_authenticated/tune/$kind'
+      path: '/tune/$kind'
+      fullPath: '/tune/$kind'
+      preLoaderRoute: typeof AuthenticatedTuneKindRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedSessionIdRoute: typeof AuthenticatedSessionIdRoute
+  AuthenticatedTuneKindRoute: typeof AuthenticatedTuneKindRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSessionIdRoute: AuthenticatedSessionIdRoute,
+  AuthenticatedTuneKindRoute: AuthenticatedTuneKindRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

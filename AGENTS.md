@@ -70,6 +70,11 @@ Setup, demo mode and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md).
 - Room templates (`src/lib/templates/`) set a room's roster, shared document, seats and rules.
   Job keys are text; look jobs up with `jobOf(template, key)`, never a fixed crew list. The
   Game Studio's rules for young people live in its `setting`; keep them there.
+- **Tune the crew** ([plan](docs/plans/tune-the-crew-2026-11-19.md)) lets a computer change a
+  job's duty, the Scribe's instructions and add crew-wide notes (`crew_tuning`,
+  `src/lib/tuning.ts`). Runs read it through `applyTuning`, and a crew member's system prompt
+  is built in `src/lib/instructions.ts`, which marks which parts are tunable; the setting and
+  the formats the app parses stay locked. Each run keeps its prompt in `runs.instructions`.
 - `docs/users_guide.md` is the single source of truth for the users guide; the app links to it
   on GitHub. Keep it current when user-facing behavior changes.
 - Teachers don't use the command line. `scripts/install-mac.sh` (the one-line installer, run

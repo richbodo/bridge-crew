@@ -727,9 +727,18 @@ function Elsewhere({
 function Crew({ template }: { template: Template }) {
   return (
     <section aria-labelledby="crew" className="mt-10">
-      <h2 id="crew" className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
-        The crew · {template.name}
-      </h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 id="crew" className="text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
+          The crew · {template.name}
+        </h2>
+        <Link
+          to="/tune/$kind"
+          params={{ kind: template.key }}
+          className="text-xs text-muted-foreground hover:text-foreground"
+        >
+          Tune the crew →
+        </Link>
+      </div>
       <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {template.roster.map((job) => (
           <li

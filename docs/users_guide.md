@@ -23,6 +23,8 @@ Anthropic.
 [12. Reassign a station](#12-reassign-a-station) · [13. Context packs](#13-context-packs) ·
 [14. Demo room](#14-demo-room) · [15. Leaving and coming back](#15-leaving-and-coming-back)
 
+**Part 3, both kinds of room:** [16. Tune the crew](#16-tune-the-crew)
+
 ---
 
 ## Part 1: The Game Studio
@@ -107,6 +109,7 @@ from where it stopped.
    **Open a room**. A Game Studio room has one seat, so there's no invite.
 
    Below the settings are your **Recent rooms**, then the crew and how a turn works.
+   **Tune the crew →**, beside the crew, changes what they're told (§16).
    **← Kind of room** goes to the choice between a Game Studio room and a Deliberation room
    (Part 2), which a lesson doesn't need.
 4. Read the **classroom notice** together, then press **We've read it**.
@@ -435,7 +438,8 @@ already answered, or the station has moved on to newer work.
 Press **Reassign** on any card to change:
 
 - **Station name** — e.g. rename Scribe to `Bug_Reporter`
-- **Duty prompt** — what that station is for, in your words
+- **Duty prompt** — what that station is for, in your words. It starts as the station's own
+  instructions, as tuned on this computer (§16). Change it here for this room only.
 - **Context packs** — required reading (see §13)
 
 Save with **Save station**, or use **Reset to default** to put the stock crew member back.
@@ -506,6 +510,39 @@ them.
 
 **Delete room**, in the header, removes the room and everything in it for good. Only the person
 who opened the room sees it, and it asks first.
+
+---
+
+## Part 3: Tuning the crew
+
+### 16. Tune the crew
+
+Each crew member works from written instructions. **Tune the crew** is where you change them,
+for every room of one kind on this computer. Open it from the lobby: choose the kind of room,
+then **Tune the crew →**, beside the crew. It isn't in the room itself.
+
+- **Notes for every crew member.** Something they should all do, such as "Always say which
+  level you mean." Each crew member is told it after its own job.
+- **Each crew member's job.** Its paragraph of instructions: change what it does and how. For
+  example, ask the Storyteller to give each story idea a summary of about 100 words. **Save**
+  keeps it; **Back to the original** puts the app's own text back. A changed one is marked
+  **Changed**.
+- **The Scribe.** Its instructions for keeping `game.md` or `plan.md`.
+- **Everything it's told.** Under each crew member, the whole of its instructions. Its job and
+  the notes are yours to change. The rest is fixed: the rules for young people, and the way the
+  crew replies and hands over what it makes, which the app reads to make hails and versions.
+
+A change applies from each crew member's next piece of work, in every room of that kind,
+including rooms already open. **Reassign** (§12) still changes one crew member in one room.
+
+**Export** saves what you've changed as a file; **Import**, on another computer, loads one and
+replaces what's changed there. That's how a teacher can use tuning tried on another laptop.
+
+**What it was told.** Under a crew member's reply in a room, **Show detail**, then **What it
+was told**, shows the instructions that reply came from, as they were when it started.
+
+Anyone signed in on the computer can open Tune the crew. In the Game Studio the student shares
+the teacher's sign-in, so keep it to the lobby, before or after a lesson.
 
 ---
 

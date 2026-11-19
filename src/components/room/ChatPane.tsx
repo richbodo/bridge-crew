@@ -1,8 +1,11 @@
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { ChevronDown, ChevronUp, CircleQuestionMark, Reply, type LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { Job } from "@/lib/templates";
+import { runInstructions } from "@/lib/tuning.functions";
 
 import { Markdown } from "./Markdown";
 
@@ -25,6 +28,8 @@ export interface ContributionRow {
   outcome?: string | null;
   /** Made things this contribution removes when it's spoken (Game Studio). */
   removes?: string[];
+  /** The run that made it, which kept what the crew member was told. */
+  run_id?: string | null;
 }
 
 interface Props {
@@ -105,6 +110,9 @@ export function ChatPane({
                   {brief}
                 </Markdown>
               ) : null}
+              {brief && open[line.id] && contribution?.run_id ? (
+                <WhatItWasTold runId={contribution.run_id} />
+              ) : null}
             </div>
           );
         }
@@ -180,5 +188,38 @@ export function ContributionActions({
         </Action>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * The instructions a run was given, as kept when it started (docs/plans/tune-the-crew-2026-11-19.md),
+ * so a reply can be read beside what produced it. Fetched when opened.
+ */
+function WhatItWasTold({ runId }: { runId: string }) {
+  const read = useServerFn(runInstructions);
+  const [open, setOpen] = useState(false);
+  const told = useQuery({
+    queryKey: ["told", runId],
+    queryFn: () => read({ data: { runId } }),
+    enabled: open,
+    staleTime: Infinity,
+  });
+  return (
+    <details className="mt-2 text-xs" onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+        What it was told
+      </summary>
+      {told.isLoading ? (
+        <p className="mt-1 text-muted-foreground">Finding it…</p>
+      ) : told.data?.instructions ? (
+        <pre className="mt-1 max-h-96 overflow-y-auto whitespace-pre-wrap rounded-md bg-background/60 p-2 font-mono text-[11px] leading-snug text-muted-foreground">
+          {told.data.instructions}
+        </pre>
+      ) : told.data ? (
+        <p className="mt-1 text-muted-foreground">
+          Not kept: this was made before the app kept what the crew is told.
+        </p>
+      ) : null}
+    </details>
   );
 }
