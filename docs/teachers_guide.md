@@ -57,7 +57,8 @@ from **Recent rooms** in the lobby and carry on. Stopping, updating and fixing p
   moves only while that crew member is working or hailing, so a glance shows who's busy and who
   wants the floor. If the movement distracts the student, turn on **Reduce motion** in the Mac's
   System Settings (Accessibility, then Display), and the portraits hold still.
-- **Making the game.** The Engineer builds versions, the Artist draws pictures, and the Sound
+- **Making the game.** The Engineer builds versions, changing the game's files a piece at a
+  time and trying each version before it hails, the Artist draws pictures, and the Sound
   designer makes sounds and music. The Tester plays each version itself, in a browser on the
   laptop, and shows a row of pictures of what it saw, then explains what broke. The pictures
   go to Anthropic with the Tester's request, as the game's code does, and show only the game.

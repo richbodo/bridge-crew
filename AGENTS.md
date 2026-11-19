@@ -24,6 +24,9 @@ frozen: append corrections, never edit them.
   fonts games may use: Three.js and fonts, built into `src/lib/vendor/` by `just shelf`. See
   [docs/plans/bigger-games-2026-11-16.md](docs/plans/bigger-games-2026-11-16.md). A game written
   as modules is built into one script by Rolldown, Vite's bundler (`src/lib/modules.server.ts`).
+  The Engineer builds with tools on a copy of the current version: Anthropic's text editor,
+  remove_file and try_game (`src/lib/build.ts`, `src/lib/build.server.ts`); the tool loop is
+  `callModelWithTools` in `src/lib/model.server.ts`.
   Games open from GitHub links (`src/lib/github.server.ts`); tests use the fake repositories in
   `e2e/fixtures/github`. See
   [docs/plans/games-on-github-2026-11-16.md](docs/plans/games-on-github-2026-11-16.md).

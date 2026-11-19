@@ -4,7 +4,10 @@ import type {
   BetaMessage,
   BetaMessageParam,
   BetaToolResultBlockParam,
+  BetaToolUnion,
 } from "@anthropic-ai/sdk/resources/beta/messages";
+
+import type { ToolResult } from "./build";
 
 /**
  * Where the crew's model calls go:
@@ -58,41 +61,57 @@ export async function callModel(
   return callAnthropic(messages, role, options);
 }
 
-/** A tool a crew member uses while it works: the Tester's play (src/lib/playtest.server.ts). */
+export type { ToolResult };
+
+/**
+ * A tool a crew member uses while it works: the Tester's play (src/lib/playtest.server.ts), or
+ * the Engineer's build tools (src/lib/build.server.ts).
+ */
 export interface CrewTool {
   name: string;
-  description: string;
-  inputSchema: { type: "object"; properties: Record<string, unknown>; required?: string[] };
+  /**
+   * Anthropic's text editor tool, which Claude is trained to use: no description or schema, and
+   * its name is str_replace_based_edit_tool.
+   */
+  editor?: boolean;
+  description?: string;
+  inputSchema?: { type: "object"; properties: Record<string, unknown>; required?: string[] };
   /** One use. What it returns goes back to the model. */
   use: (input: unknown) => Promise<ToolResult>;
-  /** The most uses in one run. The turn after the last one writes the reply. */
-  uses: number;
-  /** The fixture provider uses the tool once, with this. */
-  fixtureInput: unknown;
+  /** The most uses in one run, if fewer than its turns allow. */
+  uses?: number;
 }
 
-export interface ToolResult {
-  /** Words and pictures (JPEG, base64), in order. */
-  parts: Array<{ text: string } | { jpeg: string }>;
-  /** It didn't work; the words say why. */
-  failed?: boolean;
+/** The tools for one run, and its limits. */
+export interface CrewTools {
+  tools: CrewTool[];
+  /** The most turns of using tools. The turn after the last one writes the reply. */
+  turns: number;
+  /** What the fixture provider does instead of the model: each use, in order. */
+  fixture: Array<{ tool: string; input: unknown }>;
+  /** Tokens for the whole run, which the model paces itself to (a task budget; at least 20,000). */
+  budget?: number;
+  /** What to call the run in the server's log, with its turns, tokens and time. */
+  label?: string;
 }
 
-/** As callModel, with a tool the crew member can use before it replies. */
-export async function callModelWithTool(
+/** As callModel, with tools the crew member can use before it replies. */
+export async function callModelWithTools(
   messages: ChatMessage[],
-  tool: CrewTool,
+  tools: CrewTools,
   role: ModelRole = "crew",
   options: CallOptions = {},
 ): Promise<string> {
   const provider = pickProvider();
   if (provider === "fixture") {
-    // It plays first, so a slow run shows what it saw while it waits.
-    await tool.use(tool.fixtureInput);
+    // It uses its tools first, so a slow run shows what it's doing while it waits.
+    for (const step of tools.fixture) {
+      await tools.tools.find((tool) => tool.name === step.tool)?.use(step.input);
+    }
     await fixtureDelay(messages);
     return fixtureReply(messages, role);
   }
-  return callAnthropicWithTool(messages, tool, role, options);
+  return callAnthropicWithTools(messages, tools, role, options);
 }
 
 // ---------- Anthropic ----------
@@ -109,6 +128,9 @@ const FALLBACK_MODELS = new Set([
   "claude-opus-5",
   "claude-sonnet-5-5",
 ]);
+
+/** The beta for a task budget: a run's tokens, which the model sees and paces itself to. */
+const TASK_BUDGETS = "task-budgets-2026-03-13";
 
 let anthropic: Anthropic | undefined;
 
@@ -190,53 +212,131 @@ async function callAnthropic(
   }
 }
 
-async function callAnthropicWithTool(
+/** What a run's turns cost, summed, for the server's log. */
+interface Spent {
+  turns: number;
+  input: number;
+  cacheRead: number;
+  cacheWrite: number;
+  output: number;
+}
+
+function declared(tool: CrewTool, streaming: boolean): BetaToolUnion {
+  if (tool.editor) {
+    return { type: "text_editor_20250728", name: "str_replace_based_edit_tool", max_characters: VIEW_CHARACTERS };
+  }
+  return {
+    name: tool.name,
+    description: tool.description ?? "",
+    input_schema: tool.inputSchema ?? { type: "object", properties: {} },
+    // Streamed inputs arrive as they're written; each tool checks its own input.
+    ...(streaming ? { eager_input_streaming: true } : {}),
+  };
+}
+
+/** The most of a file one view shows (src/lib/build.ts cuts it there). */
+const VIEW_CHARACTERS = 40_000;
+
+const CUT_OFF =
+  "Your turn was cut off before this ran, because it was too long. Make a big file in parts: create it with the first part, then add the rest with insert.";
+
+async function callAnthropicWithTools(
   messages: ChatMessage[],
-  tool: CrewTool,
+  set: CrewTools,
   role: ModelRole,
   options: CallOptions,
 ): Promise<string> {
   anthropic ??= new Anthropic();
+  const base = requestFor(messages, role, options);
+  // Long turns (a whole file) stream, so the request doesn't time out.
+  const streaming = base.max_tokens > 16000;
+  const betas = [...("betas" in base ? base.betas : []), ...(set.budget ? [TASK_BUDGETS] : [])];
   const request = {
-    ...requestFor(messages, role, options),
-    tools: [{ name: tool.name, description: tool.description, input_schema: tool.inputSchema }],
+    ...base,
+    ...(betas.length ? { betas } : {}),
+    output_config: {
+      ...base.output_config,
+      ...(set.budget ? { task_budget: { type: "tokens" as const, total: set.budget } } : {}),
+    },
+    tools: set.tools.map((tool) => declared(tool, streaming)),
     // Every turn sends the room and the game again; the cache reads them back cheaply.
     cache_control: { type: "ephemeral" as const },
   };
   const turns = turnsOf(messages);
+  const used = new Map<string, number>();
+  const spent: Spent = { turns: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0 };
+  const started = Date.now();
+  const log = () => {
+    if (!set.label) return;
+    const seconds = Math.round((Date.now() - started) / 1000);
+    console.info(`${set.label}: ${JSON.stringify({ ...spent, seconds })}`);
+  };
   try {
-    for (let used = 0; ; ) {
-      const response = await anthropic.beta.messages.create({
+    for (let turn = 0; ; ) {
+      const params = {
         ...request,
         messages: turns,
-        // After the last use, the turn writes the reply.
-        ...(used >= tool.uses ? { tool_choice: { type: "none" as const } } : {}),
-      });
-      const uses = response.content.flatMap((block) => (block.type === "tool_use" ? [block] : []));
-      if (response.stop_reason !== "tool_use" || !uses.length) return textOf(response);
+        // After the last turn of tools, the turn writes the reply.
+        ...(turn >= set.turns ? { tool_choice: { type: "none" as const } } : {}),
+      };
+      const response = streaming
+        ? await anthropic.beta.messages.stream(params).finalMessage()
+        : await anthropic.beta.messages.create(params);
+      spent.turns++;
+      spent.input += response.usage.input_tokens;
+      spent.cacheRead += response.usage.cache_read_input_tokens ?? 0;
+      spent.cacheWrite += response.usage.cache_creation_input_tokens ?? 0;
+      spent.output += response.usage.output_tokens;
+
+      const asks = response.content.flatMap((block) => (block.type === "tool_use" ? [block] : []));
+      const cut = response.stop_reason === "max_tokens";
+      if (!asks.length || (response.stop_reason !== "tool_use" && !cut)) {
+        log();
+        return textOf(response);
+      }
+      turn++;
       turns.push({ role: "assistant", content: response.content as BetaContentBlockParam[] });
+      // A turn cut off by its token limit ends partway through its last tool use.
+      const last = response.content[response.content.length - 1];
+      const unfinished = cut && last?.type === "tool_use" ? last.id : null;
       const results: BetaToolResultBlockParam[] = [];
-      for (const ask of uses) {
-        used++;
-        const result =
-          ask.name === tool.name
-            ? await tool.use(ask.input)
-            : { parts: [{ text: `There's no tool called ${ask.name}.` }], failed: true };
-        const last = used >= tool.uses ? [{ text: "That was your last turn. Now write your reply." }] : [];
+      for (const ask of asks) {
+        const tool = set.tools.find((t) => t.name === ask.name);
+        const times = (used.get(ask.name) ?? 0) + 1;
+        const result: ToolResult =
+          ask.id === unfinished
+            ? { parts: [{ text: CUT_OFF }], failed: true }
+            : !tool
+              ? { parts: [{ text: `There's no tool called ${ask.name}.` }], failed: true }
+              : tool.uses !== undefined && times > tool.uses
+                ? {
+                    parts: [{ text: `That's the most uses of ${ask.name} one run can have (${tool.uses}).` }],
+                    failed: true,
+                  }
+                : await tool.use(ask.input);
+        used.set(ask.name, times);
         results.push({
           type: "tool_result",
           tool_use_id: ask.id,
           ...(result.failed ? { is_error: true } : {}),
-          content: [...result.parts, ...last].map((part) =>
+          content: result.parts.map((part) =>
             "jpeg" in part
               ? { type: "image", source: { type: "base64", media_type: "image/jpeg", data: part.jpeg } }
               : { type: "text", text: part.text },
           ),
         });
       }
+      if (turn >= set.turns && results.length) {
+        const final = results[results.length - 1]!;
+        final.content = [
+          ...(Array.isArray(final.content) ? final.content : []),
+          { type: "text", text: "That was your last turn of tools. Now write your reply." },
+        ];
+      }
       turns.push({ role: "user", content: results });
     }
   } catch (error) {
+    log();
     throw failure(error);
   }
 }
@@ -330,68 +430,56 @@ function fixtureExtras(system: string, user: string, task: string): string {
 }
 
 /**
- * A made thing for the jobs that make one (src/lib/made.ts). "crash" in the task makes a game
- * that throws; "music" makes the Sound designer write a tune instead of sounds.
+ * The fixture Engineer's game, which it makes with its build tools (src/lib/build.server.ts):
+ * one file in a Simple room, or two in a Bigger room, which counts its visits in a save. "crash"
+ * in the task makes a game that throws.
  */
-function fixtureMade(system: string, task: string): string {
-  if (system.includes("\nFILE: js/game.js")) {
-    // A Bigger room's game: a folder of two files, which counts its visits in a save.
-    const crash = /\bcrash/i.test(task) ? 'throw new Error("the mole fell off the map");' : "";
-    return `
-FILE: index.html
-\`\`\`html
-<!doctype html>
+export function fixtureGame(task: string, bigger: boolean): Record<string, string> {
+  const crash = /\bcrash/i.test(task) ? 'throw new Error("the mole fell off the map");' : "";
+  const head = `<!doctype html>
 <html>
 <head><meta charset="utf-8"><title>Fixture game</title>
 <style>body{margin:0;background:#2b1d14;color:#f5e6d3;font-family:sans-serif}canvas{display:block;margin:0 auto}</style>
 </head>
-<body>
+<body>`;
+  const mole = `const c = document.getElementById("c").getContext("2d");
+let x = 150;
+function draw() { c.fillStyle = "#4a3426"; c.fillRect(0, 0, 320, 200); c.fillStyle = "#9a8270"; c.fillRect(x, 90, 20, 20); }
+addEventListener("keydown", (e) => { if (e.key === "ArrowLeft") x -= 10; if (e.key === "ArrowRight") x += 10; draw(); });
+draw();
+${crash}`;
+  if (!bigger) {
+    return {
+      "index.html": `${head}
+<p>Arrow keys move the mole. A fixture game: no model was called.</p>
+<canvas id="c" width="320" height="200"></canvas>
+<script>
+${mole}
+</script>
+</body>
+</html>`,
+    };
+  }
+  return {
+    "index.html": `${head}
 <p>Arrow keys move the mole. A fixture game in two files: no model was called.</p>
 <p id="visits"></p>
 <canvas id="c" width="320" height="200"></canvas>
 <script src="js/game.js"></script>
 </body>
-</html>
-\`\`\`
-
-FILE: js/game.js
-\`\`\`js
-const c = document.getElementById("c").getContext("2d");
-const visits = Number(localStorage.getItem("visits") || 0) + 1;
+</html>`,
+    "js/game.js": `const visits = Number(localStorage.getItem("visits") || 0) + 1;
 localStorage.setItem("visits", String(visits));
 document.getElementById("visits").textContent = "Visits: " + visits;
-let x = 150;
-function draw() { c.fillStyle = "#4a3426"; c.fillRect(0, 0, 320, 200); c.fillStyle = "#9a8270"; c.fillRect(x, 90, 20, 20); }
-addEventListener("keydown", (e) => { if (e.key === "ArrowLeft") x -= 10; if (e.key === "ArrowRight") x += 10; draw(); });
-draw();
-${crash}
-\`\`\``;
-  }
-  if (system.includes("\nFILE:")) {
-    const crash = /\bcrash/i.test(task) ? 'throw new Error("the mole fell off the map");' : "";
-    return `
-FILE:
-\`\`\`html
-<!doctype html>
-<html>
-<head><meta charset="utf-8"><title>Fixture game</title>
-<style>body{margin:0;background:#2b1d14;color:#f5e6d3;font-family:sans-serif}canvas{display:block;margin:0 auto}</style>
-</head>
-<body>
-<p>Arrow keys move the mole. A fixture game: no model was called.</p>
-<canvas id="c" width="320" height="200"></canvas>
-<script>
-const c = document.getElementById("c").getContext("2d");
-let x = 150;
-function draw() { c.fillStyle = "#4a3426"; c.fillRect(0, 0, 320, 200); c.fillStyle = "#9a8270"; c.fillRect(x, 90, 20, 20); }
-addEventListener("keydown", (e) => { if (e.key === "ArrowLeft") x -= 10; if (e.key === "ArrowRight") x += 10; draw(); });
-draw();
-${crash}
-</script>
-</body>
-</html>
-\`\`\``;
-  }
+${mole}`,
+  };
+}
+
+/**
+ * A made thing for the jobs that make one in their reply (src/lib/made.ts): "music" makes the
+ * Sound designer write a tune instead of sounds.
+ */
+function fixtureMade(system: string, task: string): string {
   if (system.includes("\nPICTURE:")) {
     return `
 PICTURE: mole

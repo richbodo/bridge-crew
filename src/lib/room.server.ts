@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/integrations/supabase/types";
 
 import { makeNameLookup, runAgentBrief, writeSharedDoc, type NameLookup } from "./agents.server";
+import { EDITOR, madeFiles } from "./build";
+import { buildTools, READ_TURNS, readTools, type Show } from "./build.server";
 import { bringIn, whyBigger } from "./bring-in";
 import { ENTRY, sizeOf, type GameFiles } from "./bundle";
 import { assembleContext, type ContributionNote } from "./context";
@@ -20,7 +22,7 @@ import {
 import { fetchRepoGame, newestCommit } from "./github.server";
 import { isModuleGame } from "./modules";
 import { MODULES_NOTE, THREE_VERSION } from "./shelf";
-import type { CrewTool } from "./model.server";
+import type { CrewTool, CrewTools } from "./model.server";
 import { FIXTURE_PLAY, PLAY_TOOL, playFrom } from "./playtest";
 import { Playtest, resultOf } from "./playtest.server";
 import { enforceSpeechCap } from "./speech";
@@ -116,18 +118,15 @@ async function madeInOrder(sb: Client, sessionId: string) {
   return data ?? [];
 }
 
-/** A file's code in a fence, for a crew member that reads the code. */
-function fencedFile(path: string, body: string): string {
-  const lang = /\.(\w+)$/.exec(path)?.[1]?.toLowerCase() ?? "";
-  const fence = body.includes("```") ? "~~~~" : "```";
-  if (body.startsWith("data:"))
-    return `#### ${path}\n\n(a picture or font, ${Math.round(body.length / 1024)} KB)`;
-  return `#### ${path}\n\n${fence}${lang === "md" ? "markdown" : lang}\n${body}\n${fence}`;
-}
+/** The Engineer's map of the code, in a Bigger room's game folder (Part 3). */
+const NOTES = "NOTES.md";
+/** The most of NOTES.md the crew reads in its context. */
+const NOTES_LIMIT = 12_000;
 
 /**
- * The current version, for a crew member's context. The Engineer and the Tester read its code;
- * the others get its list of files (docs/plans/bigger-games-2026-11-16.md Part 3).
+ * The current version, for a crew member's context: its files and NOTES.md, never its code
+ * (docs/plans/bigger-games-2026-11-16.md Part 3). The Engineer and the Tester read the code they
+ * need with the text editor tool.
  */
 async function currentVersionFor(
   sb: Client,
@@ -138,19 +137,19 @@ async function currentVersionFor(
   const label = labelOf(current);
   const files = await loadFiles(sb, sessionId, current);
   const paths = Object.keys(files);
+  const read = readsCode ? `\n\nRead the files you need with ${EDITOR}.` : "";
   if (paths.length === 1 && paths[0] === ENTRY) {
-    return readsCode
-      ? `### The current version (${label})\n\n\`\`\`html\n${files[ENTRY]}\n\`\`\``
-      : `### The current version (${label})\n\nOne HTML file, ${Math.round((files[ENTRY] ?? "").length / 1024)} KB.`;
+    return `### The current version (${label})\n\nOne HTML file, /index.html, ${Math.max(1, Math.round((files[ENTRY] ?? "").length / 1024))} KB.${read}`;
   }
   const list = paths
     .sort((a, b) => (a === ENTRY ? -1 : b === ENTRY ? 1 : a.localeCompare(b)))
-    .map((path) => `- ${path} (${Math.max(1, Math.round((files[path] ?? "").length / 1024))} KB)`)
+    .map((path) => `- /${path} (${Math.max(1, Math.round((files[path] ?? "").length / 1024))} KB)`)
     .join("\n");
-  const modules = isModuleGame(files[ENTRY] ?? "") ? `\n\n${MODULES_NOTE}` : "";
-  const head = `### The current version (${label}): a folder of ${sizeOf(files)}\n\n${list}${readsCode ? modules : ""}`;
-  if (!readsCode) return head;
-  return `${head}\n\n${paths.map((path) => fencedFile(path, files[path] ?? "")).join("\n\n")}`;
+  const notes = files[NOTES]
+    ? `\n\n#### NOTES.md, the Engineer's map of the code\n\n${files[NOTES].length > NOTES_LIMIT ? `${files[NOTES].slice(0, NOTES_LIMIT)}\n\n(NOTES.md goes on.)` : files[NOTES]}`
+    : "";
+  const modules = readsCode && isModuleGame(files[ENTRY] ?? "") ? `\n\n${MODULES_NOTE}` : "";
+  return `### The current version (${label}): a folder of ${sizeOf(files)}\n\n${list}${notes}${read}${modules}`;
 }
 
 /**
@@ -186,13 +185,21 @@ async function gameSoFar(
       return `- #${number} ${labelOf(thing)}, by ${called(template, nameOf, thing.agent)} (${state})`;
     });
   const readsCode = job.makes === "version" || job.makes === "tests";
+  const pictures = used.filter((t) => t.kind === "picture");
   const parts = [
     current
       ? await currentVersionFor(sb, sessionId, current, readsCode)
       : "No version of the game has been built yet.",
-    ...used
-      .filter((t) => t.kind === "picture")
-      .map((t) => `### Picture: ${t.name}\n\n\`\`\`svg\n${t.body}\n\`\`\``),
+    // The Engineer and the Tester read pictures as files; the others see them here.
+    ...(readsCode
+      ? pictures.length
+        ? [
+            `### Pictures in use (read them with ${EDITOR})\n\n${Object.entries(madeFiles(pictures))
+              .map(([path, svg]) => `- /${path} (${Math.max(1, Math.round(svg.length / 1024))} KB)`)
+              .join("\n")}`,
+          ]
+        : []
+      : pictures.map((t) => `### Picture: ${t.name}\n\n\`\`\`svg\n${t.body}\n\`\`\``)),
   ];
   const sounds = used.filter((t) => t.kind === "sound");
   if (sounds.length) {
@@ -360,45 +367,58 @@ async function gatherContext(
 /** How many turns of play the Tester gets in one run. */
 const PLAY_TURNS = 5;
 
-/**
- * The Tester's play tool for one run (src/lib/playtest.server.ts): the current version, opened
- * in a headless browser the first time the Tester plays. Its card shows each look as it plays,
- * and what it saw becomes a test, which comes with its hail.
- */
-async function playtestFor(sb: Client, sessionId: string, runId: string, settings: RoomSettings) {
-  const things = await madeInOrder(sb, sessionId);
-  const current = things.find((t) => t.id === settings.currentVersion);
-  if (!current) return null;
-  const names = new Map(
-    things
-      .filter((t) => t.state === "used" && (t.kind === "sound" || t.kind === "music"))
-      .map((t) => [t.body, `the ${t.kind} “${t.name}”`]),
-  );
-  const version = labelOf(current);
-  const show = async (progress: string, snapshot?: string) => {
+/** The crew member's card while it works: words, and the latest picture of the game. */
+function showFor(sb: Client, sessionId: string, runId: string): Show {
+  return async (progress, snapshot) => {
     await sb
       .from("agents_state")
       .update({ progress, ...(snapshot ? { snapshot } : {}) })
       .eq("session_id", sessionId)
       .eq("current_run_id", runId);
   };
+}
+
+/** The game a run works on: the current version and its files, and what's in use. */
+async function gameFor(sb: Client, sessionId: string, settings: RoomSettings) {
+  const things = await madeInOrder(sb, sessionId);
+  const current = things.find((t) => t.id === settings.currentVersion) ?? null;
+  const used = things.filter((t) => t.state === "used");
+  return {
+    current,
+    files: current ? await loadFiles(sb, sessionId, current) : {},
+    /** The pictures in use, as files under studio/made/ (src/lib/build.ts). */
+    made: madeFiles(used.filter((t) => t.kind === "picture")),
+    /** What the room calls the game's sounds and songs, by their JSON. */
+    names: new Map(
+      used
+        .filter((t) => t.kind === "sound" || t.kind === "music")
+        .map((t) => [t.body, `the ${t.kind} “${t.name}”`]),
+    ),
+  };
+}
+
+/**
+ * The Tester's play tool for one run (src/lib/playtest.server.ts): the current version, opened
+ * in a headless browser the first time the Tester plays. Its card shows each look as it plays,
+ * and what it saw becomes a test, which comes with its hail.
+ */
+function playtestFor(game: Awaited<ReturnType<typeof gameFor>>, show: Show) {
+  const current = game.current;
+  if (!current) return null;
+  const version = labelOf(current);
   let test: Playtest | null = null;
   let name = "";
 
   const tool: CrewTool = {
     ...PLAY_TOOL,
     uses: PLAY_TURNS,
-    fixtureInput: FIXTURE_PLAY,
     use: async (input) => {
       const play = playFrom(input);
       if (!play.steps.length)
         return { parts: [{ text: "There were no steps to play." }], failed: true };
       name ||= play.name;
       try {
-        test ??= await Playtest.open(
-          (await bundleOf(await loadFiles(sb, sessionId, current))).html,
-          names,
-        );
+        test ??= await Playtest.open((await bundleOf(game.files)).html, game.names);
       } catch (error) {
         console.error("the playtest browser didn't open", error);
         return {
@@ -437,6 +457,59 @@ async function playtestFor(sb: Client, sessionId: string, runId: string, setting
   };
 }
 
+/**
+ * The tools a run gets: the Engineer's build tools (src/lib/build.server.ts), or only reading the
+ * game when it's explaining; the Tester's play, and reading the game. Others get none.
+ */
+async function toolsFor(
+  sb: Client,
+  sessionId: string,
+  runId: string,
+  settings: RoomSettings,
+  job: Job,
+  run: { task: string; mode: string },
+) {
+  if (job.makes !== "tests" && job.makes !== "version") return {};
+  const game = await gameFor(sb, sessionId, settings);
+  const show = showFor(sb, sessionId, runId);
+  const reader = (why: string) => readTools({ current: game.files, made: game.made, show, why });
+  if (job.makes === "tests") {
+    const playtest = playtestFor(game, show);
+    if (!playtest) return {};
+    const tools: CrewTools = {
+      tools: [
+        playtest.tool,
+        reader(
+          "You can read the game's files, but not change them. Tell the Engineer what to fix.",
+        ),
+      ],
+      turns: PLAY_TURNS + 3,
+      fixture: [{ tool: PLAY_TOOL.name, input: FIXTURE_PLAY }],
+      label: "tester",
+    };
+    return { tools, playtest };
+  }
+  if (run.mode === "help") {
+    if (!game.current) return {};
+    const tools: CrewTools = {
+      tools: [reader("This time you only explain, so you can't change the game.")],
+      turns: READ_TURNS,
+      fixture: [{ tool: EDITOR, input: { command: "view", path: "/" } }],
+      label: "engineer explaining",
+    };
+    return { tools };
+  }
+  const build = buildTools({
+    current: game.files,
+    made: game.made,
+    simple: !isBigger(settings),
+    names: game.names,
+    show,
+    task: run.task,
+  });
+  return { tools: build.tools, build };
+}
+
 /** Runs one crew member's task to its end: a hail, a superseded reply, or a failure. */
 export async function executeRun(sb: Client, runId: string) {
   const { data: run } = await sb.from("runs").select("*").eq("id", runId).maybeSingle();
@@ -446,11 +519,14 @@ export async function executeRun(sb: Client, runId: string) {
   const { template, settings, name, crew, nameOf } = await roomOf(sb, sessionId);
   const me = crew.find((row) => row.agent === agent);
   const job = jobOf(template, agent);
-  let playtest: Awaited<ReturnType<typeof playtestFor>> = null;
+  let playtest: ReturnType<typeof playtestFor> | undefined;
 
   try {
-    // The Tester plays the current version (Part 5 of the education plan).
-    if (job.makes === "tests") playtest = await playtestFor(sb, sessionId, runId, settings);
+    // The Tester plays the current version (Part 5 of the education plan); the Engineer builds
+    // the next one with its build tools (Part 3 of the bigger games plan).
+    const tools = await toolsFor(sb, sessionId, runId, settings, job, run);
+    playtest = tools.playtest;
+    const build = tools.build;
     const packs = (me?.context_packs as string[] | null) ?? [];
     const context = await gatherContext(sb, sessionId, template, settings, packs, nameOf, job);
     await sb
@@ -467,7 +543,7 @@ export async function executeRun(sb: Client, runId: string) {
         run.task,
         context.text,
         { name: me?.display_name ?? null, duty: me?.duty ?? null },
-        playtest?.tool,
+        tools.tools,
         { bigger: isBigger(settings) },
       ),
       RUN_TIME_LIMIT_MS,
@@ -476,14 +552,24 @@ export async function executeRun(sb: Client, runId: string) {
 
     const { spoken, overflow } = enforceSpeechCap(result.spokenRaw, template.spokenCap);
     const provenance = context.read ? `_Read: ${context.read}_\n\n` : "";
-    const brief = provenance + (overflow ? `${result.brief}\n\n---\n\n${overflow}` : result.brief);
-    const summary = spoken.split(/(?<=[.!?])\s+/)[0] || spoken.slice(0, 140);
     // Help changes nothing in the game unless asked (Part 6), so a help run makes and removes nothing.
     const help = run.mode === "help";
+    const files =
+      help || !build
+        ? ""
+        : build.broken()
+          ? "\n\n**The new version wasn't kept:** index.html isn't a web page any more."
+          : build.changes()
+            ? `\n\n**Files:** ${build.changes()}`
+            : "";
+    const brief =
+      provenance + (overflow ? `${result.brief}\n\n---\n\n${overflow}` : result.brief) + files;
+    const summary = spoken.split(/(?<=[.!?])\s+/)[0] || spoken.slice(0, 140);
     const made = help
       ? []
-      : await withStoredFiles(sb, sessionId, settings, [
+      : await withStoredFiles(sb, sessionId, [
           ...result.made,
+          ...(build?.made() ?? []),
           ...(playtest?.made() ?? []),
         ]);
     const removes =
@@ -514,44 +600,23 @@ export async function executeRun(sb: Client, runId: string) {
   }
 }
 
-/**
- * A run's versions with their files stored in game_files, so each made thing only lists them. In
- * a Bigger room the Engineer hands back only the files it changed, so the rest come from the
- * current version.
- */
+/** A run's versions with their files stored in game_files, so each made thing only lists them. */
 async function withStoredFiles(
   sb: Client,
   sessionId: string,
-  settings: RoomSettings,
   made: MadeDraft[],
 ): Promise<Array<MadeDraft & { files?: Record<string, string> }>> {
-  if (!made.some((thing) => thing.kind === "version")) return made;
-  let base: GameFiles = {};
-  if (isBigger(settings) && settings.currentVersion) {
-    const { data: current } = await sb
-      .from("made_things")
-      .select("body, files")
-      .eq("id", settings.currentVersion)
-      .maybeSingle();
-    if (current) base = await loadFiles(sb, sessionId, current);
-  }
   return Promise.all(
-    made.map(async (thing) => {
-      if (thing.kind !== "version") return thing;
-      const files = {
-        ...(isBigger(settings) ? base : {}),
-        ...(thing.files ?? { [ENTRY]: thing.body }),
-      };
-      if (!(ENTRY in files)) return { ...thing, body: "", files: {} };
-      return {
-        kind: thing.kind,
-        name: thing.name,
-        body: "",
-        files: await storeFiles(sb, sessionId, files),
-      };
-    }),
-  ).then((things) =>
-    things.filter((thing) => thing.kind !== "version" || Object.keys(thing.files ?? {}).length),
+    made.map(async (thing) =>
+      thing.kind === "version"
+        ? {
+            kind: thing.kind,
+            name: thing.name,
+            body: "",
+            files: await storeFiles(sb, sessionId, thing.files ?? { [ENTRY]: thing.body }),
+          }
+        : thing,
+    ),
   );
 }
 
@@ -1191,7 +1256,7 @@ export async function explain(
     sb,
     sessionId,
     contribution.agent,
-    `The ${who} pressed “How did you do that?” on what you said: “${contribution.spoken}”\n\nTeach how it's done, at the ${who}'s level: the big picture first, then their question said back so it's on the right track, then briefly how a human would make it, and how you, an AI, made it. Show the one small piece that matters most (a few lines of code, a part of the picture, a sound's numbers, or a tune's notes) in the brief, and say what each part does. Don't change anything: just explain. Don't hand back a FILE, PICTURE, SOUNDS or MUSIC block this time.`,
+    `The ${who} pressed “How did you do that?” on what you said: “${contribution.spoken}”\n\nTeach how it's done, at the ${who}'s level: the big picture first, then their question said back so it's on the right track, then briefly how a human would make it, and how you, an AI, made it. Show the one small piece that matters most (a few lines of code, a part of the picture, a sound's numbers, or a tune's notes) in the brief, and say what each part does. Don't change anything: just explain. Don't hand back a PICTURE, SOUNDS or MUSIC block this time.`,
     "help",
     `${nameOf(contribution.agent)} is working out how to explain it.`,
   );

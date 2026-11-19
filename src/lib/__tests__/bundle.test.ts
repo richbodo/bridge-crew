@@ -98,6 +98,15 @@ describe("bundleGame", () => {
     expect(html).toContain("<!-- js/gone.js isn't in the game's folder -->");
   });
 
+  it("doesn't count a path a script builds as missing", () => {
+    const page =
+      '<script src="js/icons.js"></script><img src="img/gone.png"><style>.a{background:url(img/gone.svg)}</style>';
+    const icons =
+      'const tile = (id) => `<img src="${get(id)}">`;\nconst sky = "<div style=\\"background:url(" + url + ")\\"></div>";';
+    const { missing } = bundleGame({ "index.html": page, "js/icons.js": icons }, shelf);
+    expect(missing.sort()).toEqual(["img/gone.png", "img/gone.svg"]);
+  });
+
   it("says so when there's no index.html", () => {
     expect(bundleGame({ "game.js": "" }, shelf).missing).toEqual(["index.html"]);
   });

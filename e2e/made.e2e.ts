@@ -57,6 +57,10 @@ test.describe("making the game", () => {
     await grantNext(page, "Engineer");
     await expect(made(page).getByText("Version 1")).toBeVisible();
     await expect(made(page).getByText("current version")).toBeVisible();
+    // The Engineer built it with its tools, and its brief says which files it made.
+    await page.getByRole("button", { name: "Show detail" }).first().click();
+    await expect(page.getByText("Added index.html.")).toBeVisible();
+    await page.keyboard.press("Escape");
 
     // v1.html and index.html are in the room's games folder.
     const games = resolve("test-results/games");

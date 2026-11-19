@@ -289,10 +289,13 @@ for the GitHub tokens in `github_accounts`, which no sign-in can read.
 Opus requests in Deliberation rooms opt into server-side refusal fallback
 (`fallbacks: "default"`). Game Studio rooms don't, so a request the model declines stays
 declined. A room template can also set a model, effort and output limit per job
-(`src/lib/templates/`): the Game Studio's Engineer writes whole games, so it streams with a
-32,000-token limit. In tests, the fixture crew makes a tiny game, an SVG mole and two sounds,
-and a task with "crash" in it makes a game that throws; a task with "slowly" in it takes four
-seconds, long enough to redirect or stop.
+(`src/lib/templates/`): the Game Studio's Engineer can write a whole file in one turn, so it
+streams with a 32,000-token limit. The Engineer builds with tools on a copy of the game
+(`src/lib/build.ts`, `src/lib/build.server.ts`), and a run that uses tools logs its turns,
+tokens and seconds to the server's output, such as `engineer build: {"turns":9,…}`. In tests,
+the fixture crew makes a tiny game (the Engineer with canned uses of its tools, then a try),
+an SVG mole and two sounds, and a task with "crash" in it makes a game that throws; a task
+with "slowly" in it takes four seconds, long enough to redirect or stop.
 
 ---
 

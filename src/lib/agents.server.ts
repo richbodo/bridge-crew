@@ -1,5 +1,5 @@
 import { formatFor, splitExtras, splitMade, type AskDraft, type MadeDraft } from "./made";
-import { callModel, callModelWithTool, type CrewTool } from "./model.server";
+import { callModel, callModelWithTools, type CrewTools } from "./model.server";
 import type { Job, Template } from "./templates";
 
 function houseStyle(template: Template): string {
@@ -77,14 +77,17 @@ export function systemPromptFor(
   return [role, houseStyle(template), ...extras.filter(Boolean)].join("\n\n");
 }
 
-/** One run's work: the brief, read with its context, and a tool if the job has one (the Tester's play). */
+/**
+ * One run's work: the brief, read with its context, and tools if the job has them (the Tester's
+ * play, the Engineer's build tools).
+ */
 export async function runAgentBrief(
   template: Template,
   job: Job,
   brief: string,
   context: string,
   profile?: AgentProfile,
-  tool?: CrewTool,
+  tools?: CrewTools,
   room: RoomKind = {},
 ): Promise<AgentResult> {
   const messages = [
@@ -95,8 +98,8 @@ export async function runAgentBrief(
     },
   ];
   const options = { fallback: template.refusalFallback, ...job.model };
-  const raw = tool
-    ? await callModelWithTool(messages, tool, "crew", options)
+  const raw = tools
+    ? await callModelWithTools(messages, tools, "crew", options)
     : await callModel(messages, "crew", options);
   return parseAgentOutput(raw);
 }
