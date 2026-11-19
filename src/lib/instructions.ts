@@ -90,7 +90,12 @@ export function instructionParts(
     notes
       ? { key: "notes", label: "Notes for every crew member", text: notes, editable: true }
       : null,
-    { key: "setting", label: "The setting", text: template.setting, editable: false },
+    {
+      key: "setting",
+      label: "The setting",
+      text: template.setting({ bigger: room.bigger ?? false }),
+      editable: false,
+    },
     {
       key: "rules",
       label: "How every crew member works and replies",

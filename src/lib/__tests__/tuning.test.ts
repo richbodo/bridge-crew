@@ -23,10 +23,24 @@ describe("what a crew member is told", () => {
   it("is its job, then the setting, then the rules, as before tuning existed", () => {
     const prompt = systemPromptFor(studio, storyteller);
     expect(
-      prompt.startsWith(`${storyteller.duty}\n\n${studio.setting}\n\nYou never interrupt.`),
+      prompt.startsWith(
+        `${storyteller.duty}\n\n${studio.setting({ bigger: false })}\n\nYou never interrupt.`,
+      ),
     ).toBe(true);
     expect(prompt).toContain("SPOKEN:");
     expect(prompt).toContain("ASK: <one job:");
+  });
+
+  it("says what the games are for the room's size", () => {
+    const told = (bigger: boolean) =>
+      instructionParts(studio, storyteller, undefined, { bigger }).find(
+        (part) => part.key === "setting",
+      )!.text;
+    expect(told(false)).toContain("one HTML file each");
+    expect(told(true)).toContain("made as a folder of files. They can be 3D");
+    expect(told(true)).not.toContain("one HTML file");
+    // The rules for young people are the same in both.
+    expect(told(true)).toContain("suitable for a student aged 13 or over");
   });
 
   it("marks the job and the notes as tunable, and the rest as fixed", () => {

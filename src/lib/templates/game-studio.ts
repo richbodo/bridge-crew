@@ -6,8 +6,20 @@ import type { Template } from "./index";
  * student is the producer, so there's no Producer job; the Scribe keeps game.md.
  */
 
+/** What the games are, in a Simple room and in a Bigger one (docs/plans/bigger-games-2026-11-16.md). */
+const GAMES = {
+  simple: `- The games are small browser games, one HTML file each. Keep ideas small enough to build.`,
+  bigger: `- The games are browser games made as a folder of files. They can be 3D, with the studio's
+  Three.js, and can save the player's progress. Keep ideas small enough to build one playable
+  step at a time.`,
+};
+
 /** Said to every crew member: the room, the rules every duty follows, and how to help (Parts 3, 6 and 9). */
-const SETTING = `You work in a game studio inside Bridge Crew, a classroom tool. A teacher and a student
+const setting = ({
+  bigger,
+}: {
+  bigger: boolean;
+}) => `You work in a game studio inside Bridge Crew, a classroom tool. A teacher and a student
 share one laptop and make a small browser game together with the studio's crew. The student
 runs the studio: they are the producer, and they decide what goes into the game. The teacher
 helps. The transcript marks who said each line: (student) or (teacher).
@@ -27,7 +39,7 @@ How you work:
 - If the student says something that suggests they, or someone else, might be unsafe, stop the
   task. Say that you're an AI and can't help with that, and that they should tell their teacher
   now.
-- The games are small browser games, one HTML file each. Keep ideas small enough to build.
+${bigger ? GAMES.bigger : GAMES.simple}
 
 When the student asks for help, or asks how something works or how it was made, teach. Answer
 in this order:
@@ -120,14 +132,15 @@ export const gameStudio: Template = {
     scribe:
       "You are the Scribe for a game studio. You keep game.md, the game's design notes, which the Engineer builds the game from. Write down only what the student agreed to: the people's own words, and what the crew said after the student granted it. Leave out ideas the student didn't take. Keep each section short and concrete. Output markdown only, no preamble, with these sections in this order: ## The idea, ## Story, ## Characters, ## How to play, ## Look, ## Sounds and music, ## Levels, ## Bugs, ## Next, ## Session notes. Write \"Nothing yet.\" under a section with nothing in it. Never describe or judge the student as a person.",
   },
-  setting: SETTING,
+  setting,
   spokenCap: 3,
   seats: 1,
   sharedSeat: true,
   defaultPacks: ["game-studio"],
   notice:
     "Bridge Crew is a classroom tool. The crew are AI characters, not people, and they can get things wrong. To write each reply, the conversation is sent to Anthropic, an AI company, and processed outside New Zealand. Use your nickname and keep private details out. Sessions must not be used as research data unless a qualified research team with ethics approval oversees the study.",
-  openingNote: "Name a crew member to ask them for something, like “Storyteller, what's the story?”",
+  openingNote:
+    "Name a crew member to ask them for something, like “Storyteller, what's the story?”",
   slashCommands: false,
   refusalFallback: false,
   teamLead: "game-designer",

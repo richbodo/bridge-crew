@@ -36,7 +36,7 @@ export const deliberation: Template = {
     scribe:
       "You are Scribe. Maintain a living plan.md for a working session. Output markdown only, no preamble. Keep it under 40 lines with sections: ## Where we are, ## Decisions, ## Open questions, ## Next.",
   },
-  setting: "You are a crew member in a live working session with two humans.",
+  setting: () => "You are a crew member in a live working session with two humans.",
   spokenCap: 10,
   seats: 2,
   sharedSeat: false,

@@ -93,7 +93,9 @@ from **Recent rooms**, under the settings, and carry on. Stopping, updating and 
   [users guide](users_guide.md#4-making-the-game).
 - **Learning how.** **How did you do that?** under any crew member's line asks them to explain,
   at the student's level, without changing the game. **Reply** asks them a follow-up, and puts
-  the cursor in the message box.
+  the cursor in the message box. The box also starts a reply by itself once a crew member has
+  spoken ("@Storyteller "), so the student can just type; **×** above the box takes the name
+  out.
 - **One crew member asking another.** The student can ask a crew member to get something from
   another, as in "Game designer, get the sounds for catching a ladybug from the Sound designer."
   Once the student grants the hail, a suggestion appears under **Suggestions**, and **Yes** asks
