@@ -86,11 +86,14 @@ from where it stopped.
    After the Mac has been restarted, this takes a minute or two.
 2. The Game Studio opens in your browser. Click **Log me on as demo user 1**: that's you, the
    teacher. The student doesn't get an account.
-3. **Game Studio** is already picked, and the form is filled in, so you can press **Open a
-   room** straight away. You're **Teacher**, the student is **Student**, the session is named
-   for the date and time, such as "Session 2026-11-19 14:32", and the room makes **Bigger
-   games**. Change any of them first if you like: the student's **nickname** is never their
-   real name. Under **Game**, pick **New game**, or **Open a game** to
+3. The Game Studio's page opens with **Quick start** at the top. Press it to open a room
+   straight away: you're **Teacher**, the student is **Student**, it's a **New game**, and the
+   room makes **Bigger games**, as the line beside it says. The session is named for the date
+   and time, such as "Session 2026-11-19 14:32".
+
+   To change any of that first, use **Settings**, below **Quick start**, then press either
+   button. The student's **nickname** is never their real name. Under **Game**, pick **New
+   game**, or **Open a game** to
    start from one made somewhere else: **Choose a folder** for a game in several files,
    **Choose an HTML file** for a one-file game, or paste its **GitHub link** and press **Look**.
    It becomes the room's first version, on screen, as **Bring in a game** (§4) does, and the
@@ -102,11 +105,15 @@ from where it stopped.
    A Simple room can become Bigger later (see **Bring in a game**), but not back. A game opened
    here that needs a Bigger room keeps **Bigger** picked, and the lobby says why. Then press
    **Open a room**. A Game Studio room has one seat, so there's no invite.
+
+   Below the settings are your **Recent rooms**, then the crew and how a turn works.
+   **← Kind of room** goes to the choice between a Game Studio room and a Deliberation room
+   (Part 2), which a lesson doesn't need.
 4. Read the **classroom notice** together, then press **We've read it**.
 
 Keep the Terminal window open during the session. The Game Studio only answers on this laptop,
-not to other computers on the same Wi-Fi. Next time, open the same room from **Recent rooms**
-in the lobby and carry on.
+not to other computers on the same Wi-Fi. Next time, open the same room from **Recent rooms**,
+under the settings, and carry on.
 
 Developers can run `just game-studio` instead ([dev_setup.md](dev_setup.md#the-game-studio)). Unlike the Desktop
 shortcut, it also answers to other computers on the network.
@@ -128,7 +135,8 @@ shortcut, it also answers to other computers on the network.
   moves, and nothing moves if the computer is set to reduce motion: the light holds still.
 - **A chime.** A soft two-note chime sounds when a crew member hails, so you hear it while
   you're watching the game. The hails waiting when a room opens are quiet. The browser plays it
-  only once someone has clicked or typed in the room.
+  only once someone has clicked or typed in the room. **Chime**, in the header, mutes it, and
+  this browser remembers; turning it back on plays it once, so you hear how loud it is.
 - **What's new.** When the Scribe adds to `game.md`, on the right, "· updated" shows beside
   its name and the new lines light up in amber for a few seconds. Something new under **Made in
   this room** lights up the same way.
@@ -318,21 +326,21 @@ in your inbox — check spam the first time). You land in the lobby.
 On a local copy started with `just demo`, the lobby and sign-in page also offer **Log me on
 as demo user 1** and **Log me on as demo user 2**: one click, no password or email. Each
 browser tab keeps its own sign-in, so two tabs can be the two humans in one room. See
-[dev_setup.md](dev_setup.md#demo-mode). That lobby opens demo rooms only, with a **Context**
-to choose in place of the kind of room: see §14.
+[dev_setup.md](dev_setup.md#demo-mode). There, a Deliberation room is always a demo room, with
+a **Context** to choose: see §14.
 
 ![The lobby](images/01-lobby.png)
 
-The lobby shows the crew roster, a form to open a room, a join-by-code box, and your recent
-rooms.
+The lobby asks one thing first: **What kind of room?**, **Game Studio** or **Deliberation**.
+Under the choice are your **Recent rooms** and a **Join with a code** box. Each kind of room
+then has its own page: its settings, your recent rooms of that kind, and its crew and how a turn
+works. **← Kind of room**, or the browser's Back, returns to the choice.
 
 ### 7. Open a room
 
-1. Pick the **kind of room**:
-   - **Deliberation**: two people work through a plan or a debate with five crew members. The
-     rest of this part describes it.
-   - **Game Studio**: one teacher and one student make a browser game. See
-     [Part 1](#part-1-the-game-studio).
+1. Under **What kind of room?**, choose **Deliberation**: two people work through a plan or a
+   debate with five crew members. The rest of this part describes it. (**Game Studio**, one
+   teacher and one student making a browser game, is [Part 1](#part-1-the-game-studio).)
 2. Type **your name in the room** (this is what the other human sees next to your colour dot).
 3. Pick a colour.
 4. Give the session a **title**. It starts as the date and time, such as "Session 2026-11-19
@@ -360,7 +368,8 @@ Click **Invite** in the header. You can:
 - **Email an invite** — enter their address plus an optional note.
 
 The other person signs in, picks their own name and colour, and joins the same room.
-They can also type the six-character code into the lobby's **Join with a code** box.
+They can also type the six-character code into the lobby's **Join with a code** box and press
+**Join**, which opens the same page as the link.
 A Deliberation room has two seats: a third person who tries to join is told the room is full.
 
 ![Inviting the second human](images/03-invite.png)
@@ -456,11 +465,11 @@ the card. Every run, an agent receives: its duty, the conversation so far, the c
 scene: two humans debating hosted vs. self-hosted speech-to-text, a `/research` summon, a
 Scout hail waiting for you, and a starter `plan.md`.
 
-**In `just demo`'s lobby**, **Open a demo room** is the only button, and a **Context** list
-takes the place of **Kind of room**. Pick one before the room opens; it doesn't change after.
+**In `just demo`'s lobby**, a Deliberation room is always a demo room: its page has a
+**Context** list and one button, **Open a demo room**. Pick a context before the room opens; it
+doesn't change after. A Game Studio room there opens as anywhere else, with **Quick start** or
+**Open a room** ([Part 1](#part-1-the-game-studio)), and has no scripted scene.
 
-- **Game Studio**, picked to start with, opens a Game Studio room ([Part 1](#part-1-the-game-studio))
-  with no scripted scene. Under **Game**, pick **New game** or **Open a game**, as in §2.
 - **Kererū Ferry Co-op**, **NZ politics**, **Social epidemiology** and **Bridge Crew
   protocol** each open a Deliberation room about that context pack (§13). Every station reads
   the pack, and the room opens with its own scripted scene: a few lines from Rae and Milo, a
@@ -492,7 +501,7 @@ Everything you do *after* opening the demo room is real. To start clean, leave a
 ### 15. Leaving and coming back
 
 **Leave** returns you to the lobby; the room keeps its state. Your recent rooms are listed in
-the lobby sidebar — reopen one and the whole conversation, stations, and plan are as you left
+the lobby — reopen one and the whole conversation, stations, and plan are as you left
 them.
 
 **Delete room**, in the header, removes the room and everything in it for good. Only the person

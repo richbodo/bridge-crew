@@ -5,9 +5,9 @@ import { expect, test, type Page } from "@playwright/test";
 
 /**
  * Demo mode (`just demo`): one-click sign-in as either seeded demo user, one sign-in per
- * tab, and a lobby with one button and a Context to choose. Runs against its own demo-mode dev
- * server (see playwright.config.ts). The demo users open no rooms, so their recent rooms stay as
- * you left them: the tests that open rooms sign in as the e2e user.
+ * tab, and a lobby whose Deliberation rooms are demo rooms on a Context. Runs against its own
+ * demo-mode dev server (see playwright.config.ts). The demo users open no rooms, so their recent
+ * rooms stay as you left them: the tests that open rooms sign in as the e2e user.
  */
 
 async function logOnAs(page: Page, slot: 1 | 2) {
@@ -24,14 +24,16 @@ test("two tabs are two different demo users", async ({ context }) => {
   await logOnAs(one, 1);
   await expect(one.getByText("Demo user 1", { exact: true })).toBeVisible();
   // In a Game Studio room the one who opens it is the teacher; elsewhere, the demo user.
+  await one.getByRole("link", { name: /^Game Studio/ }).click();
   await expect(one.getByLabel("Your name in the room")).toHaveValue("Teacher");
-  await one.getByRole("group", { name: "Context" }).getByLabel("NZ politics").check();
+  await one.getByRole("link", { name: "← Kind of room" }).click();
+  await one.getByRole("link", { name: /^Deliberation/ }).click();
   await expect(one.getByLabel("Your name in the room")).toHaveValue("Demo 1");
 
   await two.goto("/");
   await logOnAs(two, 2);
   await expect(two.getByText("Demo user 2", { exact: true })).toBeVisible();
-  await two.getByRole("group", { name: "Context" }).getByLabel("NZ politics").check();
+  await two.getByRole("link", { name: /^Deliberation/ }).click();
   await expect(two.getByLabel("Your name in the room")).toHaveValue("Demo 2");
 
   // The second sign-in didn't take over the first tab, and a reload keeps the tab's user.
@@ -64,25 +66,30 @@ async function signInAsTester(page: Page) {
     .getByRole("button", { name: /sign in|come aboard/i })
     .first()
     .click();
-  await expect(page.getByRole("button", { name: "Open a demo room" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What kind of room?" })).toBeVisible();
 }
 
-test("the demo lobby has one button, and a Context with Game Studio picked", async ({ page }) => {
+test("the demo lobby's Deliberation rooms are demo rooms, on a Context", async ({ page }) => {
   await page.goto("/");
   await logOnAs(page, 1);
+  await expect(page.getByRole("heading", { name: "What kind of room?" })).toBeVisible();
+
+  await page.getByRole("link", { name: /^Deliberation/ }).click();
   await expect(page.getByRole("button", { name: "Open a demo room" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Open a room" })).toHaveCount(0);
-  await expect(page.getByRole("group", { name: "Kind of room" })).toHaveCount(0);
-
   const context = page.getByRole("group", { name: "Context" });
-  await expect(context.getByRole("radio")).toHaveCount(5);
-  await expect(context.getByLabel("Game Studio")).toBeChecked();
-  await expect(page.getByText("The crew · Game Studio")).toBeVisible();
-  await expect(page.getByLabel("New game")).toBeChecked();
-
-  await context.getByLabel("Kererū Ferry Co-op").check();
+  await expect(context.getByRole("radio")).toHaveCount(4);
+  await expect(context.getByLabel("Kererū Ferry Co-op")).toBeChecked();
   await expect(page.getByText("The crew · Deliberation")).toBeVisible();
-  await expect(page.getByRole("group", { name: "Game" })).toHaveCount(0);
+
+  // A Game Studio room is a lesson, not a demo: Quick start, or Open a room.
+  await page.getByRole("link", { name: "← Kind of room" }).click();
+  await page.getByRole("link", { name: /^Game Studio/ }).click();
+  await expect(page.getByRole("button", { name: "Quick start" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open a room" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open a demo room" })).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "Context" })).toHaveCount(0);
+  await expect(page.getByLabel("New game")).toBeChecked();
 });
 
 test("each Deliberation context opens a demo room whose crew reads its pack", async ({ page }) => {
@@ -102,7 +109,7 @@ test("each Deliberation context opens a demo room whose crew reads its pack", as
       const hail = /\*\*Hail:\*\* (.+)$/m.exec(script)![1]!;
       const name = crew[0]!.toUpperCase() + crew.slice(1);
 
-      await page.goto("/");
+      await page.goto("/?kind=deliberation");
       await page.getByRole("group", { name: "Context" }).getByLabel(label).check();
       await expect(page.getByLabel("Session title")).toHaveValue(title);
       await page.getByRole("button", { name: "Open a demo room" }).click();
@@ -119,10 +126,12 @@ test("each Deliberation context opens a demo room whose crew reads its pack", as
 
 test("a Game Studio demo room can open with a game from a folder", async ({ page }) => {
   await signInAsTester(page);
-  await page.goto("/");
+  await page.goto("/?kind=game-studio");
   await page.getByLabel("Student's nickname").fill("Sam");
   await page.getByLabel("Open a game").check();
-  await expect(page.getByRole("button", { name: "Open a demo room" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Quick start" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Open a room" })).toBeDisabled();
+  await expect(page.getByText("Choose the game below first.")).toBeVisible();
   await page.getByLabel("Game folder").setInputFiles(resolve("e2e/fixtures/games/cube"));
 
   await expect(page.getByText("cube: 3 files. It'll be the room's first version.")).toBeVisible();
@@ -135,7 +144,8 @@ test("a Game Studio demo room can open with a game from a folder", async ({ page
   await expect(page.getByLabel("Simple games")).toBeDisabled();
   await expect(page.getByLabel("Session title")).toHaveValue("cube");
 
-  await page.getByRole("button", { name: "Open a demo room" }).click();
+  await expect(page.getByText("Teacher and Sam · cube · Bigger games")).toBeVisible();
+  await page.getByRole("button", { name: "Quick start" }).click();
   await page.waitForURL(/\/session\/[0-9a-f-]+/);
   await page.getByRole("button", { name: "We've read it" }).click();
   await expect(page.getByRole("heading", { name: "cube" })).toBeVisible();

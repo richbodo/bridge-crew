@@ -82,8 +82,8 @@ mac% just demo      # opens a tab at http://localhost:8080; open a second, one d
 | --- | --- |
 | `just setup` | First-time install: dependencies and Playwright's Chromium |
 | `just doctor` | Checks tools, Docker, the local stack, the model key and port 8080 |
-| `just demo` / `just demo-fixture` | Demo mode: opens a tab with one-click **Log me on as demo user 1 / 2**, one sign-in per tab, and demo rooms by **Context**. Crew calls Claude / answers with canned replies |
-| `just game-studio` / `just game-studio-fixture` | Demo mode with the Game Studio picked in the lobby, in a tab it opens. Claude / canned replies |
+| `just demo` / `just demo-fixture` | Demo mode: opens a tab with one-click **Log me on as demo user 1 / 2**, one sign-in per tab, and Deliberation demo rooms by **Context**. Crew calls Claude / answers with canned replies |
+| `just game-studio` / `just game-studio-fixture` | Demo mode with the lobby on the Game Studio's page, in a tab it opens. Claude / canned replies |
 | `just games` | Opens the folder Game Studio games are saved in |
 | `just run` / `just run-fixture` | The app with ordinary sign-in, at http://localhost:8080. Claude / canned replies. Like the demo recipes, they first stop an earlier copy of the app still running on port 8080, and say so |
 | `just open` | Opens the app in a new browser tab |

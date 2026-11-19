@@ -139,7 +139,7 @@ demo: _free-port (infra "--quiet") (_demo-banner "Claude") (_serve-demo "dev")
 [group('run')]
 demo-fixture: _free-port (infra "--quiet") (_demo-banner "canned fixture replies") (_serve-demo "dev:fixture")
 
-# The Game Studio: demo mode with Game Studio picked in the lobby, in a tab it opens. Crew calls Claude.
+# The Game Studio: demo mode with the lobby on the Game Studio's page, in a tab it opens. Crew calls Claude.
 [group('run')]
 game-studio: _free-port (infra "--quiet") (_studio-banner "Claude") (_serve-demo "dev" "game-studio")
 
@@ -203,7 +203,7 @@ _free-port:
     just stop >/dev/null
 
 # The dev server in demo mode, opening a tab once it answers, so the demo buttons are the first
-# thing you see. template picks a room template in the lobby.
+# thing you see. template opens the lobby on that kind of room's page.
 _serve-demo script template="":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -230,8 +230,8 @@ _demo-banner crew:
       1. A tab opens at {{url}} once the app is up. Click "Log me on as demo user 1".
       2. Open a second tab (just open, or ⌘T and the same address) and click "demo user 2".
          Each tab keeps its own sign-in.
-      3. Demo user 1 picks a Context (Game Studio, or a context pack) and opens a demo room;
-         demo user 2 joins with its code or invite link.
+      3. Demo user 1 picks Deliberation, then a Context (a context pack), and opens a demo room;
+         demo user 2 joins with its code or invite link. Game Studio rooms need one tab.
 
     Use new tabs rather than Duplicate Tab, which copies the tab's sign-in.
     Ctrl-C stops the app; the local stack keeps running (just infra-stop).
@@ -250,8 +250,8 @@ _studio-banner crew:
     Game Studio on {{url}}  (crew: {{crew}})
 
       1. A tab opens at {{url}} once the app is up. Click "Log me on as demo user 1": you're the teacher.
-      2. Game Studio is already picked. Give the student a nickname and open a room, with a
-         new game or one you have (Open a game).
+      2. Press Quick start: Teacher and Student, a new game, Bigger games. Or change the
+         settings below it first (the student's nickname, Open a game, Simple games).
       3. Read the classroom notice, then let the student start: "Storyteller, what's the story?"
 
     One teacher and one student share this one sign-in; the switch above the message box

@@ -58,14 +58,16 @@ mac% just demo-fixture    # crew answers with canned replies: no key, no credits
   Tab*: a duplicated tab starts as a copy of the original's sign-in.
 - The header shows which demo user the tab is, and the room form starts with
   that user's name and colour (Demo 1 in blue, Demo 2 in pink).
-- The lobby has one button, **Open a demo room**, and a **Context** list in
-  place of **Kind of room**: **Game Studio** (the default), then one entry per
-  context pack with a `demo.md`. A pack's room is a Deliberation room where
-  every station reads that pack, opening with the scene in its `demo.md`
-  ([users guide §14](users_guide.md#14-demo-room)). A Game Studio room can
-  start from a game, with **Open a game**.
+- The lobby asks **What kind of room?** first, as it does outside demo mode.
+  A Deliberation room is always a demo room: its page has one button, **Open
+  a demo room**, and a **Context** list with one entry per context pack with a
+  `demo.md`. A pack's room is a Deliberation room where every station reads
+  that pack, opening with the scene in its `demo.md` ([users guide
+  §14](users_guide.md#14-demo-room)). A Game Studio room opens as a lesson
+  does, with **Quick start** or **Open a room**, and can start from a game,
+  with **Open a game**.
 
-A typical run: demo user 1 opens a demo room and copies the invite link from
+A typical run: demo user 1 opens a Deliberation demo room and copies the invite link from
 **Invite**; the second tab opens the link, clicks **Log me on as demo user 2**,
 and comes aboard.
 
@@ -73,10 +75,13 @@ Demo mode is the `VITE_BRIDGE_CREW_DEMO=1` setting (`src/lib/demo.ts`); the
 Context list is `src/lib/demo-rooms.ts`. It is meant for the local stack only;
 the demo accounts exist only where `scripts/test-infra.sh` created them.
 `just game-studio`, and the teacher's Desktop shortcut, are demo mode with the
-kind of room set (`VITE_BRIDGE_CREW_TEMPLATE=game-studio`): their lobby keeps
-**Open a room**, since a lesson isn't a demo, and has no Context list. Outside
-demo mode (`just run`), **Open a demo room** is offered for a Deliberation room
-and seeds the speech-to-text scene.
+kind of room set (`VITE_BRIDGE_CREW_TEMPLATE=game-studio`): their lobby opens on
+the Game Studio's page, and **← Kind of room** goes to the choice
+(`/?kind=all`). Its Deliberation page is the one outside demo mode, with no
+Context list. Outside demo mode (`just run`), a Deliberation room's page offers
+**Open a room** and **Open a demo room**, which seeds the speech-to-text scene.
+Each page of the lobby has its own address: `/?kind=game-studio`,
+`/?kind=deliberation`, and the choice at `/`.
 
 ---
 
@@ -121,10 +126,11 @@ mac% just game-studio-fixture   # canned crew replies: no key, no credits
 ```
 
 Both open a tab at <http://localhost:8080> with the lobby a teacher sees: **Log me on as demo
-user 1**, **Game Studio** already picked, and **Open a room**. One tab is enough, because a Game
-Studio room has one seat, which the teacher and student share. Games are saved in `~/Bridge Crew
-Games`: `just games` opens it, and `BRIDGE_CREW_GAMES_DIR` moves it. `just demo` reaches the same
-rooms from its **Context** list, where **Game Studio** is the default.
+user 1**, then the Game Studio's page, with **Quick start** at the top and the settings below
+it. One tab is enough, because a Game Studio room has one seat, which the teacher and student
+share. Games are saved in `~/Bridge Crew Games`: `just games` opens it, and
+`BRIDGE_CREW_GAMES_DIR` moves it. `just run` and `just demo` reach the same page by choosing
+**Game Studio** under **What kind of room?**.
 
 To run it as a teacher's Mac does, on 127.0.0.1 only, run `scripts/game-studio-mac.sh` (the
 Desktop shortcut's script). To try the installer itself, run `./scripts/install-mac.sh` from a
@@ -137,9 +143,10 @@ A run through the main paths takes about 15 minutes. Under `just game-studio-fix
 crew's work is canned ([Model providers](#model-providers) says what it makes), so this tests the
 room rather than the crew. Run it again under `just game-studio` to see real games.
 
-1. **Open a room.** Click **Log me on as demo user 1**. The form is filled in (Teacher, Student,
-   a title from the date and time, Bigger games); pick **New game** and **Simple**, press **Open
-   a room**, then press **We've read it**.
+1. **Open a room.** Click **Log me on as demo user 1**. **Quick start** would open a room for
+   Teacher and Student, with a new game, Bigger games, and a title from the date and time. Pick
+   **Simple** under **Games** instead, press **Open a room**, then press **We've read it**. Try
+   **Chime**, in the header: it mutes the chime when a crew member hails.
 2. **Ask the crew.** Type "Engineer, make a game where a mole pops up and you click it." The
    Engineer works, then hails. **Grant the floor** puts version 1 on screen, playable, and in the
    games folder. Then ask the Artist for a picture, the Sound designer for sounds, and the Sound
@@ -190,9 +197,10 @@ These links work with the fake repositories:
 | Bigger rooms, game folders, saves, Bring in a game | `e2e/bigger.e2e.ts` |
 | GitHub links, games written as modules, GitHub's newest, Connect GitHub, and the key never reaching the page | `e2e/github.e2e.ts` |
 | A demo lobby's Game Studio room that opens with a game | `e2e/demo.e2e.ts` |
+| The lobby's choice and pages, Quick start, the chime and its switch, the working light, what's new | `e2e/lobby.e2e.ts`, `e2e/quick-start.e2e.ts` |
 
 ```
-mac% just e2e e2e/game-studio.e2e.ts e2e/made.e2e.ts e2e/bigger.e2e.ts e2e/github.e2e.ts
+mac% just e2e e2e/game-studio.e2e.ts e2e/made.e2e.ts e2e/bigger.e2e.ts e2e/github.e2e.ts e2e/quick-start.e2e.ts
 ```
 
 `made`, `bigger` and `github` rely on the canned crew and the fake GitHub, so `just e2e-live`
@@ -210,7 +218,7 @@ approves a code on github.com, so try step 7 by hand after changing Connect GitH
 | `just setup` | `bun install` and Playwright's Chromium (first time) |
 | `just doctor` | Checks tools, Docker, the local stack, the key, port 8080 |
 | `just demo` / `just demo-fixture` | Demo mode (above), with Claude / with canned replies, in a tab it opens |
-| `just game-studio` / `just game-studio-fixture` | Demo mode with the Game Studio picked in the lobby (users guide Part 1), in a tab it opens |
+| `just game-studio` / `just game-studio-fixture` | Demo mode with the lobby on the Game Studio's page (users guide Part 1), in a tab it opens |
 | `just games` | Opens the folder Game Studio games are saved in |
 | `just run` / `just run-fixture` | The app with ordinary sign-in, with Claude / with canned replies |
 |  | All the run and demo recipes first stop an earlier copy of the app on port 8080, and say so |

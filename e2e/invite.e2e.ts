@@ -48,19 +48,21 @@ test.describe("inviting the second human", () => {
     const title = `E2E join code ${Date.now()}`;
     const { code, id } = await openRoom(page, { title });
     await page.goto("/");
-    await page.getByLabel("Your name in the room").fill("Rae");
     await page.getByLabel("Join with a code").fill(code);
     await page.getByRole("button", { name: "Join", exact: true }).click();
+    // The invite page names the room, and asks your name there.
+    await page.waitForURL(new RegExp(`/join/${code}`));
+    await expect(page.getByText(title)).toBeVisible();
+    await page.getByLabel("Your name in the room").fill("Rae");
+    await page.getByRole("button", { name: "Come aboard" }).click();
     await page.waitForURL(new RegExp(`/session/${id}`));
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
   });
 
   test("a bad code is rejected, not silently swallowed", async ({ page }) => {
     await page.goto("/");
-    await page.getByLabel("Your name in the room").fill("Rae");
     await page.getByLabel("Join with a code").fill("ZZZZZZ");
     await page.getByRole("button", { name: "Join", exact: true }).click();
-    await expect(page).toHaveURL(/\/$/);
-    await expect(page.locator("[data-sonner-toast]")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "That invite doesn't work" })).toBeVisible();
   });
 });
