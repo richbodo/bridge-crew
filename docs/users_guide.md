@@ -104,7 +104,7 @@ Keep the Terminal window open during the session. The Game Studio only answers o
 not to other computers on the same Wi-Fi. Next time, open the same room from **Recent rooms**
 in the lobby and carry on.
 
-Developers can run `just game-studio` instead ([dev_setup.md](dev_setup.md)). Unlike the Desktop
+Developers can run `just game-studio` instead ([dev_setup.md](dev_setup.md#the-game-studio)). Unlike the Desktop
 shortcut, it also answers to other computers on the network.
 
 ### 3. In the Game Studio

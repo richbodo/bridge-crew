@@ -29,6 +29,9 @@ once it answers. Click **Log me on as demo user 1** there, open a second tab
 If an earlier copy of the app is still running on port 8080, in any mode, it
 stops that first and says so, so the browser never shows the old one.
 
+For the Game Studio, run `just game-studio` instead: see [The Game
+Studio](#the-game-studio) for running it and testing it.
+
 `just run` is the same app without the demo buttons: sign in as
 `crew-a@example.com` / `bridge-crew-local`, and as `crew-b@example.com` in
 another browser profile (or a private window) to be the second human.
@@ -101,6 +104,99 @@ as it's merged.
   port is taken: by the Game Studio, it just opens the browser; by another copy of the app (say
   a developer's `just run`), it stops that copy and starts the Game Studio; by another program,
   it says so and stops.
+
+---
+
+## The Game Studio
+
+The teacher's side, from installing to stopping, is [users guide Part
+1](users_guide.md#part-1-the-game-studio) and the [teacher's guide](teachers_guide.md). This
+section is for running and testing the Game Studio from a checkout.
+
+### Running it
+
+```
+mac% just game-studio           # the crew calls Claude (ANTHROPIC_API_KEY in .env.local)
+mac% just game-studio-fixture   # canned crew replies: no key, no credits
+```
+
+Both open a tab at <http://localhost:8080> with the lobby a teacher sees: **Log me on as demo
+user 1**, **Game Studio** already picked, and **Open a room**. One tab is enough, because a Game
+Studio room has one seat, which the teacher and student share. Games are saved in `~/Bridge Crew
+Games`: `just games` opens it, and `BRIDGE_CREW_GAMES_DIR` moves it. `just demo` reaches the same
+rooms from its **Context** list, where **Game Studio** is the default.
+
+To run it as a teacher's Mac does, on 127.0.0.1 only, run `scripts/game-studio-mac.sh` (the
+Desktop shortcut's script). To try the installer itself, run `./scripts/install-mac.sh` from a
+checkout: it sets that checkout up and leaves git alone. `BRIDGE_CREW_DESKTOP` keeps its
+shortcuts off your Desktop, and `BRIDGE_CREW_START=no` skips its offer to start a session.
+
+### Trying it by hand
+
+A run through the main paths takes about 15 minutes. Under `just game-studio-fixture`, the
+crew's work is canned ([Model providers](#model-providers) says what it makes), so this tests the
+room rather than the crew. Run it again under `just game-studio` to see real games.
+
+1. **Open a room.** Click **Log me on as demo user 1**, then type a name, a nickname and a title.
+   Pick **New game** and **Simple**, press **Open a room**, then press **We've read it**.
+2. **Ask the crew.** Type "Engineer, make a game where a mole pops up and you click it." The
+   Engineer works, then hails. **Grant the floor** puts version 1 on screen, playable, and in the
+   games folder. Then ask the Artist for a picture, the Sound designer for sounds, and the Sound
+   designer again for music. Try **Use this**, **Play** and **On screen** on what they make.
+3. **The Tester.** Type "Tester, check the current version." Its card shows each step as it plays.
+   Its hail brings the test's pictures.
+4. **A crash.** Under the fixture crew, ask the Engineer for something with "crash" in it, and
+   grant its hail. The version throws on screen, and the room offers "Ask the Engineer to fix
+   it?".
+5. **Bigger games.** On the big screen, press **Bring in a game**, then **Choose a folder**, and
+   pick `e2e/fixtures/games/cube`, a Three.js game in a folder. The Simple room asks **Make it
+   Bigger and bring it in**, and the room says what it switched. `e2e/fixtures/games/one-file.html`
+   comes into either kind of room as it is.
+6. **A game from GitHub.** Press **Leave**. In the lobby, pick **Open a game**, paste a public
+   repository's link (or its `github.io` play link), press **Look**, and open the room. The header
+   says "from github.com/…", and the **GitHub** button shows the commit and "It's the same as
+   GitHub's newest."
+7. **Connect GitHub.** In the **GitHub** menu, press **Connect GitHub**, then **Get a code**, then
+   **Copy the code and open GitHub**. Approve the code at github.com/login/device, signed in to a
+   GitHub account you're happy to test with. The menu then says "Connected to GitHub as …", and
+   **Bring in a game** opens a private repository's link. Press **Disconnect**, then revoke Bridge
+   Crew at <https://github.com/settings/applications>.
+8. **Stop and come back.** Press Control-C in the terminal, start the Game Studio again, and open
+   the room from **Recent rooms**. Everything is still there.
+
+Steps 6 and 7 can run without GitHub, using the tests' fake repositories. Then GitHub links open
+from `e2e/fixtures/github`, and **Connect GitHub** is faked too: the code is `BRDG-CREW`, and it
+connects as `studio-tester` after a second or two, with no page to visit.
+
+```
+mac% BRIDGE_CREW_GITHUB_FIXTURES=$PWD/e2e/fixtures/github just game-studio-fixture
+```
+
+These links work with the fake repositories:
+
+- `studio-fixtures/space-cube` is a game written as modules.
+- `github.com/studio-fixtures/space-cube/tree/1111111111111111111111111111111111111111` is its
+  older commit, so the **GitHub** menu offers **Bring in GitHub's newest**.
+- `studio-fixtures/needs-build` says it needs building first.
+
+### Its automated tests
+
+| Covers | Where |
+| --- | --- |
+| Bundling, the shelf, bringing in a game, modules, GitHub links and archives, the Tester's playtest, music | `src/lib/__tests__/` (`just test`; no stack needed) |
+| The room, the crew, hails, suggestions, Back, Delete room | `e2e/game-studio.e2e.ts` |
+| Versions, pictures, sounds, music, the Tester, crashes, Manage, Download | `e2e/made.e2e.ts` |
+| Bigger rooms, game folders, saves, Bring in a game | `e2e/bigger.e2e.ts` |
+| GitHub links, games written as modules, GitHub's newest, Connect GitHub, and the key never reaching the page | `e2e/github.e2e.ts` |
+| A demo lobby's Game Studio room that opens with a game | `e2e/demo.e2e.ts` |
+
+```
+mac% just e2e e2e/game-studio.e2e.ts e2e/made.e2e.ts e2e/bigger.e2e.ts e2e/github.e2e.ts
+```
+
+`made`, `bigger` and `github` rely on the canned crew and the fake GitHub, so `just e2e-live`
+skips them. Under it, `game-studio.e2e.ts` runs against Claude, which costs credits. No test
+approves a code on github.com, so try step 7 by hand after changing Connect GitHub.
 
 ---
 
@@ -187,7 +283,8 @@ for the GitHub tokens in `github_accounts`, which no sign-in can read.
 | `BRIDGE_CREW_MODEL`, `BRIDGE_CREW_SCRIBE_MODEL` | Override the Claude model for the crew / Scribe. |
 | `BRIDGE_CREW_INFERENCE_GEO=us` | Keeps inference in the US (`inference_geo`, at a small extra cost). |
 | `BRIDGE_CREW_GAMES_DIR` | Where Game Studio games are saved. Default `~/Bridge Crew Games`; `just e2e` uses `test-results/games`. |
-| `BRIDGE_CREW_GITHUB_FIXTURES` | A folder of fake GitHub repositories to open games from instead of GitHub (`src/lib/github.server.ts`). `just e2e` uses `e2e/fixtures/github`. Unset, games open from GitHub itself: public repositories, 60 requests an hour per network without signing in. |
+| `BRIDGE_CREW_GITHUB_FIXTURES` | A folder of fake GitHub repositories to open games from instead of GitHub (`src/lib/github.server.ts`). It fakes **Connect GitHub** too (`src/lib/github-connect.server.ts`). `just e2e` uses `e2e/fixtures/github`. Unset, games open from GitHub itself: public repositories, 60 requests an hour per network without signing in. |
+| `BRIDGE_CREW_GITHUB_CLIENT_ID` | The GitHub OAuth app that **Connect GitHub** asks for a code. Default: Bridge Crew's own, in `src/lib/github.ts`. |
 
 Opus requests in Deliberation rooms opt into server-side refusal fallback
 (`fallbacks: "default"`). Game Studio rooms don't, so a request the model declines stays
@@ -210,8 +307,9 @@ mac% just check       # typecheck + unit tests
 
 Playwright starts its **own** dev servers against local Supabase: `:8181` for
 most specs, signed in as the seeded `crew-a` user, and `:8182` in demo mode for
-`e2e/demo.e2e.ts`. The demo spec signs in only; it opens no rooms, so the demo
-users' recent rooms stay as you left them. Sign-in fails loudly if the app
+`e2e/demo.e2e.ts`. The demo spec opens its rooms as `crew-a`, never as a demo
+user, so the demo users' recent rooms stay as you left them. The Game Studio's
+specs are listed under [The Game Studio](#its-automated-tests). Sign-in fails loudly if the app
 under test talks to any other Supabase (say, one a `.env.local` override points
 at). The context-pack canary test needs a model that actually reads, so it only
 runs under `e2e-live`. Extra arguments pass through to Playwright, e.g.

@@ -100,7 +100,7 @@ mac% just demo      # opens a tab at http://localhost:8080; open a second, one d
 | `just lint` | ESLint + Prettier (older code still has a formatting backlog) |
 | `just build` / `just start` | Production build / serve it on http://localhost:3000 |
 
-Setup, demo mode, model options, and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md). The teacher's installer and Desktop shortcut are `scripts/install-mac.sh` and `scripts/game-studio-mac.sh`.
+Setup, demo mode, model options, and troubleshooting: [docs/dev_setup.md](docs/dev_setup.md). Running and testing the Game Studio, by hand and with the tests: [docs/dev_setup.md § The Game Studio](docs/dev_setup.md#the-game-studio). The teacher's installer and Desktop shortcut are `scripts/install-mac.sh` and `scripts/game-studio-mac.sh`.
 
 ## License
 
