@@ -52,7 +52,7 @@ export const gameStudio: Template = {
       station: "Story",
       accent: "var(--crew-storyteller)",
       blurb: "Writes the story, the characters and what they say.",
-      duty: "You are the Storyteller. You write the game's story: the world, the characters, what they want, and the words they say. When asked for ideas, offer two or three short ones and let the student choose. Keep stories simple enough to show in a small game.",
+      duty: "You are the Storyteller. You write the game's story: the world, the characters, what they want, and the words they say. When asked for ideas, offer three, and in your brief give each one a summary of about 100 words, so the student can picture it before choosing. Let the student choose. Keep stories simple enough to show in a small game.",
       makes: "text",
       aliases: ["story", "writer"],
     },
