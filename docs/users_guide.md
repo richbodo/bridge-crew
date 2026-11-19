@@ -86,17 +86,21 @@ from where it stopped.
    After the Mac has been restarted, this takes a minute or two.
 2. The Game Studio opens in your browser. Click **Log me on as demo user 1**: that's you, the
    teacher. The student doesn't get an account.
-3. **Game Studio** is already picked. Type your name, the student's **nickname** (never their
-   real name) and a title for the game. Under **Game**, pick **New game**, or **Open a game** to
+3. **Game Studio** is already picked, and the form is filled in, so you can press **Open a
+   room** straight away. You're **Teacher**, the student is **Student**, the session is named
+   for the date and time, such as "Session 2026-11-19 14:32", and the room makes **Bigger
+   games**. Change any of them first if you like: the student's **nickname** is never their
+   real name. Under **Game**, pick **New game**, or **Open a game** to
    start from one made somewhere else: **Choose a folder** for a game in several files,
    **Choose an HTML file** for a one-file game, or paste its **GitHub link** and press **Look**.
-   It becomes the room's first version, on screen, as **Bring in a game** (§4) does. Then under **Games**, pick **Simple** or **Bigger**:
+   It becomes the room's first version, on screen, as **Bring in a game** (§4) does, and the
+   session takes the game's name. Under **Games**, **Bigger** is picked; you can pick **Simple**:
    - **Simple games** are one HTML file, in 2D, and quick to build. They suit a first game.
    - **Bigger games** can be a folder of code, 3D with Three.js, and save the player's
      progress. They suit students who want a game like the ones they play.
 
    A Simple room can become Bigger later (see **Bring in a game**), but not back. A game opened
-   here that needs a Bigger room picks **Bigger** for you, and the lobby says why. Then press
+   here that needs a Bigger room keeps **Bigger** picked, and the lobby says why. Then press
    **Open a room**. A Game Studio room has one seat, so there's no invite.
 4. Read the **classroom notice** together, then press **We've read it**.
 
@@ -117,13 +121,22 @@ shortcut, it also answers to other computers on the network.
   Standing by, it's still. Working, it uses its tool: the Storyteller writes in a book, the Game
   designer tries a joystick, the Artist (a friendly alien) paints, the Sound designer's notes
   rise, the Engineer pulls its goggles down, and the Tester (a robot) looks through a magnifying
-  glass. Hailing, it puts a hand up under a yellow "!", on its card, on its hail, and in the
-  strip under the big screen. Only a crew member that's working or hailing moves, and nothing
-  moves if the computer is set to reduce motion.
+  glass, and a light runs round the portrait's edge in its station's colour. The portraits of
+  the crew at work are also beside **Crew at work** under the message box, so they show while
+  the game is on the big screen. Hailing, it puts a hand up under a yellow "!", on its card, on
+  its hail, and in the strip under the big screen. Only a crew member that's working or hailing
+  moves, and nothing moves if the computer is set to reduce motion: the light holds still.
+- **A chime.** A soft two-note chime sounds when a crew member hails, so you hear it while
+  you're watching the game. The hails waiting when a room opens are quiet. The browser plays it
+  only once someone has clicked or typed in the room.
+- **What's new.** When the Scribe adds to `game.md`, on the right, "· updated" shows beside
+  its name and the new lines light up in amber for a few seconds. Something new under **Made in
+  this room** lights up the same way.
 - **Who's talking.** The switch above the message box says whether a prompt is the student's or
   the teacher's, and the crew sees which. It starts on the student.
 - **Asking a crew member.** Start with their name and a comma, like "Artist, draw the mole", or
-  put `@` before it anywhere. A name in the middle of a sentence is just a word. There are no
+  put `@` before it anywhere. The message box suggests a first step: tell the Storyteller the
+  basic story of the game. A name in the middle of a sentence is just a word. There are no
   slash commands.
 - **Answers.** A crew member works, then hails. Nothing is said until someone presses **Grant
   the floor**; **Not now** declines. Spoken parts are at most three sentences; the full detail
@@ -313,7 +326,8 @@ rooms.
      [Part 1](#part-1-the-game-studio).
 2. Type **your name in the room** (this is what the other human sees next to your colour dot).
 3. Pick a colour.
-4. Give the session a **title**.
+4. Give the session a **title**. It starts as the date and time, such as "Session 2026-11-19
+   14:32".
 5. Press **Open a room** — or **Open a demo room** to get a pre-filled example (see §14, Demo
    room).
 

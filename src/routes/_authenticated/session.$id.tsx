@@ -17,6 +17,8 @@ import {
 import { Composer, type Speaker } from "@/components/room/Composer";
 import { ContextPanel } from "@/components/room/ContextPanel";
 import { CrewAvatar } from "@/components/room/CrewAvatar";
+import { useFreshIds, useFreshLines } from "@/components/room/fresh";
+import { useHailChime } from "@/components/room/hail-chime";
 import { HailQueue } from "@/components/room/HailQueue";
 import { InvitePanel } from "@/components/room/InvitePanel";
 import {
@@ -59,6 +61,7 @@ import {
   useThing,
 } from "@/lib/room.functions";
 import { deleteRoom, getRoom } from "@/lib/session.functions";
+import { STUDENT, withRole } from "@/lib/lobby";
 import { BROUGHT_IN } from "@/lib/made";
 import { jobOf as templateJob, templateOf } from "@/lib/templates";
 
@@ -295,6 +298,12 @@ function RoomPage() {
   }, [playing, madeRows]);
   useEffect(() => stopMusic, []);
 
+  // A chime for each new hail, and a moment's light on what's new in the document and in Made
+  // in this room (src/components/room/hail-chime.ts, fresh.ts).
+  useHailChime(id, room?.hails);
+  const freshPlan = useFreshLines(room?.plan);
+  const freshMade = useFreshIds(madeRows?.map((thing) => thing.id));
+
   if (roomQuery.isLoading) {
     return <p className="p-8 text-sm text-muted-foreground">Opening the room…</p>;
   }
@@ -313,7 +322,7 @@ function RoomPage() {
 
   const template = templateOf(room.template);
   const jobOf = (agent: string) => templateJob(template, agent);
-  const studentName = room.settings.studentName || "Student";
+  const studentName = room.settings.studentName || STUDENT;
   const currentVersion = room.settings.currentVersion ?? null;
   const screen = room.settings.screen;
   const onScreen = template.bigScreen && screen?.view === "on";
@@ -411,7 +420,13 @@ function RoomPage() {
   );
 
   const roster = template.roster.map((job) => job.key);
-  const atWork = roster.filter((agent) => statusOf(agent) === "working").map(nameFor);
+  const atWork = roster
+    .filter((agent) => statusOf(agent) === "working")
+    .map((agent) => ({
+      name: nameFor(agent),
+      avatar: jobOf(agent).avatar,
+      accent: jobOf(agent).accent,
+    }));
   const notSaid = contributions.filter((c) => c.outcome && c.outcome in NOT_SAID).reverse();
   const said = contributions
     .filter((c) => c.outcome === "said")
@@ -427,7 +442,8 @@ function RoomPage() {
       placeholder={
         template.slashCommands
           ? "Say something, call the crew by name (@scout, @advocate…), or use /research … /analyze … /debate …"
-          : "Say something. To ask a crew member, start with their name: “Artist, draw the mole.”"
+          : // The second line shows while the box has two rows: not on the big screen's strip.
+            "Say something. To ask a crew member, start with their name: “Artist, draw the mole.”\nTry telling the Storyteller the basic story of the game first."
       }
       {...(template.sharedSeat
         ? {
@@ -519,7 +535,7 @@ function RoomPage() {
         <div className="flex items-center gap-3">
           {template.sharedSeat ? (
             <span className="text-xs text-muted-foreground">
-              {room.me.display_name} (teacher) and {studentName} (student)
+              {withRole(room.me.display_name, "teacher")} and {withRole(studentName, "student")}
             </span>
           ) : (
             room.participants.map((p) => (
@@ -830,9 +846,19 @@ function RoomPage() {
               {template.doc.file}
               {room.scribeState !== "idle" ? (
                 <span className="ml-2 normal-case tracking-normal">· Scribe is updating…</span>
+              ) : freshPlan.fresh.size ? (
+                <span
+                  key={freshPlan.round}
+                  className="fresh-note ml-2 normal-case tracking-normal text-primary"
+                >
+                  · updated
+                </span>
               ) : null}
             </h2>
-            <Markdown className="mt-3 text-xs leading-relaxed text-muted-foreground">
+            <Markdown
+              className="mt-3 text-xs leading-relaxed text-muted-foreground"
+              fresh={freshPlan.fresh}
+            >
               {room.plan || template.doc.empty}
             </Markdown>
             {template.bigScreen ? (
@@ -846,15 +872,20 @@ function RoomPage() {
                 {shown.length ? (
                   <div className="mt-3 space-y-1">
                     {[...shown].reverse().map((thing) => (
-                      <MadeThing
+                      <div
                         key={thing.id}
-                        sessionId={id}
-                        thing={thing}
-                        current={thing.id === currentVersion}
-                        title={room.session.title}
-                        onScreen={(t) => show({ kind: "made", id: t.id })}
-                        onUse={(t) => useThingMutation.mutate(t.id)}
-                      />
+                        className="rounded-md"
+                        {...(freshMade.fresh.has(thing.id) ? { "data-fresh": "" } : {})}
+                      >
+                        <MadeThing
+                          sessionId={id}
+                          thing={thing}
+                          current={thing.id === currentVersion}
+                          title={room.session.title}
+                          onScreen={(t) => show({ kind: "made", id: t.id })}
+                          onUse={(t) => useThingMutation.mutate(t.id)}
+                        />
+                      </div>
                     ))}
                   </div>
                 ) : (

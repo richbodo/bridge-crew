@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { bringIn, whyBigger } from "@/lib/bring-in";
 import { DEMO_MODE, demoUserFor } from "@/lib/demo";
+import { defaultTitle, STUDENT, TEACHER } from "@/lib/lobby";
 import { DEMO_CONTEXTS, demoScriptFor, GAME_STUDIO } from "@/lib/demo-rooms";
 import { USERS_GUIDE_URL } from "@/lib/links";
 import { describeSource } from "@/lib/github";
@@ -92,18 +93,22 @@ function Lobby() {
   const templateKey = DEMO_LOBBY ? demoContext.template : pickedTemplate;
   const [gameChoice, setGameChoice] = useState<"new" | "open">("new");
   const [startingGame, setStartingGame] = useState<StartingGame | null>(null);
-  const [studentName, setStudentName] = useState("");
-  const [games, setGames] = useState<"simple" | "bigger">("simple");
-  const [title, setTitle] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  // Defaults a teacher can open a room with straight away (src/lib/lobby.ts). A name or title
+  // that's still null hasn't been typed in, so it follows the kind of room and the game.
+  const [studentName, setStudentName] = useState(STUDENT);
+  const [games, setGames] = useState<"simple" | "bigger">("bigger");
+  const [title, setTitle] = useState<string | null>(null);
+  const [opened, setOpened] = useState("");
+  const [typedName, setDisplayName] = useState<string | null>(null);
   const [color, setColor] = useState(COLORS[0]!);
   const [code, setCode] = useState("");
 
+  // The time is read in the browser, once the page is up, so the server's page matches it.
+  useEffect(() => setOpened(defaultTitle(new Date())), []);
+
   const demoUser = demoUserFor(user?.email);
   useEffect(() => {
-    if (!demoUser) return;
-    setDisplayName(demoUser.name);
-    setColor(demoUser.color);
+    if (demoUser) setColor(demoUser.color);
   }, [demoUser]);
 
   const recent = useQuery({
@@ -113,12 +118,14 @@ function Lobby() {
   });
 
   const template = TEMPLATES[templateKey];
+  // `just game-studio` signs the teacher in as a demo user, but in the room they're the teacher.
+  const displayName = typedName ?? (template.sharedSeat ? TEACHER : (demoUser?.name ?? ""));
   const game = template.bigScreen && gameChoice === "open" ? startingGame : null;
   const waitingForGame = template.bigScreen && gameChoice === "open" && !startingGame;
   const demoScript =
     DEMO_LOBBY && contextKey !== GAME_STUDIO ? demoScriptFor(contextKey) : undefined;
   const titleFor = (demoButton: boolean) =>
-    demoScript?.title || game?.title || (demoButton ? "Demo run" : "Untitled session");
+    demoScript?.title || game?.title || (demoButton ? "Demo run" : opened || "Untitled session");
 
   const lookMutation = useMutation({
     mutationFn: (link: string) => lookAt({ data: { link } }),
@@ -165,11 +172,11 @@ function Lobby() {
     mutationFn: async (demoButton: boolean) => {
       const session = await create({
         data: {
-          title: title || titleFor(demoButton),
+          title: title?.trim() || titleFor(demoButton),
           displayName,
           color,
           template: templateKey,
-          studentName,
+          ...(template.sharedSeat ? { studentName } : {}),
           ...(template.bigScreen ? { games: game?.bigger ? "bigger" : games } : {}),
         },
       });
@@ -389,8 +396,12 @@ function Lobby() {
                       id="student"
                       value={studentName}
                       placeholder="A nickname, not their real name"
+                      aria-describedby="student-note"
                       onChange={(e) => setStudentName(e.target.value)}
                     />
+                    <p id="student-note" className="text-[11px] text-muted-foreground">
+                      A nickname, not their real name.
+                    </p>
                   </div>
                 ) : null}
                 {template.bigScreen ? (
@@ -531,8 +542,7 @@ function Lobby() {
                   <Label htmlFor="title">Session title</Label>
                   <Input
                     id="title"
-                    value={title}
-                    placeholder={titleFor(DEMO_LOBBY)}
+                    value={title ?? titleFor(DEMO_LOBBY)}
                     onChange={(e) => setTitle(e.target.value)}
                   />
                 </div>

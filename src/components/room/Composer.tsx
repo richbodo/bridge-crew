@@ -1,7 +1,11 @@
-import type { Ref } from "react";
+import { Fragment, type Ref } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import type { AvatarKey } from "@/lib/avatars";
+import { withRole } from "@/lib/lobby";
+
+import { CrewAvatar } from "./CrewAvatar";
 
 export type Speaker = "student" | "teacher";
 
@@ -14,7 +18,8 @@ interface Props {
   speaker?: { value: Speaker; student: string; teacher: string; onChange: (who: Speaker) => void };
   /** Reply: what this prompt answers. */
   replyingTo?: { name: string; spoken: string; onCancel: () => void } | null;
-  atWork: string[];
+  /** The crew at work, with their portraits, which show it while the cards are off screen. */
+  atWork: ReadonlyArray<{ name: string; avatar?: AvatarKey | undefined; accent: string }>;
   rows?: number;
   /** The box itself, so Reply can put the cursor in it. */
   inputRef?: Ref<HTMLTextAreaElement>;
@@ -49,7 +54,7 @@ export function Composer({
                   : "border-border text-muted-foreground hover:text-foreground"
               }`}
             >
-              {who === "student" ? speaker.student : `${speaker.teacher} (teacher)`}
+              {who === "student" ? speaker.student : withRole(speaker.teacher, "teacher")}
             </button>
           ))}
         </div>
@@ -85,7 +90,28 @@ export function Composer({
       />
       <div className="mt-2 flex items-center justify-between gap-3">
         <p className="text-[11px] text-muted-foreground" aria-live="polite">
-          {atWork.length ? <span className="text-foreground">Crew at work: {atWork.join(", ")}. </span> : null}
+          {atWork.length ? (
+            <span className="text-foreground">
+              Crew at work:{" "}
+              {atWork.map((member, i) => (
+                <Fragment key={member.name}>
+                  {i ? ", " : null}
+                  <span className="inline-flex items-center gap-1 align-middle">
+                    {member.avatar ? (
+                      <CrewAvatar
+                        avatar={member.avatar}
+                        accent={member.accent}
+                        status="working"
+                        className="size-5"
+                      />
+                    ) : null}
+                    {member.name}
+                  </span>
+                </Fragment>
+              ))}
+              .{" "}
+            </span>
+          ) : null}
           Enter sends. Humans always have the floor.
         </p>
         {/* Send never greys out: the people can always talk (F11). */}

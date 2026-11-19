@@ -32,10 +32,11 @@ aren't built yet; they're listed at the end.
 1. Double-click **Game Studio** on the Desktop. A Terminal window starts everything, and the
    Game Studio opens in your browser.
 2. Click **Log me on as demo user 1**. You're the teacher; the student doesn't get an account.
-3. **Game Studio** is already picked. Type your name, the student's **nickname** (never their
-   real name) and a title for the game. Under **Game**, pick **New game**, or **Open a game** to
-   start from one you made before, from its folder, its HTML file or its GitHub link. Then
-   press **Open a room**.
+3. **Game Studio** is already picked, and the form is filled in: you're **Teacher**, the
+   student is **Student**, the session is named for the date and time, and the room makes
+   **Bigger games**. Change any of them if you like; a nickname is never the student's real
+   name. Under **Game**, pick **New game**, or **Open a game** to start from one you made
+   before, from its folder, its HTML file or its GitHub link. Then press **Open a room**.
 4. Read the **classroom notice** together, then press **We've read it**.
 
 At the end, press **Control-C** in the Terminal window to stop. Next week, open the same room
@@ -49,13 +50,15 @@ from **Recent rooms** in the lobby and carry on. Stopping, updating and fixing p
   Anything you say out loud stays between you and the student.
 - **Asking the crew.** The student starts with a crew member's name and a comma: "Storyteller,
   what's the story?" or "Artist, draw the mole." A name in the middle of a sentence is just a
-  word.
-- **Hails.** A crew member works quietly, then **hails** with one line. Nothing is said until the
-  student presses **Grant the floor**. **Not now** declines it; the work stays readable under
-  **Briefs not said**.
+  word. A good first step, which the message box suggests, is telling the Storyteller the basic
+  story of the game.
+- **Hails.** A crew member works quietly, then **hails** with one line, with a soft chime.
+  Nothing is said until the student presses **Grant the floor**. **Not now** declines it; the
+  work stays readable under **Briefs not said**. When the Scribe adds to `game.md`, the new
+  lines light up for a few seconds.
 - **The crew's portraits.** Each crew member has a small pixel portrait beside its name. It
-  moves only while that crew member is working or hailing, so a glance shows who's busy and who
-  wants the floor. If the movement distracts the student, turn on **Reduce motion** in the Mac's
+  moves only while that crew member is working or hailing, and a light runs round it while it
+  works, so a glance shows who's busy and who wants the floor. If the movement distracts the student, turn on **Reduce motion** in the Mac's
   System Settings (Accessibility, then Display), and the portraits hold still.
 - **Making the game.** The Engineer builds versions, the Artist draws pictures, and the Sound
   designer makes sounds and music. The Tester plays each version itself, in a browser on the
@@ -67,8 +70,8 @@ from **Recent rooms** in the lobby and carry on. Stopping, updating and fixing p
   hear the sounds, or read a tune's notes and play it. "Off screen" comes back. The screen only changes when someone asks.
 - **When something breaks.** If a version crashes on screen, the room suggests asking the
   Engineer to fix it. The student says **Yes** or **No thanks**.
-- **Simple or Bigger games.** You pick when you open the room. Simple games are one HTML file in
-  2D, which suits a first game. Bigger games can be folders of code, 3D with Three.js, and save
+- **Simple or Bigger games.** You pick when you open the room; Bigger is picked unless you
+  change it. Simple games are one HTML file in 2D, which suits a first game. Bigger games can be folders of code, 3D with Three.js, and save
   the player's progress, which suits teenagers who want a game like the ones they play. A Simple
   room can become Bigger, but not back.
 - **Bringing in a game.** On the big screen, **Bring in a game** adds a game made somewhere else,

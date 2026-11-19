@@ -1,4 +1,5 @@
-import ReactMarkdown, { type Components } from "react-markdown";
+import { useMemo } from "react";
+import ReactMarkdown, { type Components, type ExtraProps } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { cn } from "@/lib/utils";
@@ -8,13 +9,46 @@ import { cn } from "@/lib/utils";
  * surrounding text. HTML in the text stays text, links aren't followed and pictures from
  * elsewhere aren't loaded, so nothing in a reply can take the student out of the room or reach
  * the network.
+ *
+ * `fresh` is the lines that are new (src/components/room/fresh.ts): a heading, paragraph, list
+ * item or table row that starts on one is marked `data-fresh`, and styles.css lights it briefly.
  */
+const componentsFor = (fresh: ReadonlySet<number>): Components => {
+  const mark = ({ node }: ExtraProps) =>
+    fresh.has(node?.position?.start.line ?? 0) ? { "data-fresh": "" } : {};
+  return {
+    h1: ({ children, ...rest }) => (
+      <h3 className="mt-3 text-sm font-semibold first:mt-0" {...mark(rest)}>
+        {children}
+      </h3>
+    ),
+    h2: ({ children, ...rest }) => (
+      <h3 className="mt-3 text-sm font-semibold first:mt-0" {...mark(rest)}>
+        {children}
+      </h3>
+    ),
+    h3: ({ children, ...rest }) => (
+      <h4 className="mt-3 font-semibold first:mt-0" {...mark(rest)}>
+        {children}
+      </h4>
+    ),
+    h4: ({ children, ...rest }) => (
+      <h4 className="mt-2 font-semibold first:mt-0" {...mark(rest)}>
+        {children}
+      </h4>
+    ),
+    p: ({ children, ...rest }) => (
+      <p className="mt-2 first:mt-0" {...mark(rest)}>
+        {children}
+      </p>
+    ),
+    li: ({ children, ...rest }) => <li {...mark(rest)}>{children}</li>,
+    tr: ({ children, ...rest }) => <tr {...mark(rest)}>{children}</tr>,
+    ...COMPONENTS,
+  };
+};
+
 const COMPONENTS: Components = {
-  h1: ({ children }) => <h3 className="mt-3 text-sm font-semibold first:mt-0">{children}</h3>,
-  h2: ({ children }) => <h3 className="mt-3 text-sm font-semibold first:mt-0">{children}</h3>,
-  h3: ({ children }) => <h4 className="mt-3 font-semibold first:mt-0">{children}</h4>,
-  h4: ({ children }) => <h4 className="mt-2 font-semibold first:mt-0">{children}</h4>,
-  p: ({ children }) => <p className="mt-2 first:mt-0">{children}</p>,
   ul: ({ children }) => <ul className="mt-2 list-disc space-y-1 pl-5 first:mt-0">{children}</ul>,
   ol: ({ children }) => <ol className="mt-2 list-decimal space-y-1 pl-5 first:mt-0">{children}</ol>,
   blockquote: ({ children }) => (
@@ -48,10 +82,22 @@ const COMPONENTS: Components = {
   img: ({ alt }) => <span className="italic">[picture{alt ? `: ${alt}` : ""}]</span>,
 };
 
-export function Markdown({ children, className }: { children: string; className?: string }) {
+const NOTHING_NEW: ReadonlySet<number> = new Set();
+const PLAIN = componentsFor(NOTHING_NEW);
+
+export function Markdown({
+  children,
+  className,
+  fresh = NOTHING_NEW,
+}: {
+  children: string;
+  className?: string;
+  fresh?: ReadonlySet<number>;
+}) {
+  const components = useMemo(() => (fresh.size ? componentsFor(fresh) : PLAIN), [fresh]);
   return (
     <div className={cn("break-words", className)}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={COMPONENTS}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {children}
       </ReactMarkdown>
     </div>
