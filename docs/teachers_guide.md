@@ -51,7 +51,8 @@ from **Recent rooms**, under the settings, and carry on. Stopping, updating and 
 - **Asking the crew.** The student starts with a crew member's name and a comma: "Storyteller,
   what's the story?" or "Artist, draw the mole." A name in the middle of a sentence is just a
   word. A good first step, which the message box suggests, is telling the Storyteller the basic
-  story of the game.
+  story of the game. Asked for story ideas, the Storyteller offers three, and its brief (**Show
+  detail**, under what it said) gives each a summary of about 100 words.
 - **Hails.** A crew member works quietly, then **hails** with one line, with a soft chime
   (**Chime**, in the header, mutes it).
   Nothing is said until the student presses **Grant the floor**. **Not now** declines it; the
