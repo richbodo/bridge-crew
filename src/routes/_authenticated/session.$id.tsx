@@ -20,6 +20,7 @@ import { ContextPanel } from "@/components/room/ContextPanel";
 import { CrewAvatar } from "@/components/room/CrewAvatar";
 import { useFreshIds, useFreshLines } from "@/components/room/fresh";
 import { useChimeSetting, useHailChime } from "@/components/room/hail-chime";
+import { replyPrefix, stillNames, useOnSpeech, withoutName } from "@/components/room/reply";
 import { HailQueue } from "@/components/room/HailQueue";
 import { InvitePanel } from "@/components/room/InvitePanel";
 import {
@@ -314,6 +315,25 @@ function RoomPage() {
   // in this room (src/components/room/hail-chime.ts, fresh.ts).
   const [chimeOn, setChimeOn] = useChimeSetting();
   useHailChime(id, room?.hails, chimeOn);
+
+  // When a crew member is given the floor and speaks, the box starts a reply to it: "@Storyteller ",
+  // unless something's being typed. It isn't focused, so a game on the big screen keeps the keys.
+  const prefilled = useRef<string | null>(null);
+  const speakerName = (agent: string) =>
+    room?.agents.find((a) => a.agent === agent)?.display_name?.trim() ||
+    templateJob(templateOf(room?.template), agent).name;
+  useOnSpeech(
+    id,
+    room?.transcript,
+    room?.contributions as ContributionRow[] | undefined,
+    (contribution) => {
+      if (draft.trim() && draft !== prefilled.current) return;
+      const prefix = replyPrefix(speakerName(contribution.agent));
+      prefilled.current = prefix;
+      setDraft(prefix);
+      setReplyTo(contribution);
+    },
+  );
   const freshPlan = useFreshLines(room?.plan);
   const freshMade = useFreshIds(madeRows?.map((thing) => thing.id));
 
@@ -360,12 +380,31 @@ function RoomPage() {
     if (!body) return;
     setDraft("");
     setReplyTo(null);
+    prefilled.current = null;
     sendMutation.mutate({ body, reply: replyTo?.id ?? null });
+  };
+
+  // A reply lasts while the box names its crew member: take the name out and it's for the room.
+  const typeDraft = (text: string) => {
+    setDraft(text);
+    if (replyTo && !stillNames(text, replyPrefix(nameFor(replyTo.agent)))) setReplyTo(null);
+  };
+
+  const stopReplying = () => {
+    if (replyTo) setDraft((prev) => withoutName(prev, replyPrefix(nameFor(replyTo.agent))));
+    setReplyTo(null);
+    prefilled.current = null;
   };
 
   const reply = (contribution: ContributionRow) => {
     setReplyTo(contribution);
-    setDraft((prev) => (prev.trim() ? prev : `@${contribution.agent} `));
+    // Text being typed is kept, after the name; another crew member's prefill is replaced.
+    const auto = prefilled.current;
+    prefilled.current = null;
+    const prefix = replyPrefix(nameFor(contribution.agent));
+    setDraft((prev) =>
+      stillNames(prev, prefix) ? prev : prev.trim() && prev !== auto ? `${prefix}${prev}` : prefix,
+    );
     requestAnimationFrame(() => {
       const box = boxRef.current;
       box?.focus();
@@ -449,7 +488,7 @@ function RoomPage() {
   const composer = (rows: number) => (
     <Composer
       draft={draft}
-      onDraft={setDraft}
+      onDraft={typeDraft}
       onSend={submit}
       rows={rows}
       placeholder={
@@ -473,7 +512,7 @@ function RoomPage() {
           ? {
               name: nameFor(replyTo.agent),
               spoken: replyTo.spoken,
-              onCancel: () => setReplyTo(null),
+              onCancel: stopReplying,
             }
           : null
       }

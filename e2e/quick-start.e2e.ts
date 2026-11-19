@@ -98,6 +98,67 @@ test.describe("following the room", () => {
     await expect.poll(tones).toBe(4);
   });
 
+  test("when a crew member speaks, the box starts a reply to it, and × takes the name out", async ({
+    page,
+  }) => {
+    await openStudio(page, { title: `E2E prefill ${Date.now()}` });
+    const box = page.getByPlaceholder(/Say something/);
+    const chip = page.getByText(/^Replying to Storyteller/);
+
+    await say(page, "Storyteller, why does the mole need gems?");
+    await expect(page.getByText("Storyteller is hailing")).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: "Grant the floor" }).click();
+    await expect(box).toHaveValue("@Storyteller ");
+    await expect(chip).toBeVisible();
+    // It doesn't take the keys from a game on the big screen.
+    await expect(box).not.toBeFocused();
+
+    // × takes the name out of the box too; so does deleting it.
+    await page.getByRole("button", { name: "Stop replying" }).click();
+    await expect(box).toHaveValue("");
+    await expect(chip).toHaveCount(0);
+
+    // Something being typed is left alone.
+    await say(page, "Artist, draw a gem.");
+    await expect(page.getByText("Artist is hailing")).toBeVisible({ timeout: 30_000 });
+    await box.fill("half a thought");
+    await page.getByRole("button", { name: "Grant the floor" }).click();
+    await expect(page.getByText("Artist has the floor")).toBeVisible();
+    await expect(box).toHaveValue("half a thought");
+    await expect(page.getByText(/^Replying to/)).toHaveCount(0);
+
+    // A room opened again doesn't start a reply to what was said before.
+    await page.reload();
+    await page.getByRole("button", { name: "We've read it" }).click();
+    await expect(page.getByText("Artist has the floor")).toBeVisible();
+    await expect(box).toHaveValue("");
+  });
+
+  test("a started reply goes to its crew member; without the name it's for the room", async ({
+    page,
+  }) => {
+    await openStudio(page, { title: `E2E prefill send ${Date.now()}` });
+    const box = page.getByPlaceholder(/Say something/);
+    await say(page, "Storyteller, why does the mole need gems?");
+    await expect(page.getByText("Storyteller is hailing")).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: "Grant the floor" }).click();
+    await expect(box).toHaveValue("@Storyteller ");
+
+    const calls = page.getByText("Storyteller was called on.");
+    await expect(calls).toHaveCount(1);
+
+    await box.fill("just between us, nice");
+    await expect(page.getByText(/^Replying to/)).toHaveCount(0);
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(page.getByText("just between us, nice")).toBeVisible();
+    await page.waitForTimeout(1_000);
+    await expect(calls).toHaveCount(1);
+
+    await box.fill("@Storyteller make it funnier");
+    await page.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(calls).toHaveCount(2);
+  });
+
   test("a working crew member's portrait has a light round it, on its card and by the box", async ({
     page,
   }) => {

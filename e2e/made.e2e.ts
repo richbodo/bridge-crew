@@ -214,11 +214,11 @@ test.describe("making the game", () => {
     await say(page, "Storyteller, why does the mole need gems?");
     await grantNext(page, "Storyteller");
 
-    await page.getByRole("button", { name: "Reply" }).click();
+    await page.getByRole("button", { name: "Reply", exact: true }).click();
     await expect(page.getByText(/Replying to Storyteller/)).toBeVisible();
     const box = page.getByPlaceholder(/Say something/i);
-    await expect(box).toHaveValue("@storyteller ");
-    await box.fill("@storyteller make it funnier");
+    await expect(box).toHaveValue("@Storyteller ");
+    await box.fill("@Storyteller make it funnier");
     await page.getByRole("button", { name: "Send", exact: true }).click();
 
     await grantNext(page, "Storyteller");

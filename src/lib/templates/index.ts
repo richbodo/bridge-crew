@@ -55,8 +55,11 @@ export interface Template {
   description: string;
   roster: Job[];
   doc: SharedDoc;
-  /** The setting, said to every crew member before the house style. */
-  setting: string;
+  /**
+   * The setting, said to every crew member before the house style. It can depend on the room's
+   * size: a Bigger room's games are folders (docs/plans/bigger-games-2026-11-16.md).
+   */
+  setting: (room: { bigger: boolean }) => string;
   /** The spoken part's cap, in sentences. */
   spokenCap: number;
   /** How many people may join (F14). */
