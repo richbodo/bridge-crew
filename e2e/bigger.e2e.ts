@@ -112,6 +112,8 @@ test.describe("bigger games", () => {
     await page.getByLabel("Game Studio").check();
     await page.getByLabel("Your name in the room").fill("Pat");
     await page.getByLabel("Student's nickname").fill("Sam");
+    // Bigger is the lobby's default; a one-file game can open in either.
+    await page.getByLabel("Simple games").check();
     await page.getByLabel("Open a game").check();
     await expect(page.getByRole("button", { name: "Open a room" })).toBeDisabled();
     await page.getByLabel("Game file").setInputFiles(join(fixtures, "one-file.html"));

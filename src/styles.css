@@ -75,7 +75,8 @@
   --secondary: oklch(0.28 0.022 250);
   --secondary-foreground: oklch(0.94 0.008 240);
   --muted: oklch(0.26 0.02 250);
-  --muted-foreground: oklch(0.68 0.02 245);
+  /* 8.8:1 on a card: small labels and the shared document read without strain. */
+  --muted-foreground: oklch(0.78 0.016 245);
   --accent: oklch(0.3 0.03 245);
   --accent-foreground: oklch(0.95 0.008 240);
   --destructive: oklch(0.63 0.19 25);
@@ -204,4 +205,92 @@
     animation: none;
     opacity: 0;
   }
+}
+
+/* A working crew member: a light runs round the portrait's edge, in the station's colour. */
+@property --crew-busy-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes crew-avatar-busy {
+  to {
+    --crew-busy-angle: 360deg;
+  }
+}
+
+.crew-avatar-busy {
+  position: relative;
+}
+
+.crew-avatar-busy::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: inherit;
+  /* A bright arc with a tail, over a faint ring. */
+  background: conic-gradient(
+    from var(--crew-busy-angle),
+    color-mix(in oklab, var(--avatar-accent) 25%, transparent) 0deg,
+    var(--avatar-accent) 100deg,
+    color-mix(in oklab, var(--avatar-accent) 25%, transparent) 130deg 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box xor,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+  animation: crew-avatar-busy 1.2s linear infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crew-avatar-busy::after {
+    animation: none;
+    background: var(--avatar-accent);
+  }
+}
+
+/*
+ * Something new in the room's document or in Made in this room (src/components/room/fresh.ts):
+ * it lights up in amber and fades, over FRESH_MS. Inside something already lit, it doesn't again.
+ */
+@keyframes fresh {
+  from {
+    background-color: color-mix(in oklab, var(--primary) 24%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in oklab, var(--primary) 24%, transparent);
+  }
+  to {
+    background-color: transparent;
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+
+/* In the components layer, so a utility such as rounded-md on the same element wins. */
+@layer components {
+  [data-fresh] {
+    border-radius: 3px;
+    animation: fresh 4s ease-out;
+  }
+
+  [data-fresh] [data-fresh] {
+    animation: none;
+  }
+}
+
+@keyframes fresh-note {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.fresh-note {
+  animation: fresh-note 4s ease-in forwards;
 }

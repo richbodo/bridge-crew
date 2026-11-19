@@ -31,8 +31,9 @@ interface Props {
 
 /**
  * A crew member's pixel portrait, in the pose for its state (src/lib/avatars.ts). The card says
- * the state in words, so screen readers skip the picture. With reduced motion, a pose holds its
- * first frame.
+ * the state in words, so screen readers skip the picture. While working, a light also runs round
+ * its edge (styles.css), which shows from across the room. With reduced motion, a pose holds its
+ * first frame and the light is a still frame.
  */
 export function CrewAvatar({ avatar, accent, status, className }: Props) {
   const pose = poseOf(status);
@@ -53,11 +54,16 @@ export function CrewAvatar({ avatar, accent, status, className }: Props) {
       aria-hidden
       data-avatar={avatar}
       data-pose={pose}
-      className={cn("inline-block size-8 shrink-0 overflow-hidden rounded-[4px]", className)}
+      className={cn(
+        "inline-block size-8 shrink-0 overflow-hidden rounded-[4px]",
+        pose === "working" && "crew-avatar-busy",
+        className,
+      )}
       style={
         {
           backgroundColor: `color-mix(in oklab, ${accent} 20%, oklch(0.32 0.02 255))`,
           "--avatar-beat": BEAT[pose],
+          "--avatar-accent": accent,
         } as CSSProperties
       }
     >

@@ -23,11 +23,15 @@ test("two tabs are two different demo users", async ({ context }) => {
   await one.goto("/");
   await logOnAs(one, 1);
   await expect(one.getByText("Demo user 1", { exact: true })).toBeVisible();
+  // In a Game Studio room the one who opens it is the teacher; elsewhere, the demo user.
+  await expect(one.getByLabel("Your name in the room")).toHaveValue("Teacher");
+  await one.getByRole("group", { name: "Context" }).getByLabel("NZ politics").check();
   await expect(one.getByLabel("Your name in the room")).toHaveValue("Demo 1");
 
   await two.goto("/");
   await logOnAs(two, 2);
   await expect(two.getByText("Demo user 2", { exact: true })).toBeVisible();
+  await two.getByRole("group", { name: "Context" }).getByLabel("NZ politics").check();
   await expect(two.getByLabel("Your name in the room")).toHaveValue("Demo 2");
 
   // The second sign-in didn't take over the first tab, and a reload keeps the tab's user.
@@ -100,7 +104,7 @@ test("each Deliberation context opens a demo room whose crew reads its pack", as
 
       await page.goto("/");
       await page.getByRole("group", { name: "Context" }).getByLabel(label).check();
-      await expect(page.getByLabel("Session title")).toHaveAttribute("placeholder", title);
+      await expect(page.getByLabel("Session title")).toHaveValue(title);
       await page.getByRole("button", { name: "Open a demo room" }).click();
       await page.waitForURL(/\/session\/[0-9a-f-]+/);
 
@@ -129,7 +133,7 @@ test("a Game Studio demo room can open with a game from a folder", async ({ page
   ).toBeVisible();
   await expect(page.getByLabel("Bigger games")).toBeChecked();
   await expect(page.getByLabel("Simple games")).toBeDisabled();
-  await expect(page.getByLabel("Session title")).toHaveAttribute("placeholder", "cube");
+  await expect(page.getByLabel("Session title")).toHaveValue("cube");
 
   await page.getByRole("button", { name: "Open a demo room" }).click();
   await page.waitForURL(/\/session\/[0-9a-f-]+/);

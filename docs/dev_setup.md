@@ -137,8 +137,9 @@ A run through the main paths takes about 15 minutes. Under `just game-studio-fix
 crew's work is canned ([Model providers](#model-providers) says what it makes), so this tests the
 room rather than the crew. Run it again under `just game-studio` to see real games.
 
-1. **Open a room.** Click **Log me on as demo user 1**, then type a name, a nickname and a title.
-   Pick **New game** and **Simple**, press **Open a room**, then press **We've read it**.
+1. **Open a room.** Click **Log me on as demo user 1**. The form is filled in (Teacher, Student,
+   a title from the date and time, Bigger games); pick **New game** and **Simple**, press **Open
+   a room**, then press **We've read it**.
 2. **Ask the crew.** Type "Engineer, make a game where a mole pops up and you click it." The
    Engineer works, then hails. **Grant the floor** puts version 1 on screen, playable, and in the
    games folder. Then ask the Artist for a picture, the Sound designer for sounds, and the Sound
