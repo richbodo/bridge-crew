@@ -63,6 +63,14 @@ function asDataUrl(path: string, content: string): string | undefined {
   return undefined;
 }
 
+/**
+ * A path a script builds as it runs, such as `img/${name}.png` in a template: not a file to find.
+ * The bundle meets these because a page's scripts are inlined before its pictures are.
+ */
+function builtByCode(ref: string): boolean {
+  return /\$\{|\{\{|["'`+]/.test(ref);
+}
+
 /** url(...) in CSS, pointing at a picture or font in the folder, as a data URL. */
 function inlineCssUrls(
   css: string,
@@ -71,7 +79,7 @@ function inlineCssUrls(
   remote: Set<string>,
 ): string {
   return css.replace(/url\(\s*(["']?)([^"')]+)\1\s*\)/gi, (whole, _q: string, ref: string) => {
-    if (ref.startsWith("data:") || ref.startsWith("#")) return whole;
+    if (ref.startsWith("data:") || ref.startsWith("#") || builtByCode(ref)) return whole;
     if (REMOTE.test(ref)) {
       remote.add(ref);
       return whole;
@@ -169,7 +177,7 @@ export function bundleGame(files: GameFiles, shelf: ShelfLookup): Bundle {
 
   html = html.replace(/<(img|source|audio|video)\b[^>]*>/gi, (tag) => {
     const src = attr(tag, "src");
-    if (!src || src.startsWith("data:") || src.startsWith("blob:")) return tag;
+    if (!src || src.startsWith("data:") || src.startsWith("blob:") || builtByCode(src)) return tag;
     if (REMOTE.test(src)) {
       remote.add(src);
       return tag;

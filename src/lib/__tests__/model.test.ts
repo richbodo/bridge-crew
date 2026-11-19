@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { parseAgentOutput } from "../agents.server";
-import { callModelWithTool, fixtureReply, pickProvider, type CrewTool } from "../model.server";
+import { callModelWithTools, fixtureReply, pickProvider, type CrewTool } from "../model.server";
 
 describe("pickProvider", () => {
   it("prefers an explicit BRIDGE_CREW_MODEL_PROVIDER", () => {
@@ -58,10 +58,10 @@ describe("fixtureReply", () => {
   });
 });
 
-describe("callModelWithTool", () => {
+describe("callModelWithTools", () => {
   afterEach(() => vi.unstubAllEnvs());
 
-  it("on fixture replies, uses the tool once with its canned input, then replies", async () => {
+  it("on fixture replies, uses the tools with their canned inputs, then replies", async () => {
     vi.stubEnv("BRIDGE_CREW_MODEL_PROVIDER", "fixture");
     const inputs: unknown[] = [];
     const tool: CrewTool = {
@@ -69,18 +69,21 @@ describe("callModelWithTool", () => {
       description: "Play the game.",
       inputSchema: { type: "object", properties: {} },
       uses: 5,
-      fixtureInput: { name: "arrows", steps: [] },
       use: async (input) => {
         inputs.push(input);
         return { parts: [{ text: "Look 1" }] };
       },
     };
-    const raw = await callModelWithTool(
+    const raw = await callModelWithTools(
       [
         { role: "system", content: "You are the Tester." },
         { role: "user", content: "## Your task\n\ncheck version 1" },
       ],
-      tool,
+      {
+        tools: [tool],
+        turns: 5,
+        fixture: [{ tool: "play", input: { name: "arrows", steps: [] } }],
+      },
     );
     expect(inputs).toEqual([{ name: "arrows", steps: [] }]);
     expect(parseAgentOutput(raw).spokenRaw).toContain("the Tester here, on fixture replies");

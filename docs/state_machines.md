@@ -87,7 +87,10 @@ machines.
 - **Made thing** (Game Studio): something a run makes along with its contribution:
   - a **version**: one playable copy of the game, made by the Engineer, or **brought in** by
     the people from a game made elsewhere. In a Simple room it's one HTML file; in a Bigger room
-    it's a folder of files, which runs as one file, its **bundle**;
+    it's a folder of files, which runs as one file, its **bundle**. The Engineer makes one with
+    its **build tools**: it reads and changes a copy of the current version, and tries the copy
+    in a browser. If its run changed the copy, the copy is the new version, which waits for a
+    yes like any made thing;
   - a **picture**, drawn by the Artist;
   - a **sound**, made by the Sound designer;
   - a piece of **music**, also by the Sound designer: notes for up to four instruments, which

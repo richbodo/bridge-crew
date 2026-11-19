@@ -259,6 +259,37 @@ errors; Woodland's save survived a reload; and each download played offline. Wit
 the Engineer updated a small brought-in Three.js game for r180 in 22 seconds: it handed back the
 one file it changed, multiplying the light's strength by π for the new light units.
 
+Status: Phase B is built (2026-11-19). The Engineer builds in both kinds of room with Anthropic's
+text editor tool, remove_file and try_game, on a copy of the current version; the old way of
+handing back whole files is gone. A run has 40 turns of tools, try_game three times, and a task
+budget of 200,000 tokens, about three times what the runs below used. The 5-minute run limit
+stays. The Engineer keeps `NOTES.md` in Bigger rooms, the rest of the crew read the file list and
+`NOTES.md`, and the Tester reads the code it needs with the viewing half of the text editor.
+
+Measured with real Claude (Claude Opus 5.5 at medium effort; $4 and $20 per million tokens in and
+out, cache reads $0.20 and 5-minute cache writes $5):
+
+| Build | Time | Turns | Tokens: cache read / cache written / output | Cost |
+| --- | --- | --- | --- | --- |
+| Woodland: "show a small label like “+1 wood” that floats up from the player and fades away" | 57 s | 9 | 171,208 / 36,163 / 5,481 | $0.33 |
+| Rocket lab: the room's "update it for the studio's Three.js?" | 70 s | 9 | 315,160 / 65,264 / 6,687 | $0.52 |
+| The Tester flying the updated rocket lab | 122 s | 9 | 214,760 / 45,245 / 3,725 | $0.34 |
+
+- **Woodland:** the Engineer read four of its 20 files, changed three (the label's numbers went
+  into `CONFIG`), tried the game, and wrote `NOTES.md`. Version 2 played with no errors.
+- **Rocket lab:** it read five files and changed three: colour management off and the renamed
+  colour settings, as r128 had them, light strengths multiplied by π, and a point light's decay
+  set to r128's. Version 2's colours looked natural on the big screen, and the Tester, flying it,
+  found the sky, grass and smoke the right colours. Woodland's floating label wasn't seen in
+  play: the Engineer's two-second try stops at the title screen, as it said.
+- **Found:** try_game reported a template in Woodland's script, `<img src="${…}">`, as a missing
+  file, because the bundle inlines scripts before it looks for pictures. The bundle now skips
+  paths a script builds. Separately, the Tester's 6-second wait during the rocket lab's countdown
+  passed the playtest's 15-second step limit, so the game counted as stuck and restarted. That's
+  Phase A's risk, "3D in the Tester's browser", seen: it needs a look before Phase C's 3D
+  rehearsal.
+- Both Engineers said what two seconds of trying couldn't check, and suggested asking the Tester.
+
 D and E can swap. Each phase keeps `docs/state_machines.md` and `docs/users_guide.md` in step,
 and Phase A adds a note to Part 5 of the education plan, which still says a version is one HTML
 file.

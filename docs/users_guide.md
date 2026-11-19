@@ -151,11 +151,20 @@ shortcut, it also answers to other computers on the network.
 
 - **What the crew makes.** The Engineer makes **versions** of the game. In a Simple room each
   version is a single HTML file. In a Bigger room it's a folder of files, such as `index.html`
-  and scripts in `js/`, and the Engineer hands back only the files it changed. A Bigger room's
-  games can use the studio's **shelf**: Three.js r180 for 3D, and a few fonts. Nothing else
-  loads from the internet. The Artist makes **pictures**, and the Sound designer makes **sounds** and **music**.
+  and scripts in `js/`. A Bigger room's games can use the studio's **shelf**: Three.js r180 for
+  3D, and a few fonts. Nothing else loads from the internet. The Artist makes **pictures**, and
+  the Sound designer makes **sounds** and **music**.
   Music is written as notes, like `C4 E4 G4`, with a row of notes for each instrument, so the
   student can read the tune. Whatever a crew member makes comes with its hail.
+- **How the Engineer builds.** It works on a copy of the current version, the way a
+  programmer does: it reads the files it needs, changes them, and tries the game for two seconds
+  in a browser that runs out of sight, to catch errors before it hails. Its card shows what it's
+  doing ("Reading js/world.js", "Changing js/animals.js", "Trying the game…") and a picture of
+  the game when it tries it. Its brief ends with the files it changed. A change to a big game
+  takes about a minute. In a Bigger room it also keeps `NOTES.md` in the game's folder, a short
+  map of the code: what each file does and where the numbers to change are. The rest of the
+  crew read that map and the list of files, not the code itself. The Tester reads the code it
+  needs, as the Engineer does, but can't change it.
 - **Nothing goes into the game until the student says yes.** Granting the hail puts it in the
   game, and a version becomes the **current version**: the one the Engineer builds from next.
   **Not now** leaves it **not used**, but it isn't lost.

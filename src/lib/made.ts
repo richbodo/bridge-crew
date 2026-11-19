@@ -1,4 +1,5 @@
-import { cleanPath, ENTRY, type GameFiles } from "./bundle";
+import { EDITOR, MADE_DIR, shown } from "./build";
+import type { GameFiles } from "./bundle";
 import { musicSteps, noteFrequency } from "./music";
 import { FONTS_NOTE, SHELF_DIR, THREE_NOTE } from "./shelf";
 import type { Makes } from "./templates";
@@ -14,7 +15,7 @@ export interface MadeDraft {
   kind: MadeKind;
   name: string;
   body: string;
-  /** A version's files: all of them, or in a Bigger room only the ones the Engineer changed. */
+  /** A version's files: all of them. */
   files?: GameFiles;
 }
 
@@ -76,62 +77,65 @@ export function testSteps(body: string): string {
 export const ZZFX_PARAMETERS =
   "volume, randomness, frequency, attack, sustain, release, shape (0 sine, 1 triangle, 2 saw, 3 tan, 4 noise, 5 square), shapeCurve, slide, deltaSlide, pitchJump, pitchJumpTime, repeatTime, noise, modulation, bitCrush, delay, sustainVolume, decay, tremolo, filter";
 
+/**
+ * How the Engineer builds, in a Simple room or a Bigger one: with its build tools
+ * (src/lib/build.server.ts), on a copy of the current version.
+ */
+const BUILD = `You build the game with your tools, on a copy of the current version. The game's folder is
+/, and the browser opens /index.html first.
+- ${EDITOR}: view a file or the folder, create a file, change text in a file (str_replace),
+  or add lines (insert). "The game so far" lists the files: view only the code you need.
+- remove_file: remove a file the game no longer needs.
+- try_game: play your copy for two seconds, and see a picture of the screen and any errors. Try
+  the game before you finish, and fix what's broken.
+Change only what you were asked to, in as few edits as you can: str_replace for a change, and
+create only for a new file or one you're rewriting. If there's no version yet, create
+/index.html.
+When you're done, reply with SPOKEN and BRIEF only. Your edits are the new version, so don't
+paste the game's code into the reply. In SPOKEN, say in a few sentences what changed. If you
+changed nothing, say why.`;
+
 /** The rules every version follows, in a Simple room or a Bigger one. */
-const VERSION_RULES = `- Pictures: inline the SVG of the pictures listed under "The game so far", or draw with canvas.
-- Sounds: call zzfx(...) with the parameter lists listed under "The game so far". zzfx is
+const VERSION_RULES = `- Sounds: call zzfx(...) with the parameter lists listed under "The game so far". zzfx is
   already defined on the page; don't define it.
 - Music: paste a song listed under "The game so far" into the script as an object, and call
   playMusic(song). It plays over and over until stopMusic() or the next playMusic(...);
   playMusic(song, false) plays it once. Both are already defined on the page; don't define them.
 - Controls: arrow keys and the space bar, and mouse clicks. Show the controls on screen, keep a
   score, and give a way to restart.
-- No sound before the player presses a key or clicks, and nothing that flashes.
-- In SPOKEN, say in a few sentences what changed.`;
+- No sound before the player presses a key or clicks, and nothing that flashes.`;
 
-/** A Simple room's game: one HTML file, handed back whole. */
-const SIMPLE_VERSION = `After the BRIEF, hand back the whole game as one HTML file:
+/** A Simple room's game: one HTML file. */
+const SIMPLE_VERSION = `${BUILD}
 
-FILE:
-\`\`\`html
-<!doctype html>
-...
-\`\`\`
-
-Rules for the file:
-- One self-contained HTML file: inline <style> and <script>, nothing loaded from anywhere else,
-  and no network requests.
-- Start from the current version under "The game so far", if there is one, and change only what
-  you were asked to. Return the complete file, never a fragment.
+Rules for the game:
+- It's one self-contained HTML file, /index.html: its style and script inside it, nothing loaded
+  from anywhere else, and no network requests.
+- Pictures: the Artist's pictures in use are under ${shown(MADE_DIR)}pictures/. To use one, copy
+  its SVG into the page, or draw with canvas.
 ${VERSION_RULES}`;
 
-/** A Bigger room's game: a folder of files, and only the changed ones handed back. */
-const BIGGER_VERSION = `After the BRIEF, hand back each file you changed or added, whole, one after another:
+/** A Bigger room's game: a folder of files. */
+const BIGGER_VERSION = `${BUILD}
 
-FILE: index.html
-\`\`\`html
-<!doctype html>
-...
-\`\`\`
-
-FILE: js/game.js
-\`\`\`js
-...
-\`\`\`
-
-Rules for the files:
-- The game is a folder of files. index.html opens first, and loads the others with
+Rules for the game:
+- The game is a folder of files. index.html loads the others with
   <script src="js/....js"></script> and <link rel="stylesheet" href="....css">, in the order they
   should run. Use plain scripts that share globals, not modules or import statements, unless the
-  current version is already written as modules: then keep it that way, as its notes say. Give each
-  part of the game its own file, and put the numbers a student might change, such as speeds and
-  sizes, in a commented CONFIG object in js/config.js.
-- Start from the current version under "The game so far", if there is one, and change only what
-  you were asked to. Hand back only the files you changed or added, each one complete, never a
-  fragment. Files you don't hand back stay as they are.
+  current version is already written as modules: then keep it that way, as its notes say. Give
+  each part of the game its own file, and put the numbers a student might change, such as speeds
+  and sizes, in a commented CONFIG object in js/config.js.
+- Keep /NOTES.md, a short map of the code for the crew: what each file does, where CONFIG is,
+  and how the parts fit. Make it if the game hasn't got one, and update it when you add, remove
+  or rearrange files.
 - Nothing loads from the internet, and no network requests. The studio's shelf has
   ${THREE_NOTE}
   ${FONTS_NOTE}
-  Paths under ${SHELF_DIR} are the shelf's: never hand back a file there.
+  Files under ${shown(SHELF_DIR)} are the studio's: use them, but don't change them.
+- Pictures: the Artist's pictures in use are under ${shown(MADE_DIR)}pictures/. To use one, copy
+  its SVG into the game: into the page, or as a file such as img/mole.svg, shown with
+  <img src="img/mole.svg"> or a CSS url(). A script can't load a picture by its path, so to draw
+  one on a canvas, put it in the page as a hidden <img> and draw that.
 - Fill the window: size the canvas to the window at the screen's full resolution
   (devicePixelRatio), and keep it right when the window changes size.
 - Saving progress: localStorage works.
@@ -149,8 +153,9 @@ Rules for the picture: one standalone SVG with a viewBox; simple flat shapes; no
 links, no images or fonts from anywhere else, and no text unless asked; under 20 KB.`,
   tests: `When there's a version of the game, you can play it yourself with the play tool, the way a
 player would. Test it like this:
-- Read the current version's code and game.md first, so you know the controls and what should
-  happen.
+- Read game.md and the game's notes first, and view the code you need with
+  ${EDITOR}, so you know the controls and what should happen. You can read the game's
+  files, but not change them.
 - Play in small steps. Look after each thing you check, with what should be on the screen in
   "expect". Name the test in one word, like arrows or jump.
 - Look closely at each picture, and say only what you saw in it.
@@ -216,7 +221,7 @@ export function formatFor(makes: Makes, { bigger = false }: { bigger?: boolean }
   return format ? `${format}\n\n${TIDY}` : null;
 }
 
-const MARKER = /\n\s*(FILE|PICTURE|SOUNDS|MUSIC):/;
+const MARKER = /\n\s*(PICTURE|SOUNDS|MUSIC):/;
 
 function fenced(text: string, lang: string): string | null {
   const match = new RegExp("```(?:" + lang + ")?\\s*\\n([\\s\\S]*?)```", "i").exec(text);
@@ -231,12 +236,7 @@ export function splitMade(raw: string): { text: string; made: MadeDraft[] } {
   const tail = raw.slice(at).trim();
   const made: MadeDraft[] = [];
 
-  if (tail.startsWith("FILE:")) {
-    const files = filesFrom(tail);
-    if (Object.keys(files).length) {
-      made.push({ kind: "version", name: "", body: files[ENTRY] ?? "", files });
-    }
-  } else if (tail.startsWith("PICTURE:")) {
+  if (tail.startsWith("PICTURE:")) {
     const name = /^PICTURE:\s*([^\n`]*)/.exec(tail)?.[1]?.trim() ?? "";
     const svg = fenced(tail, "svg|xml");
     if (svg && /^<svg\b/i.test(svg) && svg.length < 100_000 && !/<script\b/i.test(svg)) {
@@ -268,29 +268,6 @@ export function splitMade(raw: string): { text: string; made: MadeDraft[] } {
     }
   }
   return { text, made };
-}
-
-/** The most files one version can hand back. */
-const MAX_FILES = 40;
-
-/**
- * A version's FILE blocks: "FILE:" (the page, index.html) or "FILE: js/game.js", each followed by
- * a fenced block that ends with a line of its own fence. A page that isn't HTML, and a path off
- * the folder or on the shelf, make nothing.
- */
-function filesFrom(tail: string): GameFiles {
-  const files: GameFiles = {};
-  const block = /(?:^|\n)[ \t]*FILE:[ \t]*([^\n]*)\n+[ \t]*```[^\n]*\n([\s\S]*?)\n[ \t]*```[ \t]*(?=\n|$)/g;
-  for (const match of tail.matchAll(block)) {
-    const named = (match[1] ?? "").replace(/[`"'*]/g, "").trim();
-    const path = named ? cleanPath(named) : ENTRY;
-    const body = (match[2] ?? "").trim();
-    if (!path || named.includes("..") || path.startsWith(SHELF_DIR) || !body) continue;
-    if (path === ENTRY && !/<(html|body|script|canvas|div)\b/i.test(body)) continue;
-    if (!(path in files) && Object.keys(files).length >= MAX_FILES) break;
-    files[path] = body;
-  }
-  return files;
 }
 
 /** One section of the tail, from its marker to the next marker or the end. */
@@ -366,7 +343,7 @@ export interface AskDraft {
   task: string;
 }
 
-const SECTION = /^\s*(FILE|PICTURE|SOUNDS|MUSIC|ASK|REMOVE):/;
+const SECTION = /^\s*(PICTURE|SOUNDS|MUSIC|ASK|REMOVE):/;
 const FENCE = /^\s*```/;
 
 /**

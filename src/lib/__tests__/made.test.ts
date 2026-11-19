@@ -9,37 +9,12 @@ import { formatFor, labelOf, splitExtras, splitMade } from "../made";
 const reply = (tail: string) => `SPOKEN:\nDone.\n\nBRIEF:\n## What I did\n\nIt works.\n\n${tail}`;
 
 describe("splitMade", () => {
-  it("finds a version, and leaves SPOKEN and BRIEF for the contribution", () => {
+  it("makes no version from a reply: the Engineer builds with its tools", () => {
     const { text, made } = splitMade(
       reply("FILE:\n```html\n<!doctype html><html><body><canvas></canvas></body></html>\n```"),
     );
     expect(text).toContain("It works.");
-    expect(text).not.toContain("FILE:");
-    const page = "<!doctype html><html><body><canvas></canvas></body></html>";
-    expect(made).toEqual([{ kind: "version", name: "", body: page, files: { "index.html": page } }]);
-  });
-
-  it("finds a Bigger room's version as several files, each named", () => {
-    const { text, made } = splitMade(
-      reply(
-        'FILE: index.html\n```html\n<html><body><script src="js/game.js"></script></body></html>\n```\n\nFILE: `js/game.js`\n```js\nconst fence = "```";\ndraw();\n```\n\nFILE: ./js/config.js\n```javascript\nconst CONFIG = {};\n```',
-      ),
-    );
-    expect(text).not.toContain("FILE:");
-    expect(made[0]?.files).toEqual({
-      "index.html": '<html><body><script src="js/game.js"></script></body></html>',
-      "js/game.js": 'const fence = "```";\ndraw();',
-      "js/config.js": "const CONFIG = {};",
-    });
-  });
-
-  it("makes nothing from a page that isn't HTML, a path off the folder, or one on the shelf", () => {
-    const files = (tail: string) => splitMade(reply(tail)).made[0]?.files;
-    expect(files("FILE:\n```html\njust words\n```")).toBeUndefined();
-    expect(files("FILE: ../outside.js\n```js\nx();\n```\n\nFILE: js/a.js\n```js\na();\n```")).toEqual({
-      "js/a.js": "a();",
-    });
-    expect(files("FILE: studio/three.js\n```js\nx();\n```")).toBeUndefined();
+    expect(made).toEqual([]);
   });
 
   it("finds a named picture, and refuses one with a script", () => {
@@ -124,7 +99,7 @@ describe("splitExtras", () => {
   });
 
   it("never reads a game's code as an ASK or a REMOVE", () => {
-    const game = "FILE:\n```html\n<script>\nASK: nobody\nREMOVE: #1\n</script>\n```";
+    const game = "Here's the bit that matters:\n```html\n<script>\nASK: nobody\nREMOVE: #1\n</script>\n```";
     const { text, ask, removes } = splitExtras(reply(game));
     expect(ask).toBeNull();
     expect(removes).toEqual([]);
@@ -229,14 +204,20 @@ describe("slugify", () => {
 });
 
 describe("formatFor", () => {
-  it("asks a Simple room's Engineer for one file, and a Bigger room's for changed files, with the shelf", () => {
+  it("has the Engineer build with its tools: one file in a Simple room, a folder with the shelf in a Bigger one", () => {
     const simple = formatFor("version") ?? "";
     const bigger = formatFor("version", { bigger: true }) ?? "";
-    expect(simple).toContain("One self-contained HTML file");
+    for (const format of [simple, bigger]) {
+      expect(format).toContain("str_replace_based_edit_tool");
+      expect(format).toContain("try_game");
+      expect(format).toContain("don't\npaste the game's code into the reply");
+      expect(format).not.toContain("FILE:");
+    }
+    expect(simple).toContain("one self-contained HTML file, /index.html");
     expect(simple).not.toContain("studio/three.js");
-    expect(bigger).toContain("FILE: js/game.js");
-    expect(bigger).toContain("Files you don't hand back stay as they are.");
+    expect(bigger).toContain("Keep /NOTES.md");
     expect(bigger).toContain('<script src="studio/three.js"></script>');
     expect(bigger).toContain("studio/fonts/vt323.css");
+    expect(bigger).toContain("/studio/made/pictures/");
   });
 });
