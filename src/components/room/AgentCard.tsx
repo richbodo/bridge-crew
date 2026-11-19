@@ -19,6 +19,8 @@ interface Props {
   duty?: string | null;
   packs?: string[];
   availablePacks?: { name: string; docCount: number }[];
+  /** The packs every crew member in this kind of room starts with. */
+  defaultPacks?: string[];
   busy?: boolean;
   onStop: () => void;
   onEngage: (brief: string) => void;
@@ -35,6 +37,7 @@ export function AgentCard({
   duty,
   packs = [],
   availablePacks = [],
+  defaultPacks = [],
   busy,
   onStop,
   onEngage,
@@ -45,11 +48,14 @@ export function AgentCard({
   const [brief, setBrief] = useState("");
   const [editing, setEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState(name ?? member.name);
-  const [dutyDraft, setDutyDraft] = useState(duty ?? member.blurb);
+  // The room's own duty, or the job's paragraph as tuned (src/lib/instructions.ts ignores a duty
+  // that's just the one-line blurb, which the box used to start from).
+  const roomDuty = duty?.trim() && duty.trim() !== member.blurb.trim() ? duty : null;
+  const [dutyDraft, setDutyDraft] = useState(roomDuty ?? member.duty);
   const [packDraft, setPackDraft] = useState<string[]>(packs);
 
   const label = name?.trim() || member.name;
-  const dutyText = duty?.trim() || member.blurb;
+  const dutyText = roomDuty?.trim() || member.blurb;
 
   const submit = () => {
     const text = brief.trim();
@@ -61,7 +67,7 @@ export function AgentCard({
 
   const startEdit = () => {
     setNameDraft(name ?? member.name);
-    setDutyDraft(duty ?? member.blurb);
+    setDutyDraft(roomDuty ?? member.duty);
     setPackDraft(packs);
     setOpen(false);
     setEditing(true);
@@ -71,7 +77,10 @@ export function AgentCard({
     setPackDraft((prev) => (prev.includes(pack) ? prev.filter((p) => p !== pack) : [...prev, pack]));
 
   const saveEdit = () => {
-    onSaveProfile({ name: nameDraft.trim(), duty: dutyDraft.trim(), contextPacks: packDraft });
+    // Left as the job's paragraph, the duty isn't the room's own, so later tuning still reaches it.
+    const own = dutyDraft.trim() === member.duty.trim() ? "" : dutyDraft.trim();
+    const renamed = nameDraft.trim() === member.name ? "" : nameDraft.trim();
+    onSaveProfile({ name: renamed, duty: own, contextPacks: packDraft });
     setEditing(false);
   };
 
@@ -105,7 +114,7 @@ export function AgentCard({
         </span>
       </header>
 
-      <p className="mt-3 min-h-8 text-xs leading-relaxed text-muted-foreground">
+      <p className="mt-3 line-clamp-3 min-h-8 text-xs leading-relaxed text-muted-foreground">
         {task ? <span className="text-card-foreground">{task}</span> : dutyText}
       </p>
       {progress ? <p className="mt-2 text-xs italic text-muted-foreground">{progress}</p> : null}
@@ -176,12 +185,17 @@ export function AgentCard({
               Duty prompt
             </label>
             <Textarea
-              rows={4}
+              rows={6}
+              aria-label="Duty prompt"
+              aria-describedby={`duty-note-${member.key}`}
               value={dutyDraft}
               placeholder={member.blurb}
               onChange={(e) => setDutyDraft(e.target.value)}
               className="mt-1 resize-none bg-background text-xs"
             />
+            <p id={`duty-note-${member.key}`} className="mt-1 text-[10px] text-muted-foreground">
+              This room only. Tune the crew, in the lobby, changes every room.
+            </p>
           </div>
           <div>
             <label className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
@@ -221,8 +235,8 @@ export function AgentCard({
               className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-foreground"
               onClick={() => {
                 setNameDraft(member.name);
-                setDutyDraft(member.blurb);
-                setPackDraft([]);
+                setDutyDraft(member.duty);
+                setPackDraft(defaultPacks);
               }}
             >
               Reset to default

@@ -198,6 +198,7 @@ These links work with the fake repositories:
 | GitHub links, games written as modules, GitHub's newest, Connect GitHub, and the key never reaching the page | `e2e/github.e2e.ts` |
 | A demo lobby's Game Studio room that opens with a game | `e2e/demo.e2e.ts` |
 | The lobby's choice and pages, Quick start, the chime and its switch, the working light, what's new | `e2e/lobby.e2e.ts`, `e2e/quick-start.e2e.ts` |
+| Tune the crew, Reassign starting from it, What it was told, Export and Import | `e2e/tune.e2e.ts`, `src/lib/__tests__/tuning.test.ts` |
 
 ```
 mac% just e2e e2e/game-studio.e2e.ts e2e/made.e2e.ts e2e/bigger.e2e.ts e2e/github.e2e.ts e2e/quick-start.e2e.ts

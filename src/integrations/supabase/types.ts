@@ -209,6 +209,30 @@ export type Database = {
           },
         ]
       }
+      crew_tuning: {
+        Row: {
+          body: string
+          part: string
+          template: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body: string
+          part: string
+          template: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body?: string
+          part?: string
+          template?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       floor_events: {
         Row: {
           actor: string | null
@@ -620,6 +644,7 @@ export type Database = {
           created_at: string
           ended_at: string | null
           id: string
+          instructions: string | null
           mode: string
           session_id: string
           started_at: string
@@ -633,6 +658,7 @@ export type Database = {
           created_at?: string
           ended_at?: string | null
           id?: string
+          instructions?: string | null
           mode?: string
           session_id: string
           started_at?: string
@@ -646,6 +672,7 @@ export type Database = {
           created_at?: string
           ended_at?: string | null
           id?: string
+          instructions?: string | null
           mode?: string
           session_id?: string
           started_at?: string

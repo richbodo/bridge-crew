@@ -24,8 +24,11 @@ aren't built yet; they're listed at the end.
   adviser.
 - **Guardrails.** You set them, using the norms you already follow for content, pace, sensory
   load, and cultural safety for Māori and Pacific students. The crew's built-in rules are
-  deliberately conservative. You can add your own guidance as a context pack (the **Context**
-  button) and attach it to the crew members you choose (**Reassign**).
+  deliberately conservative. Add your own guidance on **Tune the crew**: on the lobby's Game
+  Studio page, beside the crew. There you can change what each crew member does, such as asking
+  the Storyteller for a 100-word summary of each idea, or add notes for all of them. It applies
+  to every room on this laptop. The rules for young people can't be changed there. See
+  [users guide §16](users_guide.md#16-tune-the-crew).
 
 ## Starting a session
 

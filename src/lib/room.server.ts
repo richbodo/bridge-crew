@@ -28,7 +28,9 @@ import { Playtest, resultOf } from "./playtest.server";
 import { enforceSpeechCap } from "./speech";
 import { saveCurrent, saveVersion, type RoomName } from "./games.server";
 import { findAddressees, parseSummon, type Addressable } from "./summon";
+import { systemPromptFor } from "./instructions";
 import { jobOf, templateOf, type Job, type Template } from "./templates";
+import { applyTuning, tuningFromRows, type Tuning } from "./tuning";
 
 /**
  * The room's transitions, run by the server (docs/state_machines.md). The moves themselves
@@ -82,6 +84,19 @@ export interface RoomSettings {
 
 export function isBigger(settings: RoomSettings): boolean {
   return settings.games === "bigger";
+}
+
+/**
+ * This computer's Tune the crew changes for a kind of room, and the template with them applied
+ * (docs/plans/tune-the-crew-2026-11-19.md). Read at each run, so a change reaches open rooms.
+ */
+async function tunedFor(
+  sb: Client,
+  template: Template,
+): Promise<{ template: Template; tuning: Tuning }> {
+  const { data } = await sb.from("crew_tuning").select("part, body").eq("template", template.key);
+  const tuning = tuningFromRows(data);
+  return { template: applyTuning(template, tuning), tuning };
 }
 
 /** A room's template, settings and crew: what every transition needs to know. */
@@ -516,7 +531,9 @@ export async function executeRun(sb: Client, runId: string) {
   if (!run) return;
   const sessionId = run.session_id;
   const agent = run.agent;
-  const { template, settings, name, crew, nameOf } = await roomOf(sb, sessionId);
+  const room = await roomOf(sb, sessionId);
+  const { settings, name, crew, nameOf } = room;
+  const { template, tuning } = await tunedFor(sb, room.template);
   const me = crew.find((row) => row.agent === agent);
   const job = jobOf(template, agent);
   let playtest: ReturnType<typeof playtestFor> | undefined;
@@ -529,23 +546,25 @@ export async function executeRun(sb: Client, runId: string) {
     const build = tools.build;
     const packs = (me?.context_packs as string[] | null) ?? [];
     const context = await gatherContext(sb, sessionId, template, settings, packs, nameOf, job);
-    await sb
-      .from("agents_state")
-      .update({ progress: "gathering and drafting…", snapshot: null })
-      .eq("session_id", sessionId)
-      .eq("current_run_id", runId);
+    // What it's told, as tuned now and as this room reassigned it, kept with the run.
+    const instructions = systemPromptFor(
+      template,
+      job,
+      { name: me?.display_name ?? null, duty: me?.duty ?? null },
+      { bigger: isBigger(settings), notes: tuning.notes },
+    );
+    await Promise.all([
+      sb
+        .from("agents_state")
+        .update({ progress: "gathering and drafting…", snapshot: null })
+        .eq("session_id", sessionId)
+        .eq("current_run_id", runId),
+      sb.from("runs").update({ instructions }).eq("id", runId),
+    ]);
 
     const minutes = Math.round(RUN_TIME_LIMIT_MS / 60_000);
     const result = await withTimeout(
-      runAgentBrief(
-        template,
-        job,
-        run.task,
-        context.text,
-        { name: me?.display_name ?? null, duty: me?.duty ?? null },
-        tools.tools,
-        { bigger: isBigger(settings) },
-      ),
+      runAgentBrief(template, job, instructions, run.task, context.text, tools.tools),
       RUN_TIME_LIMIT_MS,
       `it took longer than ${minutes} minutes`,
     );
@@ -1318,7 +1337,7 @@ async function countTowardsScribe(sb: Client, sessionId: string) {
 /** Asks for a Scribe update. One runs at a time; any asked for meanwhile become one more. */
 export function requestScribe(sb: Client, sessionId: string) {
   void (async () => {
-    const { template } = await roomOf(sb, sessionId);
+    const { template } = await tunedFor(sb, (await roomOf(sb, sessionId)).template);
     const slug = template.doc.slug;
     const { data: start } = await sb.rpc("scribe_request", { _session: sessionId, _slug: slug });
     if (!start) return;

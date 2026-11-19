@@ -8,6 +8,10 @@ every time it runs. Packs live in two places and share one namespace:
 - **Session packs** — created from the room's **Context** panel and stored in the backend.
   A session pack with the same name as a repo pack *extends* it; it never shadows it.
 
+A pack is reading: facts and reference the crew should use. To change how a crew member works,
+such as how many ideas it offers or how long they are, use **Tune the crew** in the lobby
+([users guide §16](../users_guide.md#16-tune-the-crew)), which changes its instructions.
+
 ## Adding a repo pack
 
 1. `mkdir docs/context/<pack-name>` — lowercase, hyphenated. The folder name is the pack name.
