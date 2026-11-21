@@ -288,6 +288,15 @@ out, cache reads $0.20 and 5-minute cache writes $5):
   passed the playtest's 15-second step limit, so the game counted as stuck and restarted. That's
   Phase A's risk, "3D in the Tester's browser", seen: it needs a look before Phase C's 3D
   rehearsal.
+  - **Followed up 2026-11-21.** The cause was the browser, not the countdown: Playwright's
+    headless shell draws WebGL in software (SwiftShader), about 54 ms a frame for a 3D scene, so
+    6 s of game time (375 frames on the paused clock) took 20 s. Full Chromium, headless, draws
+    with the Mac's graphics chip (Metal): 5 ms a frame. The playtest now launches it, falling
+    back to the shell, and the installer downloads it. Each step's game time runs in 100 ms
+    slices, so a slow game stops at the limit with a look and is left where it was, while a
+    stuck one is still restarted, with the last picture taken during the step. Replayed on
+    version 2: the Tester's steps took 1.5 s in Chromium and 11.3 s in the shell, and a 10 s
+    wait in the shell stopped 9.2 s in at T-1, then flew on the next turn.
 - Both Engineers said what two seconds of trying couldn't check, and suggested asking the Tester.
 
 D and E can swap. Each phase keeps `docs/state_machines.md` and `docs/users_guide.md` in step,

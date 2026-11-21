@@ -37,7 +37,7 @@ export interface PlayStep {
 
 export const PLAY_TOOL = {
   name: "play",
-  description: `Play the current version of the game in a browser, the way a player would: press and hold keys, click, move the mouse, type, wait, and look at the screen. The steps run in order. Each look shows you a picture of the screen, with the sounds and music the game played and any errors since the look before. If the steps don't end with a look, one is added. The game is paused between your turns, so it only moves during your steps: take your time. The screen is ${SCREEN.width} by ${SCREEN.height} pixels, and x and y count from its top left corner. restart starts the game again from the beginning.`,
+  description: `Play the current version of the game in a browser, the way a player would: press and hold keys, click, move the mouse, type, wait, and look at the screen. The steps run in order. Each look shows you a picture of the screen, with the sounds and music the game played and any errors since the look before. If the steps don't end with a look, one is added. The game is paused between your turns, so it only moves during your steps: take your time. If the game draws too slowly for a step to finish in time, the step stops early with a look, and the game waits there for your next turn. The screen is ${SCREEN.width} by ${SCREEN.height} pixels, and x and y count from its top left corner. restart starts the game again from the beginning.`,
   inputSchema: {
     type: "object" as const,
     properties: {
@@ -167,6 +167,67 @@ export function pointOf(step: PlayStep): { x: number; y: number } {
   const clamp = (n: number | undefined, max: number) =>
     Math.round(Math.min(Math.max(n ?? max / 2, 0), max - 1));
   return { x: clamp(step.x, SCREEN.width), y: clamp(step.y, SCREEN.height) };
+}
+
+/** A step in words, as the Tester's looks say what it did: "Held → for 1 s". */
+export function stepLabel(step: PlayStep): string {
+  switch (step.do) {
+    case "press":
+    case "hold": {
+      const key = keyFor(step.key);
+      if (!key) return `Couldn't press “${step.key ?? ""}”, which isn't a key`;
+      return step.do === "hold"
+        ? `Held ${keyLabel(key)} for ${seconds(duration(step.ms, 500))}`
+        : `Pressed ${keyLabel(key)}`;
+    }
+    case "click": {
+      const { x, y } = pointOf(step);
+      return `Clicked at ${x}, ${y}`;
+    }
+    case "move": {
+      const { x, y } = pointOf(step);
+      return `Moved the mouse to ${x}, ${y}`;
+    }
+    case "type":
+      return `Typed “${step.text ?? ""}”`;
+    case "wait":
+      return `Waited ${seconds(duration(step.ms, 1000))}`;
+    case "restart":
+      return "Started the game again";
+    case "look":
+      return "Looked";
+  }
+}
+
+/** Whether the browser's WebGL renderer draws in software, without the graphics chip. */
+export function drawsInSoftware(renderer: string): boolean {
+  return /swiftshader|llvmpipe|software/i.test(renderer);
+}
+
+/** A step that ran out of real time while the game still ran, but slowly. */
+export interface SlowStep {
+  label: string;
+  /** The game's time that played, and the real time it took, in milliseconds. */
+  ran: number;
+  took: number;
+  /** Whether the test browser draws in software (drawsInSoftware). */
+  software: boolean;
+}
+
+/** What a slow step says, to the Tester and to try_game. */
+export function slowNote({ label, ran, took, software }: SlowStep): string {
+  const speed = Math.max(1, Math.round((ran / Math.max(took, 1)) * 100));
+  return [
+    `The game drew slowly. “${label}” ran out of time: only ${seconds(ran)} of the game's time played in ${seconds(took)}, about ${speed}% of real speed.`,
+    software
+      ? "This computer's test browser is drawing without the graphics chip, so the game is slower here than it will be for the player."
+      : "The test browser draws with this computer's graphics chip, so the game may be slow for the player too.",
+  ].join(" ");
+}
+
+/** What a stuck step says: which step, and how far into the game's time it got. */
+export function stuckNote(label: string, ran: number): string {
+  return `The game stopped responding during “${label}”${ran ? `, ${seconds(ran)} into it` : ""}.`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
