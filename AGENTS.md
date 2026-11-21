@@ -17,8 +17,11 @@ frozen: append corrections, never edit them.
 - **Crew model calls:** `src/lib/model.server.ts` — the Anthropic API, or canned `fixture`
   replies for tests. No local models.
 - **The Tester's playtest:** `src/lib/playtest.server.ts` plays the current version in
-  Playwright's headless Chromium (`playwright-core` is a runtime dependency, and the installer
-  downloads the browser), with the game's clock paused between the Tester's turns.
+  Playwright's Chromium, headless (`playwright-core` is a runtime dependency, and the installer
+  downloads the browser), with the game's clock paused between the Tester's turns. It launches
+  full Chromium, which draws with the Mac's graphics chip, and falls back to the headless shell,
+  which draws in software. Each step's game time runs in slices against a 15-second limit, so a
+  slow game stops at the limit with a look while a stuck one restarts.
 - **Games:** a version is a folder of files (`game_files`, stored by hash), run and shared as one
   file, its bundle (`src/lib/bundle.ts`). The **shelf** (`src/lib/shelf.ts`) is the libraries and
   fonts games may use: Three.js and fonts, built into `src/lib/vendor/` by `just shelf`. See

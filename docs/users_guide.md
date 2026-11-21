@@ -71,7 +71,7 @@ organization, and you make the key there.
    - installs Homebrew, which asks for the password you use to log in to the Mac (nothing shows
      on screen as you type it), and then the tools Bridge Crew needs;
    - downloads Bridge Crew into a folder called `bridge-crew` in your home folder, and the
-     browser the Tester plays games in (about 90 MB), which runs out of sight;
+     browser the Tester plays games in (about 130 MB), which runs out of sight;
    - asks for your API key. Paste it and press Return; it doesn't show on screen. The installer
      checks the key with Anthropic and saves it on the laptop only;
    - starts the local database once, which downloads about 2 GB;
@@ -224,6 +224,13 @@ shortcut, it also answers to other computers on the network.
   the Engineer to fix it. Granting the hail keeps the test, so the Tester can play it again on
   a later version; a test that wasn't kept has **Keep this**. **On screen** shows the pictures
   large.
+- **When a game is slow for the Tester.** Each of the Tester's steps has 15 seconds. If the game
+  draws too slowly to finish a step in that time, as a big 3D game can, the step stops there
+  with a picture and the game waits where it is, so the Tester carries on from it and doesn't
+  count the slowness as a bug. A game that stops responding altogether starts again from the
+  beginning, and the Tester reports it, with the last picture before it stopped. The Tester's
+  browser draws with the laptop's graphics chip; a laptop set up before November 2026 has a
+  slower one, and pasting the install line again gets the faster one.
 - **When a version crashes** on screen, the room says so, with the file and line in a folder
   game, and suggests "Ask the Engineer to fix it?" **Yes** starts the Engineer on it; **No
   thanks** leaves it.
@@ -299,6 +306,9 @@ shortcut, it also answers to other computers on the network.
   the install line again: it checks the key.
 - **"The browser for playing games didn't open."** The Tester says this when the browser it
   plays in is missing. Paste the install line into Terminal again; it downloads the browser.
+- **The Tester says the game drew slowly** and that the test browser "is drawing without the
+  graphics chip". The laptop has the older, slower browser. Paste the install line into Terminal
+  again; it adds the faster one.
 - **The browser can't connect to localhost.** The Game Studio isn't running. Double-click
   **Game Studio** on the Desktop; if it's already running, that opens it again.
 - **"Another program is using port 8080."** Something else on the Mac has the Game Studio's
