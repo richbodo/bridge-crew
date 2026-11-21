@@ -176,9 +176,9 @@ export async function tryGame(
     const played = await test.play([{ do: "wait", ms: TRY_MS }, { do: "look" }]);
     const look = played.looks[played.looks.length - 1];
     const errors = [...notes, ...(look?.errors ?? [])];
-    if (played.stuck) errors.push("The game stopped responding, perhaps stuck in a loop.");
+    if (played.stuck) errors.push(`${played.stuck} It's perhaps stuck in a loop.`);
     const text = [
-      `The game ran for ${TRY_MS / 1000} seconds.`,
+      played.slow ?? `The game ran for ${TRY_MS / 1000} seconds.`,
       errors.length ? errors.join("\n") : "No errors.",
       look?.heard.length ? `It played: ${look.heard.join(", ")}.` : "",
       look ? "This is the screen:" : "",

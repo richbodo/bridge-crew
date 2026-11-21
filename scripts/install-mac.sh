@@ -92,10 +92,12 @@ if ! bun install --frozen-lockfile >/dev/null 2>&1; then
 fi
 # The Tester plays each version in a browser that runs out of sight. Without it, everything but
 # the Tester's playing still works, so a failed download doesn't stop the install.
+# Full Chromium, not the slimmer headless shell, which draws 3D games ten times slower in software
+# (src/lib/playtest.server.ts). An earlier install has the shell, and this adds Chromium.
 # Under Bun, not Node: Playwright's downloader hangs on Node 26 (as in `just setup`).
-note "Getting the browser the Tester plays games in (about 90 MB, the first time)..."
-if ! bun --bun x playwright-core install --only-shell chromium >/dev/null 2>&1; then
-  bun --bun x playwright-core install --only-shell chromium \
+note "Getting the browser the Tester plays games in (about 130 MB, the first time)..."
+if ! bun --bun x playwright-core install --no-shell chromium >/dev/null 2>&1; then
+  bun --bun x playwright-core install --no-shell chromium \
     || note "That didn't download, so the Tester can't play games yet. Paste the install line again later."
 fi
 note "Ready."
